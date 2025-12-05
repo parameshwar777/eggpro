@@ -46,8 +46,21 @@ export const CommunitySelectPage = () => {
                            window.location.search.includes('code=');
       
       if (hasAuthParams) {
-        // Wait a bit for Supabase to process the OAuth callback
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Clear the URL params to avoid issues on refresh
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Wait for Supabase to process the OAuth callback and get session
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        while (attempts < maxAttempts) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
+          attempts++;
+        }
       }
       setIsProcessingOAuth(false);
     };
