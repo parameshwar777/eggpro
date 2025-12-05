@@ -21,7 +21,7 @@ const products = [
   {
     id: "2",
     name: "Premium Brown Eggs",
-    description: "Organic brown eggs with enhanced nutritional value. Rich in Omega-3 and...",
+    description: "Premium brown eggs with enhanced nutritional value. Rich in protein...",
     image: "https://images.unsplash.com/photo-1569288052389-dac9b0ac9eac?w=400",
     price: 77,
     originalPrice: 96,
@@ -30,11 +30,21 @@ const products = [
   },
   {
     id: "3",
-    name: "Country Eggs",
-    description: "Traditional country eggs from native hens. Rich flavor and nutrition...",
+    name: "Cage Free Premium Brown Eggs",
+    description: "Cage-free premium brown eggs from humanely raised hens...",
     image: "https://images.unsplash.com/photo-1598965675045-45c5e72c7d05?w=400",
-    price: 89,
-    originalPrice: 110,
+    price: 106,
+    originalPrice: 132,
+    rating: 4.9,
+    packSizes: [6, 12, 30],
+  },
+  {
+    id: "4",
+    name: "Organic Country Eggs",
+    description: "Traditional organic country eggs from native hens. Rich flavor...",
+    image: "https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=400",
+    price: 144,
+    originalPrice: 180,
     rating: 4.9,
     packSizes: [6, 12],
   },
@@ -49,6 +59,7 @@ const features = [
 export const HomePage = () => {
   const { totalItems } = useCart();
   const navigate = useNavigate();
+  const selectedCommunity = localStorage.getItem("selectedCommunity") || "Select Community";
 
   return (
     <MobileLayout>
@@ -56,7 +67,7 @@ export const HomePage = () => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="gradient-warm px-4 pt-6 pb-8 rounded-b-[2rem]"
+        className="gradient-warm px-4 pt-5 pb-8 rounded-b-[2rem]"
       >
         {/* Location & Cart */}
         <div className="flex items-center justify-between mb-4">
@@ -66,11 +77,11 @@ export const HomePage = () => {
             className="flex items-center gap-2 flex-1 min-w-0"
           >
             <div className="p-2 bg-card/20 rounded-full backdrop-blur-sm flex-shrink-0">
-              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+              <MapPin className="w-4 h-4 text-foreground" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs text-foreground/70">Delivering to</p>
-              <p className="font-semibold text-foreground text-sm sm:text-base truncate">My Home Bhooja</p>
+              <p className="text-[10px] text-foreground/70">Delivering to</p>
+              <p className="font-semibold text-foreground text-sm truncate">{selectedCommunity}</p>
             </div>
           </motion.div>
           <motion.button
@@ -78,7 +89,7 @@ export const HomePage = () => {
             animate={{ x: 0, opacity: 1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate("/cart")}
-            className="relative p-2.5 sm:p-3 bg-card rounded-xl shadow-soft flex-shrink-0"
+            className="relative p-2.5 bg-card rounded-xl shadow-soft flex-shrink-0"
           >
             <ShoppingCart className="w-5 h-5 text-foreground" />
             {totalItems > 0 && (
@@ -104,12 +115,12 @@ export const HomePage = () => {
             animate={{ rotate: [0, 5, -5, 0] }}
             transition={{ repeat: Infinity, duration: 4 }}
             src={eggMascot}
-            alt="EggPro"
-            className="w-10 h-10 sm:w-12 sm:h-12"
+            alt="Nutri Eggs"
+            className="w-10 h-10"
           />
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">EggPro</h1>
-            <p className="text-xs sm:text-sm text-foreground/70">Nature's Immunity Boosters</p>
+            <h1 className="text-xl font-bold text-foreground">Nutri Eggs</h1>
+            <p className="text-xs text-foreground/70">Nature's Immunity Boosters</p>
           </div>
         </motion.div>
 
@@ -142,20 +153,20 @@ export const HomePage = () => {
         transition={{ delay: 0.3 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => navigate("/refer")}
-        className="mx-4 -mt-4 bg-primary rounded-2xl p-3 sm:p-4 shadow-elevated cursor-pointer"
+        className="mx-4 -mt-4 bg-primary rounded-2xl p-3 shadow-elevated cursor-pointer"
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ repeat: Infinity, duration: 2 }}
               className="p-2 bg-card/20 rounded-xl flex-shrink-0"
             >
-              <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
+              <Zap className="w-5 h-5 text-primary-foreground" />
             </motion.div>
             <div className="min-w-0">
-              <p className="font-semibold text-primary-foreground text-sm sm:text-base">Refer & Earn ₹20</p>
-              <p className="text-xs sm:text-sm text-primary-foreground/80 truncate">Friends get ₹40 off first order</p>
+              <p className="font-semibold text-primary-foreground text-sm">Refer & Earn ₹20</p>
+              <p className="text-xs text-primary-foreground/80 truncate">Friends get ₹40 off first order</p>
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-primary-foreground flex-shrink-0" />
@@ -163,7 +174,7 @@ export const HomePage = () => {
       </motion.div>
 
       {/* Products Section */}
-      <div className="px-4 py-6">
+      <div className="px-4 py-5">
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -180,7 +191,7 @@ export const HomePage = () => {
           </Badge>
         </motion.div>
 
-        <div className="space-y-4 pb-4">
+        <div className="space-y-3 pb-4">
           {products.map((product, i) => (
             <ProductCard key={product.id} {...product} delay={0.5 + i * 0.1} />
           ))}
