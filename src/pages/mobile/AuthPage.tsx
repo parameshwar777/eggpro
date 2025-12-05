@@ -37,7 +37,7 @@ export const AuthPage = () => {
         const { error } = await signInWithEmail(email, password);
         if (error) throw error;
         toast({ title: "Welcome back!", description: "You've successfully signed in." });
-        navigate("/home");
+        navigate("/community");
       } else {
         if (!fullName) {
           toast({ title: "Error", description: "Please enter your name", variant: "destructive" });
@@ -47,6 +47,7 @@ export const AuthPage = () => {
         const { error } = await signUpWithEmail(email, password, fullName);
         if (error) throw error;
         toast({ title: "Account created!", description: "Welcome to EggPro!" });
+        navigate("/community");
         navigate("/home");
       }
     } catch (error: any) {
@@ -99,7 +100,7 @@ export const AuthPage = () => {
       const { error } = await verifyOtp(formattedPhone, otp);
       if (error) throw error;
       toast({ title: "Success!", description: "Phone verified successfully." });
-      navigate("/home");
+      navigate("/community");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {

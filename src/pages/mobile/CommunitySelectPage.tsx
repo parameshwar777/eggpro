@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, ChevronDown, Check, Navigation, Search, X } from "lucide-react";
+import { MapPin, ChevronDown, Check, Navigation, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { EggLogo } from "@/components/EggLogo";
 import eggMascot from "@/assets/egg-mascot.png";
 
 interface Community {
@@ -23,6 +25,7 @@ const features = [
 
 export const CommunitySelectPage = () => {
   const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [filteredCommunities, setFilteredCommunities] = useState<Community[]>([]);
   const [selectedCommunity, setSelectedCommunity] = useState("");
@@ -35,8 +38,14 @@ export const CommunitySelectPage = () => {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   useEffect(() => {
-    fetchCommunities();
-  }, []);
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (user) fetchCommunities();
+  }, [user]);
 
   useEffect(() => {
     if (searchQuery) {
@@ -130,17 +139,27 @@ export const CommunitySelectPage = () => {
     return R * c;
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-[100dvh] gradient-hero flex items-center justify-center">
+        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
+          <EggLogo size="lg" />
+        </motion.div>
+      </div>
+    );
+  }
+
   if (showMapPicker) {
     return (
-      <div className="min-h-[100dvh] bg-slate-100 flex flex-col items-center justify-center p-6">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-white rounded-2xl p-8 shadow-lg w-full max-w-sm text-center">
+      <div className="min-h-[100dvh] gradient-hero flex flex-col items-center justify-center p-6">
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-card rounded-2xl p-8 shadow-elevated w-full max-w-sm text-center">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Navigation className="w-10 h-10 text-primary" />
           </div>
-          <h2 className="text-xl font-bold mb-2">Find Your Location</h2>
+          <h2 className="text-xl font-bold text-foreground mb-2">Find Your Location</h2>
           <p className="text-muted-foreground text-sm mb-6">We'll check if we deliver to your area</p>
           
-          <Button onClick={getCurrentLocation} disabled={isLoadingLocation} className="w-full h-12 mb-4">
+          <Button onClick={getCurrentLocation} disabled={isLoadingLocation} className="w-full h-12 mb-4 gradient-hero text-white">
             {isLoadingLocation ? (
               <><div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2" /> Getting Location...</>
             ) : (
@@ -148,7 +167,7 @@ export const CommunitySelectPage = () => {
             )}
           </Button>
           
-          <button onClick={() => setShowMapPicker(false)} className="text-muted-foreground text-sm">
+          <button onClick={() => setShowMapPicker(false)} className="text-primary font-medium text-sm">
             Go back to community list
           </button>
         </motion.div>
@@ -158,35 +177,35 @@ export const CommunitySelectPage = () => {
 
   if (showComingSoon) {
     return (
-      <div className="min-h-[100dvh] bg-amber-50 flex flex-col items-center justify-center p-6">
+      <div className="min-h-[100dvh] gradient-hero flex flex-col items-center justify-center p-6">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">🚀</motion.div>
-        <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-2xl font-bold text-foreground mb-2 text-center">Coming Soon!</motion.h1>
-        <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-muted-foreground text-center mb-6">
+        <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-2xl font-bold text-white mb-2 text-center">Coming Soon!</motion.h1>
+        <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-white/80 text-center mb-6">
           We're expanding to your area soon. We'll notify you when we start delivering to your community!
         </motion.p>
-        <Button variant="outline" onClick={() => { setShowComingSoon(false); setShowMapPicker(false); }}>Go Back</Button>
+        <Button variant="secondary" onClick={() => { setShowComingSoon(false); setShowMapPicker(false); }}>Go Back</Button>
       </div>
     );
   }
 
   if (showSuccess) {
     return (
-      <div className="min-h-[100dvh] bg-green-50 flex flex-col items-center justify-center p-6">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
-          <Check className="w-12 h-12 text-green-600" />
+      <div className="min-h-[100dvh] gradient-hero flex flex-col items-center justify-center p-6">
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-6">
+          <Check className="w-12 h-12 text-white" />
         </motion.div>
-        <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-2xl font-bold text-foreground mb-2">Great News!</motion.h1>
-        <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-muted-foreground mb-2">We deliver to</motion.p>
-        <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="text-xl font-bold text-primary mb-6">{selectedCommunity}</motion.p>
+        <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-2xl font-bold text-white mb-2">Great News!</motion.h1>
+        <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-white/80 mb-2">We deliver to</motion.p>
+        <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="text-xl font-bold text-white mb-6">{selectedCommunity}</motion.p>
         <div className="flex gap-6 text-center">
           {[{ icon: "🕐", label: "6-9 AM" }, { icon: "🚚", label: "Free Delivery" }, { icon: "🛡️", label: "FSSAI Certified" }].map((item, i) => (
-            <motion.div key={item.label} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 + i * 0.1 }} className="flex flex-col items-center gap-1">
+            <motion.div key={item.label} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 + i * 0.1 }} className="flex flex-col items-center gap-1 bg-white/10 backdrop-blur-sm p-3 rounded-xl">
               <span className="text-2xl">{item.icon}</span>
-              <span className="text-xs text-muted-foreground">{item.label}</span>
+              <span className="text-xs text-white/90">{item.label}</span>
             </motion.div>
           ))}
         </div>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-6 text-sm text-muted-foreground flex items-center gap-2">
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-6 text-sm text-white/80 flex items-center gap-2">
           <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>⏳</motion.span>
           Redirecting to shop...
         </motion.p>
@@ -195,17 +214,17 @@ export const CommunitySelectPage = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-amber-50 flex flex-col">
+    <div className="min-h-[100dvh] gradient-hero flex flex-col">
       <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center px-6 pt-12">
           <motion.img initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.5 }} src={eggMascot} alt="Nutri Eggs" className="w-20 h-20 mb-4" />
-          <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-3xl font-bold text-foreground mb-1">Nutri Eggs</motion.h1>
-          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-primary font-medium mb-8">Nature's Immunity Boosters</motion.p>
+          <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-3xl font-bold text-white mb-1">Nutri Eggs</motion.h1>
+          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-white/90 font-medium mb-8">Nature's Immunity Boosters</motion.p>
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="flex gap-4">
             {features.map((feature, i) => (
-              <motion.div key={feature.label} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3 + i * 0.1 }} className="flex flex-col items-center gap-2 bg-card p-4 rounded-2xl shadow-sm min-w-[90px]">
+              <motion.div key={feature.label} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3 + i * 0.1 }} className="flex flex-col items-center gap-2 bg-white/15 backdrop-blur-sm p-4 rounded-2xl shadow-sm min-w-[90px]">
                 <span className="text-2xl">{feature.icon}</span>
-                <span className="text-xs text-foreground font-medium">{feature.label}</span>
+                <span className="text-xs text-white font-medium">{feature.label}</span>
               </motion.div>
             ))}
           </motion.div>
@@ -252,7 +271,7 @@ export const CommunitySelectPage = () => {
             </AnimatePresence>
           </div>
 
-          <Button onClick={handleContinue} disabled={!selectedCommunity} className="w-full h-14 text-lg rounded-xl mb-4">Continue</Button>
+          <Button onClick={handleContinue} disabled={!selectedCommunity} className="w-full h-14 text-lg rounded-xl mb-4 gradient-hero text-white">Continue</Button>
           <button onClick={handleNotListed} className="w-full text-center text-primary font-medium py-2">My community is not listed</button>
         </motion.div>
       </div>
