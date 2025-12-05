@@ -7,6 +7,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 // Mobile Pages
+import { SplashPage } from "./pages/mobile/SplashPage";
 import { CommunitySelectPage } from "./pages/mobile/CommunitySelectPage";
 import { HomePage } from "./pages/mobile/HomePage";
 import { OrdersPage } from "./pages/mobile/OrdersPage";
@@ -43,7 +44,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               {/* Mobile User Routes */}
-              <Route path="/" element={<CommunitySelectPage />} />
+              <Route path="/" element={<SplashPage />} />
+              <Route path="/community" element={<CommunitySelectPage />} />
               <Route path="/home" element={<HomePage />} />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/refer" element={<ReferPage />} />
