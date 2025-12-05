@@ -36,12 +36,30 @@ export const CommunitySelectPage = () => {
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [isProcessingOAuth, setIsProcessingOAuth] = useState(true);
+
+  // Handle OAuth callback - wait for auth to settle
+  useEffect(() => {
+    const checkOAuthCallback = async () => {
+      // Check if there are OAuth tokens in the URL (hash or query params)
+      const hasAuthParams = window.location.hash.includes('access_token') || 
+                           window.location.search.includes('code=');
+      
+      if (hasAuthParams) {
+        // Wait a bit for Supabase to process the OAuth callback
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      setIsProcessingOAuth(false);
+    };
+    
+    checkOAuthCallback();
+  }, []);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !isProcessingOAuth && !user) {
       navigate("/auth");
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, isProcessingOAuth, navigate]);
 
   useEffect(() => {
     if (user) fetchCommunities();
@@ -139,7 +157,7 @@ export const CommunitySelectPage = () => {
     return R * c;
   };
 
-  if (authLoading) {
+  if (authLoading || isProcessingOAuth) {
     return (
       <div className="min-h-[100dvh] gradient-hero flex items-center justify-center">
         <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
