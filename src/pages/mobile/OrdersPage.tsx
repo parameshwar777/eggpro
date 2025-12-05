@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Package } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
 
 const tabs = ["Ongoing", "Completed"];
 
 export const OrdersPage = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const orders: any[] = []; // Empty for now
+  const orders: any[] = [];
 
   return (
     <MobileLayout>
@@ -15,12 +14,12 @@ export const OrdersPage = () => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="gradient-warm px-4 pt-8 pb-12 rounded-b-[2rem]"
+        className="gradient-warm px-4 pt-6 pb-10 rounded-b-[2rem]"
       >
         <motion.h1
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-2xl font-bold text-foreground"
+          className="text-xl sm:text-2xl font-bold text-foreground"
         >
           My Orders
         </motion.h1>
@@ -28,7 +27,7 @@ export const OrdersPage = () => {
           initial={{ y: -10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="text-foreground/70"
+          className="text-foreground/70 text-sm"
         >
           Track your orders and subscriptions
         </motion.p>
@@ -39,13 +38,13 @@ export const OrdersPage = () => {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="mx-4 -mt-6 bg-card rounded-2xl p-1.5 shadow-elevated flex"
+        className="mx-4 -mt-5 bg-card rounded-2xl p-1.5 shadow-elevated flex"
       >
         {tabs.map((tab, i) => (
           <button
             key={tab}
             onClick={() => setActiveTab(i)}
-            className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+            className={`flex-1 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
               activeTab === i
                 ? "bg-foreground text-background"
                 : "text-muted-foreground"
@@ -70,16 +69,16 @@ export const OrdersPage = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="bg-card rounded-2xl p-8 shadow-card flex flex-col items-center"
+              className="bg-card rounded-2xl p-6 sm:p-8 shadow-card flex flex-col items-center"
             >
               <motion.div
                 animate={{ y: [0, -5, 0] }}
                 transition={{ repeat: Infinity, duration: 2 }}
-                className="text-6xl mb-4"
+                className="text-5xl sm:text-6xl mb-4"
               >
                 📦
               </motion.div>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 No {activeTab === 0 ? "ongoing" : "completed"} orders
               </p>
             </motion.div>

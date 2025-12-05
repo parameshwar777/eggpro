@@ -63,14 +63,14 @@ export const HomePage = () => {
           <motion.div
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 flex-1 min-w-0"
           >
-            <div className="p-2 bg-card/20 rounded-full backdrop-blur-sm">
-              <MapPin className="w-5 h-5 text-foreground" />
+            <div className="p-2 bg-card/20 rounded-full backdrop-blur-sm flex-shrink-0">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
             </div>
-            <div>
-              <p className="text-xs text-foreground/70">Delivering to</p>
-              <p className="font-semibold text-foreground">My Home Bhooja</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs text-foreground/70">Delivering to</p>
+              <p className="font-semibold text-foreground text-sm sm:text-base truncate">My Home Bhooja</p>
             </div>
           </motion.div>
           <motion.button
@@ -78,7 +78,7 @@ export const HomePage = () => {
             animate={{ x: 0, opacity: 1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate("/cart")}
-            className="relative p-3 bg-card rounded-xl shadow-soft"
+            className="relative p-2.5 sm:p-3 bg-card rounded-xl shadow-soft flex-shrink-0"
           >
             <ShoppingCart className="w-5 h-5 text-foreground" />
             {totalItems > 0 && (
@@ -105,11 +105,11 @@ export const HomePage = () => {
             transition={{ repeat: Infinity, duration: 4 }}
             src={eggMascot}
             alt="EggPro"
-            className="w-12 h-12"
+            className="w-10 h-10 sm:w-12 sm:h-12"
           />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">EggPro</h1>
-            <p className="text-sm text-foreground/70">Nature's Immunity Boosters</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">EggPro</h1>
+            <p className="text-xs sm:text-sm text-foreground/70">Nature's Immunity Boosters</p>
           </div>
         </motion.div>
 
@@ -118,7 +118,7 @@ export const HomePage = () => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="flex gap-2"
+          className="flex gap-2 flex-wrap"
         >
           {features.map((feature, i) => (
             <motion.div
@@ -126,10 +126,10 @@ export const HomePage = () => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.3 + i * 0.1 }}
-              className="flex items-center gap-1.5 bg-card/30 backdrop-blur-sm px-3 py-1.5 rounded-full"
+              className="flex items-center gap-1 bg-card/30 backdrop-blur-sm px-2.5 py-1.5 rounded-full"
             >
-              <feature.icon className="w-4 h-4 text-foreground" />
-              <span className="text-sm text-foreground">{feature.label}</span>
+              <feature.icon className="w-3.5 h-3.5 text-foreground" />
+              <span className="text-xs text-foreground">{feature.label}</span>
             </motion.div>
           ))}
         </motion.div>
@@ -142,23 +142,23 @@ export const HomePage = () => {
         transition={{ delay: 0.3 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => navigate("/refer")}
-        className="mx-4 -mt-4 bg-primary rounded-2xl p-4 shadow-elevated cursor-pointer"
+        className="mx-4 -mt-4 bg-primary rounded-2xl p-3 sm:p-4 shadow-elevated cursor-pointer"
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ repeat: Infinity, duration: 2 }}
-              className="p-2 bg-card/20 rounded-xl"
+              className="p-2 bg-card/20 rounded-xl flex-shrink-0"
             >
-              <Zap className="w-6 h-6 text-primary-foreground" />
+              <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
             </motion.div>
-            <div>
-              <p className="font-semibold text-primary-foreground">Refer & Earn ₹20</p>
-              <p className="text-sm text-primary-foreground/80">Friends get ₹40 off first order</p>
+            <div className="min-w-0">
+              <p className="font-semibold text-primary-foreground text-sm sm:text-base">Refer & Earn ₹20</p>
+              <p className="text-xs sm:text-sm text-primary-foreground/80 truncate">Friends get ₹40 off first order</p>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-primary-foreground" />
+          <ChevronRight className="w-5 h-5 text-primary-foreground flex-shrink-0" />
         </div>
       </motion.div>
 
@@ -171,10 +171,10 @@ export const HomePage = () => {
           className="flex items-center justify-between mb-4"
         >
           <div>
-            <h2 className="text-xl font-bold text-foreground">Fresh Eggs</h2>
-            <p className="text-sm text-muted-foreground">Premium quality, delivered fresh</p>
+            <h2 className="text-lg sm:text-xl font-bold text-foreground">Fresh Eggs</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">Premium quality, delivered fresh</p>
           </div>
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
             <Zap className="w-3 h-3 mr-1" />
             20% OFF
           </Badge>
