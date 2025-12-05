@@ -17,34 +17,34 @@ export const BottomNav = () => {
     <motion.nav
       initial={{ y: 100 }}
       animate={{ y: 0 }}
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-50 bg-card/95 backdrop-blur-xl border-t border-border shadow-elevated safe-area-pb"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border"
     >
-      <div className="flex items-center justify-around py-2 px-2">
+      <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (
             <NavLink
               key={item.to}
               to={item.to}
-              className="relative flex flex-col items-center py-1.5 px-3 min-w-[60px]"
+              className="relative flex flex-col items-center py-2 px-4 min-w-[64px]"
             >
               <motion.div
                 whileTap={{ scale: 0.9 }}
                 className={cn(
-                  "p-2 rounded-xl transition-all duration-300",
+                  "p-2 rounded-xl transition-all duration-200",
                   isActive ? "bg-primary/10" : "bg-transparent"
                 )}
               >
                 <item.icon
                   className={cn(
-                    "w-5 h-5 transition-colors duration-300",
+                    "w-6 h-6 transition-colors duration-200",
                     isActive ? "text-primary" : "text-muted-foreground"
                   )}
                 />
               </motion.div>
               <span
                 className={cn(
-                  "text-[10px] mt-0.5 font-medium transition-colors duration-300",
+                  "text-xs mt-1 font-medium transition-colors duration-200",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
@@ -53,7 +53,7 @@ export const BottomNav = () => {
               {isActive && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute -bottom-1 w-1 h-1 rounded-full bg-primary"
+                  className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-primary"
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
