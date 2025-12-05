@@ -37,7 +37,7 @@ export const AccountPage = () => {
   const menuItems = [
     { icon: MapPin, label: "Delivery Addresses", desc: "Add your addresses", to: "/addresses", color: "bg-blue-100 text-blue-600" },
     { icon: Wallet, label: "Wallet", desc: "₹0 available", to: "/wallet", color: "bg-green-100 text-green-600" },
-    { icon: RefreshCw, label: "My Subscriptions", desc: "No active subscriptions", to: "#", color: "bg-purple-100 text-purple-600" },
+    { icon: RefreshCw, label: "My Subscriptions", desc: "View active subscriptions", to: "/subscriptions", color: "bg-purple-100 text-purple-600" },
     { icon: Bell, label: "Notifications", desc: `${notifications.length} new`, to: "/notifications", color: "bg-red-100 text-red-600" },
     { icon: HelpCircle, label: "Help & Support", desc: "Get help or contact us", to: "#", color: "bg-cyan-100 text-cyan-600" },
   ];
