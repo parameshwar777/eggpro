@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 
 // Mobile Pages
+import { CommunitySelectPage } from "./pages/mobile/CommunitySelectPage";
 import { HomePage } from "./pages/mobile/HomePage";
 import { OrdersPage } from "./pages/mobile/OrdersPage";
 import { ReferPage } from "./pages/mobile/ReferPage";
@@ -27,7 +28,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/home" replace />} />
+            <Route path="/" element={<CommunitySelectPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/refer" element={<ReferPage />} />
