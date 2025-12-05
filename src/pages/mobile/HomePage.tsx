@@ -163,7 +163,7 @@ export const HomePage = () => {
       </motion.div>
 
       {/* Products Section */}
-      <div className="px-4 mt-6">
+      <div className="px-4 py-6">
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -171,8 +171,8 @@ export const HomePage = () => {
           className="flex items-center justify-between mb-4"
         >
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-foreground">Fresh Eggs</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">Premium quality, delivered fresh</p>
+            <h2 className="text-lg font-bold text-foreground">Fresh Eggs</h2>
+            <p className="text-xs text-muted-foreground">Premium quality, delivered fresh</p>
           </div>
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
             <Zap className="w-3 h-3 mr-1" />
@@ -180,7 +180,7 @@ export const HomePage = () => {
           </Badge>
         </motion.div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 pb-4">
           {products.map((product, i) => (
             <ProductCard key={product.id} {...product} delay={0.5 + i * 0.1} />
           ))}

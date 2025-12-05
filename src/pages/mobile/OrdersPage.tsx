@@ -14,12 +14,12 @@ export const OrdersPage = () => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="gradient-warm px-4 pt-6 pb-10 rounded-b-[2rem]"
+        className="gradient-warm px-4 pt-6 pb-12 rounded-b-3xl"
       >
         <motion.h1
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-xl sm:text-2xl font-bold text-foreground"
+          className="text-xl font-bold text-foreground"
         >
           My Orders
         </motion.h1>
@@ -44,7 +44,7 @@ export const OrdersPage = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(i)}
-            className={`flex-1 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
+            className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
               activeTab === i
                 ? "bg-foreground text-background"
                 : "text-muted-foreground"
@@ -62,19 +62,19 @@ export const OrdersPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="px-4 mt-6"
+          className="px-4 py-6"
         >
           {orders.length === 0 ? (
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="bg-card rounded-2xl p-6 sm:p-8 shadow-card flex flex-col items-center"
+              className="bg-card rounded-2xl p-8 shadow-card flex flex-col items-center"
             >
               <motion.div
                 animate={{ y: [0, -5, 0] }}
                 transition={{ repeat: Infinity, duration: 2 }}
-                className="text-5xl sm:text-6xl mb-4"
+                className="text-6xl mb-4"
               >
                 📦
               </motion.div>
