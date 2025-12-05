@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   LayoutDashboard, Package, ShoppingCart, Bell, Tag, 
-  LogOut, Menu, X, Plus, Pencil, Trash2
+  LogOut, Menu, X, Plus, Pencil, Trash2, Upload, Image
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,7 @@ export const AdminProducts = () => {
     unit: "",
     image_url: ""
   });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -62,6 +63,19 @@ export const AdminProducts = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData({ ...formData, image_url: reader.result as string });
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async () => {
@@ -198,17 +212,39 @@ export const AdminProducts = () => {
                 <Plus className="w-4 h-4 mr-2" /> Add Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogContent className="bg-slate-800 border-slate-700 max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-white">{editingProduct ? "Edit Product" : "Add Product"}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
+                {/* Image Upload */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-300">Product Image</label>
+                  <div className="flex flex-col items-center gap-3">
+                    {formData.image_url ? (
+                      <div className="relative w-full h-40 rounded-lg overflow-hidden bg-slate-700">
+                        <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                        <button onClick={() => setFormData({ ...formData, image_url: "" })} className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="w-full h-40 border-2 border-dashed border-slate-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                        <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                        <span className="text-sm text-slate-400">Click to upload image</span>
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                      </label>
+                    )}
+                    {uploading && <p className="text-sm text-slate-400">Uploading...</p>}
+                  </div>
+                  <p className="text-xs text-slate-500">Or paste image URL below</p>
+                </div>
+                <Input placeholder="Image URL" value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
                 <Input placeholder="Product Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
                 <Input placeholder="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
                 <Input placeholder="Price" type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
                 <Input placeholder="Original Price" type="number" value={formData.original_price} onChange={(e) => setFormData({ ...formData, original_price: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
                 <Input placeholder="Unit (e.g., 6 Eggs)" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
-                <Input placeholder="Image URL" value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
                 <Button onClick={handleSubmit} className="w-full">{editingProduct ? "Update" : "Add"} Product</Button>
               </div>
             </DialogContent>
