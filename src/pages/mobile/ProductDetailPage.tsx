@@ -73,229 +73,231 @@ export const ProductDetailPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background max-w-md mx-auto pb-24">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="gradient-warm px-4 py-4"
-      >
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-full bg-card shadow-soft"
-        >
-          <ArrowLeft className="w-5 h-5 text-foreground" />
-        </motion.button>
-      </motion.div>
-
-      {/* Product Image */}
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="bg-card mx-4 -mt-2 rounded-2xl overflow-hidden shadow-elevated"
-      >
-        <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
-      </motion.div>
-
-      {/* Content */}
-      <div className="px-4 mt-4 space-y-4">
-        {/* Title & Rating */}
+    <div className="min-h-screen bg-background w-full">
+      <div className="max-w-lg mx-auto pb-28">
+        {/* Header */}
         <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-start justify-between"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="gradient-warm px-4 py-3"
         >
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-4 h-4 ${i < Math.floor(product.rating) ? "fill-primary text-primary" : "text-muted"}`}
-                  />
-                ))}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full bg-card shadow-soft"
+          >
+            <ArrowLeft className="w-5 h-5 text-foreground" />
+          </motion.button>
+        </motion.div>
+
+        {/* Product Image */}
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-card mx-4 -mt-2 rounded-2xl overflow-hidden shadow-elevated"
+        >
+          <img src={product.image} alt={product.name} className="w-full h-40 sm:h-48 object-cover" />
+        </motion.div>
+
+        {/* Content */}
+        <div className="px-4 mt-4 space-y-4">
+          {/* Title & Rating */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="flex items-start justify-between gap-3"
+          >
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">{product.name}</h1>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <div className="flex items-center gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-3.5 h-3.5 ${i < Math.floor(product.rating) ? "fill-primary text-primary" : "text-muted"}`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {product.rating} ({product.reviews} reviews)
+                </span>
               </div>
-              <span className="text-sm text-muted-foreground">
-                {product.rating} ({product.reviews} reviews)
-              </span>
             </div>
-          </div>
-          <Badge className="bg-green-500 text-white">20% OFF</Badge>
-        </motion.div>
+            <Badge className="bg-green-500 text-white flex-shrink-0">20% OFF</Badge>
+          </motion.div>
 
-        {/* Description */}
-        <motion.p
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.15 }}
-          className="text-muted-foreground"
-        >
-          {product.description}
-        </motion.p>
+          {/* Description */}
+          <motion.p
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.15 }}
+            className="text-sm text-muted-foreground"
+          >
+            {product.description}
+          </motion.p>
 
-        {/* Features */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex gap-2 overflow-x-auto pb-2"
-        >
-          {product.features.map((feature: string, i: number) => (
-            <div
-              key={feature}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 whitespace-nowrap"
-            >
-              {i === 0 && <Leaf className="w-4 h-4" />}
-              {i === 1 && <Shield className="w-4 h-4" />}
-              {i === 2 && <Zap className="w-4 h-4" />}
-              <span className="text-sm">{feature}</span>
+          {/* Features */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex gap-2 flex-wrap"
+          >
+            {product.features.map((feature: string, i: number) => (
+              <div
+                key={feature}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700"
+              >
+                {i === 0 && <Leaf className="w-3.5 h-3.5" />}
+                {i === 1 && <Shield className="w-3.5 h-3.5" />}
+                {i === 2 && <Zap className="w-3.5 h-3.5" />}
+                <span className="text-xs">{feature}</span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Pack Size */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.25 }}
+            className="bg-card rounded-2xl p-3 sm:p-4 shadow-card"
+          >
+            <p className="font-medium text-foreground mb-2.5 text-sm sm:text-base">Select Pack Size</p>
+            <div className="flex gap-2 sm:gap-3">
+              {packSizes.map((size) => (
+                <motion.button
+                  key={size}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedPack(size)}
+                  className={`flex-1 py-3 sm:py-4 rounded-xl border-2 transition-all ${
+                    selectedPack === size
+                      ? "border-primary bg-primary/5"
+                      : "border-border"
+                  }`}
+                >
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{size}</p>
+                  <p className="text-xs text-muted-foreground">eggs</p>
+                </motion.button>
+              ))}
             </div>
-          ))}
-        </motion.div>
+          </motion.div>
 
-        {/* Pack Size */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.25 }}
-          className="bg-card rounded-2xl p-4 shadow-card"
-        >
-          <p className="font-medium text-foreground mb-3">Select Pack Size</p>
-          <div className="flex gap-3">
-            {packSizes.map((size) => (
+          {/* Purchase Option */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="bg-card rounded-2xl p-3 sm:p-4 shadow-card"
+          >
+            <p className="font-medium text-foreground mb-2.5 text-sm sm:text-base">Choose Option</p>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <motion.button
-                key={size}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedPack(size)}
-                className={`flex-1 py-4 rounded-xl border-2 transition-all ${
-                  selectedPack === size
-                    ? "border-primary bg-primary/5"
-                    : "border-border"
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setIsSubscription(false)}
+                className={`p-3 sm:p-4 rounded-xl border-2 transition-all ${
+                  !isSubscription ? "border-primary" : "border-border"
                 }`}
               >
-                <p className="text-2xl font-bold text-foreground">{size}</p>
-                <p className="text-sm text-muted-foreground">eggs</p>
+                <div className="w-4 h-4 rounded-full border-2 border-current mx-auto mb-1.5" />
+                <p className="font-medium text-foreground text-sm">Buy Once</p>
+                <p className="text-base sm:text-lg font-bold text-foreground">₹{currentPrice.original}</p>
               </motion.button>
-            ))}
-          </div>
-        </motion.div>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setIsSubscription(true)}
+                className={`p-3 sm:p-4 rounded-xl border-2 relative transition-all ${
+                  isSubscription ? "border-primary bg-primary/5" : "border-border"
+                }`}
+              >
+                <Badge className="absolute -top-2 right-1 sm:right-2 bg-green-500 text-white text-[10px]">
+                  BEST VALUE
+                </Badge>
+                <div className={`w-4 h-4 rounded-full border-2 mx-auto mb-1.5 ${isSubscription ? "bg-primary border-primary" : "border-current"}`}>
+                  {isSubscription && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-full h-full rounded-full bg-primary flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-primary-foreground rounded-full" />
+                  </motion.div>}
+                </div>
+                <p className="font-medium text-foreground text-sm">Subscribe</p>
+                <p className="text-base sm:text-lg font-bold text-primary">₹{currentPrice.price}</p>
+              </motion.button>
+            </div>
+          </motion.div>
 
-        {/* Purchase Option */}
+          {/* Quantity */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.35 }}
+            className="bg-card rounded-2xl p-3 sm:p-4 shadow-card flex items-center justify-between"
+          >
+            <p className="font-medium text-foreground text-sm sm:text-base">Quantity</p>
+            <div className="flex items-center gap-3">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="p-2 rounded-full bg-secondary"
+              >
+                <Minus className="w-4 h-4 text-foreground" />
+              </motion.button>
+              <span className="text-lg sm:text-xl font-bold text-foreground w-6 text-center">{quantity}</span>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setQuantity(quantity + 1)}
+                className="p-2 rounded-full bg-primary text-primary-foreground"
+              >
+                <Plus className="w-4 h-4" />
+              </motion.button>
+            </div>
+          </motion.div>
+
+          {/* Nutrition */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="bg-card rounded-2xl p-3 sm:p-4 shadow-card"
+          >
+            <p className="font-medium text-foreground mb-2.5 text-sm sm:text-base">Nutrition per 2 eggs (100g)</p>
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+              {Object.entries(product.nutrition).map(([key, value]) => (
+                <div key={key} className="text-center p-2 bg-secondary rounded-lg">
+                  <p className="text-xs sm:text-sm font-semibold text-primary">{value as string}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{key}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Bottom Bar */}
         <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="bg-card rounded-2xl p-4 shadow-card"
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-card border-t border-border p-3 sm:p-4 z-20"
         >
-          <p className="font-medium text-foreground mb-3">Choose Option</p>
-          <div className="grid grid-cols-2 gap-3">
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsSubscription(false)}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                !isSubscription ? "border-primary" : "border-border"
-              }`}
-            >
-              <div className="w-5 h-5 rounded-full border-2 border-current mx-auto mb-2" />
-              <p className="font-medium text-foreground">Buy Once</p>
-              <p className="text-lg font-bold text-foreground">₹{currentPrice.original}</p>
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsSubscription(true)}
-              className={`p-4 rounded-xl border-2 relative transition-all ${
-                isSubscription ? "border-primary bg-primary/5" : "border-border"
-              }`}
-            >
-              <Badge className="absolute -top-2 right-2 bg-green-500 text-white text-xs">
-                BEST VALUE
-              </Badge>
-              <div className={`w-5 h-5 rounded-full border-2 mx-auto mb-2 ${isSubscription ? "bg-primary border-primary" : "border-current"}`}>
-                {isSubscription && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-full h-full rounded-full bg-primary flex items-center justify-center">
-                  <div className="w-2 h-2 bg-primary-foreground rounded-full" />
-                </motion.div>}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl sm:text-2xl font-bold text-foreground">₹{finalPrice * quantity}</span>
+                {isSubscription && (
+                  <span className="text-xs sm:text-sm text-muted-foreground line-through">
+                    ₹{currentPrice.original * quantity}
+                  </span>
+                )}
               </div>
-              <p className="font-medium text-foreground">Subscribe</p>
-              <p className="text-lg font-bold text-primary">₹{currentPrice.price}</p>
-            </motion.button>
-          </div>
-        </motion.div>
-
-        {/* Quantity */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.35 }}
-          className="bg-card rounded-2xl p-4 shadow-card flex items-center justify-between"
-        >
-          <p className="font-medium text-foreground">Quantity</p>
-          <div className="flex items-center gap-4">
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="p-2 rounded-full bg-secondary"
-            >
-              <Minus className="w-4 h-4 text-foreground" />
-            </motion.button>
-            <span className="text-xl font-bold text-foreground w-8 text-center">{quantity}</span>
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setQuantity(quantity + 1)}
-              className="p-2 rounded-full bg-primary text-primary-foreground"
-            >
-              <Plus className="w-4 h-4" />
-            </motion.button>
-          </div>
-        </motion.div>
-
-        {/* Nutrition */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="bg-card rounded-2xl p-4 shadow-card"
-        >
-          <p className="font-medium text-foreground mb-3">Nutrition per 2 eggs (100g)</p>
-          <div className="grid grid-cols-4 gap-2">
-            {Object.entries(product.nutrition).map(([key, value]) => (
-              <div key={key} className="text-center p-2 bg-secondary rounded-lg">
-                <p className="text-sm font-semibold text-primary">{value as string}</p>
-                <p className="text-xs text-muted-foreground capitalize">{key}</p>
-              </div>
-            ))}
+              {isSubscription && (
+                <p className="text-xs sm:text-sm text-green-600 font-medium">You save ₹{savings * quantity}</p>
+              )}
+            </div>
+            <Button size="lg" className="px-5 sm:px-8" onClick={handleAddToCart}>
+              <Plus className="w-4 h-4 mr-1.5" />
+              Add to Cart
+            </Button>
           </div>
         </motion.div>
       </div>
-
-      {/* Bottom Bar */}
-      <motion.div
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 max-w-md mx-auto"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-foreground">₹{finalPrice * quantity}</span>
-              {isSubscription && (
-                <span className="text-sm text-muted-foreground line-through">
-                  ₹{currentPrice.original * quantity}
-                </span>
-              )}
-            </div>
-            {isSubscription && (
-              <p className="text-sm text-green-600 font-medium">You save ₹{savings * quantity}</p>
-            )}
-          </div>
-          <Button size="lg" className="px-8" onClick={handleAddToCart}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add to Cart
-          </Button>
-        </div>
-      </motion.div>
     </div>
   );
 };
