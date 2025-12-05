@@ -60,6 +60,17 @@ export const ProductDetailPage = () => {
   const { addToCart } = useCart();
   
   const product = products[id || "1"];
+  
+  // Handle invalid product ID
+  if (!product) {
+    return (
+      <div className="min-h-[100dvh] bg-background w-full flex flex-col items-center justify-center">
+        <p className="text-muted-foreground mb-4">Product not found</p>
+        <Button onClick={() => navigate("/home")}>Back to Home</Button>
+      </div>
+    );
+  }
+  
   const packSizes = Object.keys(product.prices).map(Number);
   
   const [selectedPack, setSelectedPack] = useState(packSizes[0]);

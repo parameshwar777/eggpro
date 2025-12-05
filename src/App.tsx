@@ -19,6 +19,8 @@ import { ProductDetailPage } from "./pages/mobile/ProductDetailPage";
 import { CartPage } from "./pages/mobile/CartPage";
 import { AuthPage } from "./pages/mobile/AuthPage";
 import { NotificationsPage } from "./pages/mobile/NotificationsPage";
+import { SubscriptionPage } from "./pages/mobile/SubscriptionPage";
+import { SubscriptionsPage } from "./pages/mobile/SubscriptionsPage";
 
 // Admin Pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
@@ -56,6 +58,8 @@ const App = () => (
               <Route path="/cart" element={<CartPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/subscription" element={<SubscriptionPage />} />
+              <Route path="/subscriptions" element={<SubscriptionsPage />} />
 
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminPage />} />

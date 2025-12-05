@@ -295,26 +295,27 @@ export const CartPage = () => {
             <motion.div
               initial={{ y: 100 }}
               animate={{ y: 0 }}
-              className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-card border-t border-border p-4 z-20"
+              className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-20"
             >
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Amount</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground">₹{totalPrice}</p>
+              <div className="max-w-lg mx-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Total Amount</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground">₹{totalPrice}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Delivery</p>
+                    <p className="text-base sm:text-lg font-bold text-green-600">FREE</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Delivery</p>
-                  <p className="text-base sm:text-lg font-bold text-green-600">FREE</p>
-                </div>
+                <Button 
+                  className="w-full gradient-hero text-white h-14 text-lg font-semibold rounded-xl" 
+                  size="lg"
+                  onClick={() => navigate("/subscription")}
+                >
+                  Proceed to Subscribe
+                </Button>
               </div>
-              <Button 
-                className="w-full gradient-hero text-white" 
-                size="lg"
-                onClick={handleCheckout}
-                disabled={isProcessing}
-              >
-                {isProcessing ? "Processing..." : `Pay ₹${totalPrice}`}
-              </Button>
             </motion.div>
           </>
         )}
