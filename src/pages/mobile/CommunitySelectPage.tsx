@@ -36,43 +36,13 @@ export const CommunitySelectPage = () => {
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [isProcessingOAuth, setIsProcessingOAuth] = useState(true);
 
-  // Handle OAuth callback - wait for auth to settle
+  // Redirect to auth if not logged in (wait for auth to finish loading)
   useEffect(() => {
-    const checkOAuthCallback = async () => {
-      // Check if there are OAuth tokens in the URL (hash or query params)
-      const hasAuthParams = window.location.hash.includes('access_token') || 
-                           window.location.search.includes('code=');
-      
-      if (hasAuthParams) {
-        // Clear the URL params to avoid issues on refresh
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        // Wait for Supabase to process the OAuth callback and get session
-        let attempts = 0;
-        const maxAttempts = 10;
-        
-        while (attempts < maxAttempts) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            break;
-          }
-          await new Promise(resolve => setTimeout(resolve, 500));
-          attempts++;
-        }
-      }
-      setIsProcessingOAuth(false);
-    };
-    
-    checkOAuthCallback();
-  }, []);
-
-  useEffect(() => {
-    if (!authLoading && !isProcessingOAuth && !user) {
+    if (!authLoading && !user) {
       navigate("/auth");
     }
-  }, [user, authLoading, isProcessingOAuth, navigate]);
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (user) fetchCommunities();
@@ -170,7 +140,7 @@ export const CommunitySelectPage = () => {
     return R * c;
   };
 
-  if (authLoading || isProcessingOAuth) {
+  if (authLoading) {
     return (
       <div className="min-h-[100dvh] gradient-hero flex items-center justify-center">
         <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
