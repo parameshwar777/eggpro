@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn } from "lucide-react";
+import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn, Settings } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,16 +8,25 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const AccountPage = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+  const selectedCommunity = localStorage.getItem("selectedCommunity") || "";
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+    if (user) fetchProfile();
+  }, [user]);
 
   const fetchNotifications = async () => {
     const { data } = await supabase.from("notifications").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5);
     setNotifications(data || []);
+  };
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    setProfile(data);
   };
 
   const handleLogout = async () => {
@@ -33,25 +42,35 @@ export const AccountPage = () => {
     { icon: HelpCircle, label: "Help & Support", desc: "Get help or contact us", to: "#", color: "bg-cyan-100 text-cyan-600" },
   ];
 
+  const userName = profile?.full_name || user?.user_metadata?.full_name || "User";
+
   return (
     <MobileLayout>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="gradient-warm px-4 pt-6 pb-16 rounded-b-3xl">
-        <motion.h1 initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-xl font-bold text-foreground">My Account</motion.h1>
+        <div className="flex items-center justify-between">
+          <motion.h1 initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-xl font-bold text-foreground">My Account</motion.h1>
+          {isAdmin && (
+            <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/admin")} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium">
+              <Settings className="w-4 h-4" />Admin
+            </motion.button>
+          )}
+        </div>
       </motion.div>
 
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mx-4 -mt-10 bg-card rounded-2xl p-5 shadow-elevated">
         <div className="flex items-center gap-4">
           <motion.div whileHover={{ scale: 1.1 }} className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-xl font-bold text-primary-foreground">{user?.email?.[0]?.toUpperCase() || "G"}</span>
+            <span className="text-xl font-bold text-primary-foreground">{userName[0]?.toUpperCase() || "G"}</span>
           </motion.div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-foreground">{user ? "Welcome!" : "Guest User"}</h2>
+            <h2 className="font-semibold text-foreground">{user ? userName : "Guest User"}</h2>
             <p className="text-sm text-muted-foreground truncate">{user?.email || "Sign in to continue"}</p>
+            {selectedCommunity && <div className="flex items-center gap-1 mt-1"><MapPin className="w-3 h-3 text-primary" /><span className="text-xs text-primary">{selectedCommunity}</span></div>}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4 mt-5 pt-4 border-t border-border">
           <div className="text-center"><p className="text-lg font-bold text-foreground">₹0</p><p className="text-xs text-muted-foreground">Wallet</p></div>
-          <div className="text-center border-x border-border"><p className="text-lg font-bold text-foreground">0</p><p className="text-xs text-muted-foreground">Orders</p></div>
+          <div className="text-center border-x border-border"><p className="text-lg font-bold text-foreground">0</p><p className="text-xs text-muted-foreground">Subscriptions</p></div>
           <div className="text-center flex flex-col items-center"><div className="flex items-center gap-0.5"><Star className="w-4 h-4 fill-primary text-primary" /><span className="text-lg font-bold text-foreground">4.8</span></div><p className="text-xs text-muted-foreground">Rating</p></div>
         </div>
       </motion.div>
@@ -64,7 +83,6 @@ export const AccountPage = () => {
             <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
           </motion.button>
         ))}
-
         {user ? (
           <motion.button initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} whileTap={{ scale: 0.98 }} onClick={handleLogout} className="w-full bg-red-50 rounded-xl p-4 shadow-card flex items-center gap-3">
             <div className="p-3 rounded-xl bg-red-100 text-red-600 flex-shrink-0"><LogOut className="w-5 h-5" /></div>

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      communities: {
+        Row: {
+          city: string
+          created_at: string
+          delivery_hours: string
+          id: string
+          is_active: boolean | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          radius: number
+        }
+        Insert: {
+          city?: string
+          created_at?: string
+          delivery_hours?: string
+          id?: string
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          radius?: number
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          delivery_hours?: string
+          id?: string
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          radius?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

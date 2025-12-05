@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MapPin, ShoppingCart, Leaf, Shield, Truck, ChevronRight, Zap } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
@@ -5,50 +6,19 @@ import { ProductCard } from "@/components/mobile/ProductCard";
 import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 import eggMascot from "@/assets/egg-mascot.png";
 
-const products = [
-  {
-    id: "1",
-    name: "Premium White Eggs",
-    description: "Farm fresh white eggs from free-range hens. Nature's immunity boosters...",
-    image: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400",
-    price: 62,
-    originalPrice: 78,
-    rating: 4.8,
-    packSizes: [6, 12, 30],
-  },
-  {
-    id: "2",
-    name: "Premium Brown Eggs",
-    description: "Premium brown eggs with enhanced nutritional value. Rich in protein...",
-    image: "https://images.unsplash.com/photo-1569288052389-dac9b0ac9eac?w=400",
-    price: 77,
-    originalPrice: 96,
-    rating: 4.8,
-    packSizes: [6, 12, 30],
-  },
-  {
-    id: "3",
-    name: "Cage Free Premium Brown Eggs",
-    description: "Cage-free premium brown eggs from humanely raised hens...",
-    image: "https://images.unsplash.com/photo-1598965675045-45c5e72c7d05?w=400",
-    price: 106,
-    originalPrice: 132,
-    rating: 4.9,
-    packSizes: [6, 12, 30],
-  },
-  {
-    id: "4",
-    name: "Organic Country Eggs",
-    description: "Traditional organic country eggs from native hens. Rich flavor...",
-    image: "https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=400",
-    price: 144,
-    originalPrice: 180,
-    rating: 4.9,
-    packSizes: [6, 12],
-  },
-];
+interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  price: number;
+  original_price: number | null;
+  unit: string | null;
+  in_stock: boolean | null;
+}
 
 const features = [
   { icon: Leaf, label: "Farm Fresh" },
@@ -60,6 +30,25 @@ export const HomePage = () => {
   const { totalItems } = useCart();
   const navigate = useNavigate();
   const selectedCommunity = localStorage.getItem("selectedCommunity") || "Select Community";
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("in_stock", true)
+      .order("name");
+    
+    if (!error && data) {
+      setProducts(data);
+    }
+    setIsLoading(false);
+  };
 
   return (
     <MobileLayout>
@@ -191,11 +180,30 @@ export const HomePage = () => {
           </Badge>
         </motion.div>
 
-        <div className="space-y-3 pb-4">
-          {products.map((product, i) => (
-            <ProductCard key={product.id} {...product} delay={0.5 + i * 0.1} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">No products available</div>
+        ) : (
+          <div className="space-y-3 pb-4">
+            {products.map((product, i) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                description={product.description || "Fresh farm eggs"}
+                image={product.image_url || "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400"}
+                price={product.price}
+                originalPrice={product.original_price || product.price}
+                rating={4.8}
+                packSizes={[6, 12, 30]}
+                delay={0.5 + i * 0.1}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </MobileLayout>
   );

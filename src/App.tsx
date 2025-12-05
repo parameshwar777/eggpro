@@ -22,10 +22,12 @@ import { NotificationsPage } from "./pages/mobile/NotificationsPage";
 // Admin Pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { AdminPage } from "./pages/admin/AdminPage";
 import { AdminProducts } from "./pages/admin/AdminProducts";
 import { AdminOrders } from "./pages/admin/AdminOrders";
 import { AdminNotifications } from "./pages/admin/AdminNotifications";
 import { AdminOffers } from "./pages/admin/AdminOffers";
+import { AdminCommunities } from "./pages/admin/AdminCommunities";
 
 import NotFound from "./pages/NotFound";
 
@@ -54,12 +56,14 @@ const App = () => (
               <Route path="/notifications" element={<NotificationsPage />} />
 
               {/* Admin Routes */}
+              <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/products" element={<AdminProducts />} />
               <Route path="/admin/orders" element={<AdminOrders />} />
               <Route path="/admin/notifications" element={<AdminNotifications />} />
               <Route path="/admin/offers" element={<AdminOffers />} />
+              <Route path="/admin/communities" element={<AdminCommunities />} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
