@@ -8,13 +8,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { EggLogo } from "@/components/EggLogo";
+import { supabase } from "@/integrations/supabase/client";
 
-type AuthMode = "login" | "signup" | "phone" | "otp";
+type AuthMode = "login" | "signup" | "phone" | "otp" | "email-otp";
 
 export const AuthPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithPhone, verifyOtp } = useAuth();
+  const { signInWithEmail, signInWithGoogle, signInWithPhone, verifyOtp } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
@@ -22,8 +23,10 @@ export const AuthPage = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [emailOtp, setEmailOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingSignup, setPendingSignup] = useState<{ email: string; password: string; fullName: string } | null>(null);
 
   const handleEmailAuth = async () => {
     if (!email || !password) {
@@ -44,12 +47,80 @@ export const AuthPage = () => {
           setIsLoading(false);
           return;
         }
-        const { error } = await signUpWithEmail(email, password, fullName);
-        if (error) throw error;
-        toast({ title: "Account created!", description: "Welcome to EggPro!" });
-        navigate("/community");
-        navigate("/home");
+        // Send OTP to email for verification
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false, // Don't create user yet, just send OTP
+          }
+        });
+        
+        if (error && !error.message.includes("Signups not allowed")) {
+          throw error;
+        }
+        
+        // Store pending signup data
+        setPendingSignup({ email, password, fullName });
+        
+        // Actually send OTP for verification
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: true,
+            data: { full_name: fullName }
+          }
+        });
+        
+        if (otpError) throw otpError;
+        
+        toast({ title: "OTP Sent!", description: "Please check your email for the verification code." });
+        setMode("email-otp");
       }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    if (emailOtp.length !== 6) {
+      toast({ title: "Error", description: "Please enter the 6-digit OTP", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: emailOtp,
+        type: "email"
+      });
+      
+      if (error) throw error;
+      
+      toast({ title: "Email Verified!", description: "Welcome to EggPro!" });
+      navigate("/community");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendEmailOtp = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          data: pendingSignup ? { full_name: pendingSignup.fullName } : undefined
+        }
+      });
+      
+      if (error) throw error;
+      toast({ title: "OTP Resent!", description: "Please check your email." });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -119,10 +190,10 @@ export const AuthPage = () => {
           <EggLogo size="lg" />
         </div>
         <h1 className="text-2xl font-bold text-white text-center">
-          {mode === "login" ? "Welcome Back" : mode === "signup" ? "Create Account" : mode === "phone" ? "Phone Login" : "Verify OTP"}
+          {mode === "login" ? "Welcome Back" : mode === "signup" ? "Create Account" : mode === "phone" ? "Phone Login" : mode === "email-otp" ? "Verify Email" : "Verify OTP"}
         </h1>
         <p className="text-white/80 text-center mt-1 text-sm">
-          {mode === "login" ? "Sign in to continue" : mode === "signup" ? "Join EggPro today" : mode === "phone" ? "Enter your phone number" : "Enter the code sent to your phone"}
+          {mode === "login" ? "Sign in to continue" : mode === "signup" ? "Join EggPro today" : mode === "phone" ? "Enter your phone number" : mode === "email-otp" ? "Enter the code sent to your email" : "Enter the code sent to your phone"}
         </p>
       </div>
 
@@ -207,33 +278,35 @@ export const AuthPage = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
+                {mode === "login" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <Button
                   className="w-full h-12 gradient-hero text-white"
-                  onClick={handleEmailAuth}
+                  onClick={mode === "signup" ? handleEmailAuth : handleEmailAuth}
                   disabled={isLoading}
                 >
-                  {isLoading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
+                  {isLoading ? "Please wait..." : mode === "login" ? "Sign In" : "Send OTP to Email"}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
@@ -245,6 +318,59 @@ export const AuthPage = () => {
                     {mode === "login" ? "Sign Up" : "Sign In"}
                   </button>
                 </p>
+              </motion.div>
+            )}
+
+            {mode === "email-otp" && (
+              <motion.div
+                key="email-otp-form"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Mail className="w-8 h-8 text-primary" />
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Enter the 6-digit code sent to<br />
+                    <span className="font-semibold text-foreground">{email}</span>
+                  </p>
+                  <InputOTP maxLength={6} value={emailOtp} onChange={setEmailOtp}>
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                <Button
+                  className="w-full h-12 gradient-hero text-white"
+                  onClick={handleVerifyEmailOtp}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Verifying..." : "Verify & Create Account"}
+                </Button>
+
+                <button
+                  onClick={handleResendEmailOtp}
+                  disabled={isLoading}
+                  className="w-full text-center text-sm text-primary font-medium"
+                >
+                  Resend OTP
+                </button>
+
+                <button
+                  onClick={() => { setMode("signup"); setEmailOtp(""); }}
+                  className="w-full text-center text-sm text-muted-foreground"
+                >
+                  Change email address
+                </button>
               </motion.div>
             )}
 
