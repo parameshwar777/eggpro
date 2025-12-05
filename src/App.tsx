@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 // Mobile Pages
 import { CommunitySelectPage } from "./pages/mobile/CommunitySelectPage";
@@ -15,6 +16,16 @@ import { WalletPage } from "./pages/mobile/WalletPage";
 import { AddressPage } from "./pages/mobile/AddressPage";
 import { ProductDetailPage } from "./pages/mobile/ProductDetailPage";
 import { CartPage } from "./pages/mobile/CartPage";
+import { AuthPage } from "./pages/mobile/AuthPage";
+import { NotificationsPage } from "./pages/mobile/NotificationsPage";
+
+// Admin Pages
+import { AdminLogin } from "./pages/admin/AdminLogin";
+import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { AdminProducts } from "./pages/admin/AdminProducts";
+import { AdminOrders } from "./pages/admin/AdminOrders";
+import { AdminNotifications } from "./pages/admin/AdminNotifications";
+import { AdminOffers } from "./pages/admin/AdminOffers";
 
 import NotFound from "./pages/NotFound";
 
@@ -22,26 +33,40 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <CartProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<CommunitySelectPage />} />
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/refer" element={<ReferPage />} />
-            <Route path="/account" element={<AccountPage />} />
-            <Route path="/wallet" element={<WalletPage />} />
-            <Route path="/addresses" element={<AddressPage />} />
-            <Route path="/product/:id" element={<ProductDetailPage />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </CartProvider>
+    <AuthProvider>
+      <CartProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Mobile User Routes */}
+              <Route path="/" element={<CommunitySelectPage />} />
+              <Route path="/home" element={<HomePage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/refer" element={<ReferPage />} />
+              <Route path="/account" element={<AccountPage />} />
+              <Route path="/wallet" element={<WalletPage />} />
+              <Route path="/addresses" element={<AddressPage />} />
+              <Route path="/product/:id" element={<ProductDetailPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+
+              {/* Admin Routes */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
+              <Route path="/admin/orders" element={<AdminOrders />} />
+              <Route path="/admin/notifications" element={<AdminNotifications />} />
+              <Route path="/admin/offers" element={<AdminOffers />} />
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </CartProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
