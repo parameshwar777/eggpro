@@ -29,9 +29,17 @@ export const AuthPage = () => {
   const [pendingSignup, setPendingSignup] = useState<{ email: string; password: string; fullName: string } | null>(null);
 
   const handleEmailAuth = async () => {
-    if (!email || !password) {
-      toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
-      return;
+    if (mode === "login") {
+      if (!email || !password) {
+        toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
+        return;
+      }
+    } else {
+      // Signup mode - only needs name and email for OTP
+      if (!email || !fullName) {
+        toast({ title: "Error", description: "Please enter your name and email", variant: "destructive" });
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -42,27 +50,10 @@ export const AuthPage = () => {
         toast({ title: "Welcome back!", description: "You've successfully signed in." });
         navigate("/community");
       } else {
-        if (!fullName) {
-          toast({ title: "Error", description: "Please enter your name", variant: "destructive" });
-          setIsLoading(false);
-          return;
-        }
-        // Send OTP to email for verification
-        const { error } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: false, // Don't create user yet, just send OTP
-          }
-        });
-        
-        if (error && !error.message.includes("Signups not allowed")) {
-          throw error;
-        }
-        
         // Store pending signup data
-        setPendingSignup({ email, password, fullName });
+        setPendingSignup({ email, password: "", fullName });
         
-        // Actually send OTP for verification
+        // Send OTP for email verification
         const { error: otpError } = await supabase.auth.signInWithOtp({
           email,
           options: {
