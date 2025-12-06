@@ -19,7 +19,7 @@ declare global {
   }
 }
 
-type FrequencyType = "daily" | "alternate" | "weekly" | "onetime";
+type FrequencyType = "daily" | "alternate" | "weekly";
 
 export const SubscriptionPage = () => {
   const navigate = useNavigate();
@@ -36,15 +36,14 @@ export const SubscriptionPage = () => {
   const [referralCode, setReferralCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [useWallet, setUseWallet] = useState(false);
-  const [walletBalance] = useState(0); // This would come from actual wallet data
+  const [walletBalance] = useState(0);
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
   const frequencies: { value: FrequencyType; label: string }[] = [
     { value: "daily", label: "Daily" },
-    { value: "alternate", label: "Alternate" },
+    { value: "alternate", label: "Alternate Days" },
     { value: "weekly", label: "Weekly" },
-    { value: "onetime", label: "Onetime" },
   ];
 
   const handlePayment = async () => {
@@ -64,7 +63,6 @@ export const SubscriptionPage = () => {
     try {
       // If wallet has enough balance and user wants to use it
       if (useWallet && walletBalance >= totalPrice) {
-        // Deduct from wallet and create subscription
         const { error: subError } = await supabase
           .from("orders")
           .insert({
@@ -82,7 +80,7 @@ export const SubscriptionPage = () => {
             })),
             total_amount: totalPrice,
             payment_status: "completed",
-            order_status: frequency === "onetime" ? "confirmed" : "subscription_active"
+            order_status: "subscription_active"
           });
 
         if (subError) throw subError;
@@ -130,7 +128,7 @@ export const SubscriptionPage = () => {
         amount: razorpayData.amount,
         currency: razorpayData.currency,
         name: "EggPro",
-        description: frequency === "onetime" ? "Fresh Eggs Delivery" : `${frequency.charAt(0).toUpperCase() + frequency.slice(1)} Subscription`,
+        description: `${frequency.charAt(0).toUpperCase() + frequency.slice(1)} Subscription`,
         order_id: razorpayData.orderId,
         handler: async (response: any) => {
           try {
@@ -152,14 +150,36 @@ export const SubscriptionPage = () => {
             if (verifyError) throw verifyError;
 
             // Update order status for subscription
-            if (frequency !== "onetime") {
-              await supabase
-                .from("orders")
-                .update({ order_status: "subscription_active" })
-                .eq("id", orderData.id);
+            await supabase
+              .from("orders")
+              .update({ order_status: "subscription_active" })
+              .eq("id", orderData.id);
+
+            // Handle referral reward on first payment
+            if (referralCode) {
+              const { data: referral } = await supabase
+                .from("referrals")
+                .select("*")
+                .eq("referred_id", user.id)
+                .eq("status", "pending")
+                .single();
+
+              if (referral) {
+                // Mark referral as completed
+                await supabase
+                  .from("referrals")
+                  .update({ status: "completed", completed_at: new Date().toISOString() })
+                  .eq("id", referral.id);
+
+                // Add rewards to both wallets via transactions
+                await supabase.from("wallet_transactions").insert([
+                  { user_id: referral.referrer_id, amount: 20, type: "credit", description: "Referral reward" },
+                  { user_id: user.id, amount: 40, type: "credit", description: "Welcome referral bonus" }
+                ]);
+              }
             }
 
-            toast({ title: frequency === "onetime" ? "Order Placed!" : "Subscription Created!", description: "Your order has been confirmed." });
+            toast({ title: "Subscription Created!", description: "Your order has been confirmed." });
             clearCart();
             navigate("/orders");
           } catch (error: any) {
@@ -269,14 +289,14 @@ export const SubscriptionPage = () => {
             className="bg-card rounded-2xl p-4 shadow-card"
           >
             <h3 className="font-semibold text-foreground mb-3">Delivery Frequency</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {frequencies.map((freq) => (
                 <motion.button
                   key={freq.value}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setFrequency(freq.value)}
                   className={cn(
-                    "py-3 px-4 rounded-xl font-medium transition-all",
+                    "py-3 px-2 rounded-xl font-medium transition-all text-sm",
                     frequency === freq.value
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-foreground"
@@ -365,7 +385,7 @@ export const SubscriptionPage = () => {
                 <Input
                   placeholder="Enter code"
                   value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value)}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                   className="mt-2 bg-card"
                 />
               </div>

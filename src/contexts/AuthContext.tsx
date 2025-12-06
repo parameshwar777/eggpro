@@ -8,7 +8,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isLoading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
-  signUpWithEmail: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signUpWithEmail: (email: string, password: string, fullName: string) => Promise<{ error: any; data: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithPhone: (phone: string) => Promise<{ error: any }>;
   verifyOtp: (phone: string, token: string) => Promise<{ error: any }>;
@@ -78,8 +78,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signUpWithEmail = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
+    const redirectUrl = `${window.location.origin}/community`;
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         data: { full_name: fullName }
       }
     });
-    return { error };
+    return { error, data };
   };
 
   const signInWithGoogle = async () => {
@@ -123,6 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setSession(null);
     setIsAdmin(false);
+    localStorage.removeItem("selectedCommunity");
   };
 
   return (

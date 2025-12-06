@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { EggLogo } from "@/components/EggLogo";
-import eggMascot from "@/assets/egg-mascot.png";
 
 interface Community {
   id: string;
@@ -44,9 +43,29 @@ export const CommunitySelectPage = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Check if user already has community selected
   useEffect(() => {
-    if (user) fetchCommunities();
+    if (user) {
+      checkExistingCommunity();
+    }
   }, [user]);
+
+  const checkExistingCommunity = async () => {
+    if (!user) return;
+    
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("community")
+      .eq("id", user.id)
+      .single();
+    
+    if (profile?.community) {
+      localStorage.setItem("selectedCommunity", profile.community);
+      navigate("/home");
+    } else {
+      fetchCommunities();
+    }
+  };
 
   useEffect(() => {
     if (searchQuery) {
@@ -68,8 +87,14 @@ export const CommunitySelectPage = () => {
     setFilteredCommunities(data || []);
   };
 
-  const handleContinue = () => {
-    if (selectedCommunity) {
+  const handleContinue = async () => {
+    if (selectedCommunity && user) {
+      // Save community to profile
+      await supabase
+        .from("profiles")
+        .update({ community: selectedCommunity })
+        .eq("id", user.id);
+      
       setShowSuccess(true);
       setTimeout(() => {
         localStorage.setItem("selectedCommunity", selectedCommunity);
@@ -92,7 +117,6 @@ export const CommunitySelectPage = () => {
             lng: position.coords.longitude
           });
           setIsLoadingLocation(false);
-          // Check if location matches any community
           checkNearestCommunity(position.coords.latitude, position.coords.longitude);
         },
         (error) => {
@@ -107,16 +131,21 @@ export const CommunitySelectPage = () => {
     }
   };
 
-  const checkNearestCommunity = (lat: number, lng: number) => {
-    // Find nearest community within radius
+  const checkNearestCommunity = async (lat: number, lng: number) => {
     const nearestCommunity = communities.find(c => {
       if (!c.latitude || !c.longitude) return false;
       const distance = getDistance(lat, lng, c.latitude, c.longitude);
-      return distance <= 3; // 3km radius
+      return distance <= 3;
     });
 
-    if (nearestCommunity) {
+    if (nearestCommunity && user) {
       setSelectedCommunity(nearestCommunity.name);
+      
+      await supabase
+        .from("profiles")
+        .update({ community: nearestCommunity.name })
+        .eq("id", user.id);
+      
       setShowMapPicker(false);
       setShowSuccess(true);
       setTimeout(() => {
@@ -130,7 +159,7 @@ export const CommunitySelectPage = () => {
   };
 
   const getDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -218,7 +247,9 @@ export const CommunitySelectPage = () => {
     <div className="min-h-[100dvh] gradient-hero flex flex-col">
       <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center px-6 pt-12">
-          <motion.img initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.5 }} src={eggMascot} alt="Nutri Eggs" className="w-20 h-20 mb-4" />
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.5 }}>
+            <EggLogo size="lg" className="mb-4" />
+          </motion.div>
           <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-3xl font-bold text-white mb-1">Nutri Eggs</motion.h1>
           <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-white/90 font-medium mb-8">Nature's Immunity Boosters</motion.p>
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="flex gap-4">
