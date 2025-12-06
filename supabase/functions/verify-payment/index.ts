@@ -86,26 +86,38 @@ serve(async (req: Request) => {
       console.error("Error updating order:", updateError);
     }
 
-    // Send WhatsApp notification to admin
+    // Prepare WhatsApp notification to admin
     const adminPhone = "919440229378"; // Admin WhatsApp number
-    const itemsList = items.map((i: any) => `${i.name} x${i.quantity}`).join(", ");
-    const message = `🥚 *New Order Received!*\n\n` +
-      `*Customer:* ${customerName}\n` +
-      `*Phone:* ${phone}\n` +
-      `*Community:* ${community}\n` +
-      `*Address:* ${address}\n` +
-      `*Items:* ${itemsList}\n` +
-      `*Total:* ₹${totalAmount}\n` +
-      `*Payment ID:* ${razorpay_payment_id}`;
-
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${adminPhone}&text=${encodeURIComponent(message)}`;
+    const itemsList = items.map((i: any) => `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
     
-    console.log("WhatsApp notification URL:", whatsappUrl);
+    const message = `🥚 *New Order Received!*
+
+*Order ID:* ${razorpay_payment_id}
+
+*Customer Details:*
+Name: ${customerName}
+Phone: ${phone}
+
+*Delivery Location:*
+Community: ${community}
+Address: ${address}
+
+*Order Items:*
+${itemsList}
+
+*Total Amount:* ₹${totalAmount}
+
+_Order placed at ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
+
+    const whatsappUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+    
+    console.log("WhatsApp notification prepared for admin:", adminPhone);
 
     return new Response(JSON.stringify({ 
       success: true, 
       message: "Payment verified successfully",
-      whatsappUrl 
+      whatsappUrl,
+      adminPhone
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
