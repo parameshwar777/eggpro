@@ -1,20 +1,30 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn, Settings } from "lucide-react";
+import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn, Settings, Pencil, Check, X } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 export const AccountPage = () => {
   const navigate = useNavigate();
   const { user, isAdmin, signOut } = useAuth();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
-  const selectedCommunity = localStorage.getItem("selectedCommunity") || "";
+  const [selectedCommunity, setSelectedCommunity] = useState(localStorage.getItem("selectedCommunity") || "");
+  
+  // Edit states
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingCommunity, setIsEditingCommunity] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [communities, setCommunities] = useState<any[]>([]);
 
   useEffect(() => {
     fetchNotifications();
+    fetchCommunities();
     if (user) fetchProfile();
   }, [user]);
 
@@ -23,15 +33,40 @@ export const AccountPage = () => {
     setNotifications(data || []);
   };
 
+  const fetchCommunities = async () => {
+    const { data } = await supabase.from("communities").select("*").eq("is_active", true).order("name");
+    setCommunities(data || []);
+  };
+
   const fetchProfile = async () => {
     if (!user) return;
     const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     setProfile(data);
+    setEditName(data?.full_name || user?.user_metadata?.full_name || "");
   };
 
   const handleLogout = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleSaveName = async () => {
+    if (!user || !editName.trim()) return;
+    const { error } = await supabase.from("profiles").update({ full_name: editName.trim() }).eq("id", user.id);
+    if (error) {
+      toast({ title: "Error", description: "Failed to update name", variant: "destructive" });
+    } else {
+      setProfile({ ...profile, full_name: editName.trim() });
+      toast({ title: "Success", description: "Name updated successfully" });
+    }
+    setIsEditingName(false);
+  };
+
+  const handleChangeCommunity = (communityName: string) => {
+    localStorage.setItem("selectedCommunity", communityName);
+    setSelectedCommunity(communityName);
+    setIsEditingCommunity(false);
+    toast({ title: "Success", description: "Community updated successfully" });
   };
 
   const menuItems = [
@@ -63,9 +98,40 @@ export const AccountPage = () => {
             <span className="text-xl font-bold text-primary-foreground">{userName[0]?.toUpperCase() || "G"}</span>
           </motion.div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-foreground">{user ? userName : "Guest User"}</h2>
+            {/* Editable Name */}
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-sm" placeholder="Your name" />
+                <button onClick={handleSaveName} className="p-1 text-green-600"><Check className="w-5 h-5" /></button>
+                <button onClick={() => setIsEditingName(false)} className="p-1 text-red-600"><X className="w-5 h-5" /></button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-foreground">{user ? userName : "Guest User"}</h2>
+                {user && <button onClick={() => { setEditName(userName); setIsEditingName(true); }} className="p-1 text-primary"><Pencil className="w-4 h-4" /></button>}
+              </div>
+            )}
             <p className="text-sm text-muted-foreground truncate">{user?.email || "Sign in to continue"}</p>
-            {selectedCommunity && <div className="flex items-center gap-1 mt-1"><MapPin className="w-3 h-3 text-primary" /><span className="text-xs text-primary">{selectedCommunity}</span></div>}
+            
+            {/* Editable Community */}
+            {isEditingCommunity ? (
+              <div className="mt-2 space-y-1">
+                {communities.map((c) => (
+                  <button key={c.id} onClick={() => handleChangeCommunity(c.name)} className={`w-full text-left text-xs px-2 py-1 rounded ${selectedCommunity === c.name ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}>
+                    {c.name}
+                  </button>
+                ))}
+                <button onClick={() => setIsEditingCommunity(false)} className="w-full text-left text-xs px-2 py-1 text-red-600">Cancel</button>
+              </div>
+            ) : (
+              selectedCommunity && (
+                <div className="flex items-center gap-1 mt-1">
+                  <MapPin className="w-3 h-3 text-primary" />
+                  <span className="text-xs text-primary">{selectedCommunity}</span>
+                  {user && <button onClick={() => setIsEditingCommunity(true)} className="p-1 text-primary"><Pencil className="w-3 h-3" /></button>}
+                </div>
+              )
+            )}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4 mt-5 pt-4 border-t border-border">
