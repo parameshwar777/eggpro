@@ -1,8 +1,11 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Gift, Copy, Share2, Users } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const steps = [
   {
@@ -23,11 +26,70 @@ const steps = [
 ];
 
 export const ReferPage = () => {
-  const referralCode = "EGGPRO20";
+  const { user } = useAuth();
+  const [referralCode, setReferralCode] = useState("Loading...");
+  const [referralCount, setReferralCount] = useState(0);
+  const [totalEarned, setTotalEarned] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      fetchReferralData();
+    }
+  }, [user]);
+
+  const fetchReferralData = async () => {
+    if (!user) return;
+
+    // Fetch user's referral code from profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("referral_code")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.referral_code) {
+      setReferralCode(profile.referral_code);
+    } else {
+      // Generate one if not exists
+      const code = "EGG" + Math.random().toString(36).substring(2, 8).toUpperCase();
+      await supabase.from("profiles").update({ referral_code: code }).eq("id", user.id);
+      setReferralCode(code);
+    }
+
+    // Fetch referral stats
+    const { data: referrals } = await supabase
+      .from("referrals")
+      .select("*")
+      .eq("referrer_id", user.id);
+
+    if (referrals) {
+      setReferralCount(referrals.length);
+      const completed = referrals.filter(r => r.status === "completed");
+      setTotalEarned(completed.length * 20);
+    }
+  };
 
   const copyCode = () => {
     navigator.clipboard.writeText(referralCode);
     toast({ title: "Code copied!", description: "Share it with your friends" });
+  };
+
+  const shareCode = async () => {
+    const shareData = {
+      title: "Join EggPro!",
+      text: `Use my referral code ${referralCode} to get ₹40 off on your first order at EggPro!`,
+      url: "https://eggpro.lovable.app"
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        copyCode();
+      }
+    } else {
+      copyCode();
+    }
   };
 
   return (
@@ -81,7 +143,7 @@ export const ReferPage = () => {
         <Button
           variant="secondary"
           className="w-full mt-4 bg-card text-foreground hover:bg-card/90"
-          onClick={copyCode}
+          onClick={shareCode}
         >
           <Share2 className="w-4 h-4 mr-2" />
           Share Code
@@ -100,7 +162,7 @@ export const ReferPage = () => {
             <Users className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-xl font-bold text-foreground">0</p>
+            <p className="text-xl font-bold text-foreground">{referralCount}</p>
             <p className="text-xs text-muted-foreground">Referrals</p>
           </div>
         </div>
@@ -109,7 +171,7 @@ export const ReferPage = () => {
             <Gift className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-xl font-bold text-foreground">₹0</p>
+            <p className="text-xl font-bold text-foreground">₹{totalEarned}</p>
             <p className="text-xs text-muted-foreground">Earned</p>
           </div>
         </div>

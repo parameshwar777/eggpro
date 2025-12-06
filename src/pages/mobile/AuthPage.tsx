@@ -8,8 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { EggLogo } from "@/components/EggLogo";
+import { supabase } from "@/integrations/supabase/client";
 
-type AuthMode = "login" | "signup" | "phone" | "otp";
+type AuthMode = "login" | "signup" | "phone" | "otp" | "forgot";
 
 export const AuthPage = () => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export const AuthPage = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,13 +50,61 @@ export const AuthPage = () => {
         const { error } = await signInWithEmail(email, password);
         if (error) throw error;
         toast({ title: "Welcome back!", description: "You've successfully signed in." });
-        navigate("/community");
+        
+        // Check if user has community set
+        const { data: profile } = await supabase.from("profiles").select("community").eq("id", (await supabase.auth.getUser()).data.user?.id).single();
+        if (profile?.community) {
+          localStorage.setItem("selectedCommunity", profile.community);
+          navigate("/home");
+        } else {
+          navigate("/community");
+        }
       } else {
-        const { error } = await signUpWithEmail(email, password, fullName);
+        const { error, data } = await signUpWithEmail(email, password, fullName);
         if (error) throw error;
+        
+        // Handle referral code if provided
+        if (referralCode && data?.user) {
+          const { data: referrer } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("referral_code", referralCode.toUpperCase())
+            .single();
+          
+          if (referrer) {
+            await supabase.from("referrals").insert({
+              referrer_id: referrer.id,
+              referred_id: data.user.id,
+              referral_code: referralCode.toUpperCase(),
+              status: "pending"
+            });
+          }
+        }
+        
         toast({ title: "Account Created!", description: "You've successfully signed up." });
         navigate("/community");
       }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({ title: "Error", description: "Please enter your email", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?mode=reset`,
+      });
+      if (error) throw error;
+      toast({ title: "Email Sent!", description: "Check your email for password reset link." });
+      setMode("login");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -124,10 +174,10 @@ export const AuthPage = () => {
           <EggLogo size="lg" />
         </div>
         <h1 className="text-2xl font-bold text-white text-center">
-          {mode === "login" ? "Welcome Back" : mode === "signup" ? "Create Account" : mode === "phone" ? "Phone Login" : "Verify OTP"}
+          {mode === "login" ? "Welcome Back" : mode === "signup" ? "Create Account" : mode === "phone" ? "Phone Login" : mode === "forgot" ? "Reset Password" : "Verify OTP"}
         </h1>
         <p className="text-white/80 text-center mt-1 text-sm">
-          {mode === "login" ? "Sign in to continue" : mode === "signup" ? "Join EggPro today" : mode === "phone" ? "Enter your phone number" : "Enter the code sent to your phone"}
+          {mode === "login" ? "Sign in to continue" : mode === "signup" ? "Join EggPro today" : mode === "phone" ? "Enter your phone number" : mode === "forgot" ? "We'll send you a reset link" : "Enter the code sent to your phone"}
         </p>
       </div>
 
@@ -183,19 +233,30 @@ export const AuthPage = () => {
                 </div>
 
                 {mode === "signup" && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Full Name</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Full Name</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder="Your name"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Referral Code (Optional)</label>
                       <Input
                         type="text"
-                        placeholder="Your name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="pl-10"
+                        placeholder="Enter referral code"
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                       />
                     </div>
-                  </div>
+                  </>
                 )}
 
                 <div className="space-y-2">
@@ -213,7 +274,14 @@ export const AuthPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Password</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Password</label>
+                    {mode === "login" && (
+                      <button onClick={() => setMode("forgot")} className="text-xs text-primary">
+                        Forgot Password?
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
@@ -253,6 +321,45 @@ export const AuthPage = () => {
                     {mode === "login" ? "Sign Up" : "Sign In"}
                   </button>
                 </p>
+              </motion.div>
+            )}
+
+            {mode === "forgot" && (
+              <motion.div
+                key="forgot-form"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-4"
+              >
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full h-12 gradient-hero text-white"
+                  onClick={handleForgotPassword}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Sending..." : "Send Reset Link"}
+                </Button>
+
+                <button
+                  onClick={() => setMode("login")}
+                  className="w-full text-center text-sm text-muted-foreground"
+                >
+                  Back to login
+                </button>
               </motion.div>
             )}
 

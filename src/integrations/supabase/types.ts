@@ -199,7 +199,9 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          referral_code: string | null
           updated_at: string
+          wallet_balance: number | null
         }
         Insert: {
           address?: string | null
@@ -208,7 +210,9 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          referral_code?: string | null
           updated_at?: string
+          wallet_balance?: number | null
         }
         Update: {
           address?: string | null
@@ -217,7 +221,45 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          referral_code?: string | null
           updated_at?: string
+          wallet_balance?: number | null
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_id: string
+          referred_reward: number | null
+          referrer_id: string
+          referrer_reward: number | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_id: string
+          referred_reward?: number | null
+          referrer_id: string
+          referrer_reward?: number | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_id?: string
+          referred_reward?: number | null
+          referrer_id?: string
+          referrer_reward?: number | null
+          status?: string
         }
         Relationships: []
       }
@@ -235,6 +277,36 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          reference_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          type?: string
           user_id?: string
         }
         Relationships: []
