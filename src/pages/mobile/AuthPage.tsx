@@ -123,6 +123,8 @@ export const AuthPage = () => {
     }
   };
 
+  const [generatedOtp, setGeneratedOtp] = useState("");
+
   const handlePhoneAuth = async () => {
     if (!phone || phone.length < 10) {
       toast({ title: "Error", description: "Please enter a valid phone number", variant: "destructive" });
@@ -131,10 +133,22 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
-      const formattedPhone = phone.startsWith("+91") ? phone : `+91${phone}`;
-      const { error } = await signInWithPhone(formattedPhone);
+      const formattedPhone = `91${phone}`;
+      
+      // Call WhatsApp OTP edge function
+      const { data, error } = await supabase.functions.invoke("whatsapp-otp", {
+        body: { action: "send", phone: formattedPhone }
+      });
+      
       if (error) throw error;
-      toast({ title: "OTP Sent!", description: "Please check your phone for the verification code." });
+      
+      // Store OTP for display (since WhatsApp can't auto-send without Business API)
+      setGeneratedOtp(data.otp);
+      
+      toast({ 
+        title: "OTP Generated!", 
+        description: `Your OTP is: ${data.otp}. Enter it below to verify.` 
+      });
       setMode("otp");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -151,11 +165,36 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
-      const formattedPhone = phone.startsWith("+91") ? phone : `+91${phone}`;
-      const { error } = await verifyOtp(formattedPhone, otp);
+      const formattedPhone = `91${phone}`;
+      
+      // Verify OTP via edge function
+      const { data, error } = await supabase.functions.invoke("whatsapp-otp", {
+        body: { action: "verify", phone: formattedPhone, otp }
+      });
+      
       if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+      
       toast({ title: "Success!", description: "Phone verified successfully." });
-      navigate("/community");
+      
+      // If new user, they'll be redirected to community selection
+      // If existing user, check for community
+      if (data.isNewUser) {
+        navigate("/community");
+      } else {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("community")
+          .eq("id", data.userId)
+          .single();
+        
+        if (profile?.community) {
+          localStorage.setItem("selectedCommunity", profile.community);
+          navigate("/home");
+        } else {
+          navigate("/community");
+        }
+      }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -412,9 +451,15 @@ export const AuthPage = () => {
                 className="space-y-6"
               >
                 <div className="flex flex-col items-center gap-4">
-                  <p className="text-sm text-muted-foreground">
-                    Enter the 6-digit code sent to +91 {phone}
+                  <p className="text-sm text-muted-foreground text-center">
+                    Enter the 6-digit code to verify your phone
                   </p>
+                  {generatedOtp && (
+                    <div className="bg-secondary p-3 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Your OTP is:</p>
+                      <p className="text-2xl font-bold text-primary tracking-widest">{generatedOtp}</p>
+                    </div>
+                  )}
                   <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                     <InputOTPGroup>
                       <InputOTPSlot index={0} />
