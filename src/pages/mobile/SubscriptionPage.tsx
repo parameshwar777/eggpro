@@ -91,6 +91,13 @@ export const SubscriptionPage = () => {
         return;
       }
 
+      // Get user profile for name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
       // Create order in database
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
@@ -99,6 +106,7 @@ export const SubscriptionPage = () => {
           community,
           address: `${address}, ${city} - ${pincode}`,
           phone,
+          customer_name: profile?.full_name || user.email?.split("@")[0] || "Customer",
           items: items.map(i => ({ 
             name: i.name, 
             quantity: i.quantity, 

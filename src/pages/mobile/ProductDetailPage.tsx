@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Star, Leaf, Shield, Zap, Minus, Plus, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Star, Leaf, Shield, Zap, Minus, Plus, ArrowRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +82,7 @@ export const ProductDetailPage = () => {
   const savings = currentPrice.buy - currentPrice.subscribe;
   const discountPercent = Math.round((savings / currentPrice.buy) * 100);
 
-  const handleAddToCart = () => {
+  const handleProceedToCheckout = () => {
     addToCart({
       id: `${product.id}-${selectedPack}-${isSubscription ? 's' : 'b'}`,
       name: product.name,
@@ -93,6 +93,7 @@ export const ProductDetailPage = () => {
       isSubscription,
     });
     toast({ title: "Added to cart!", description: `${product.name} (${selectedPack} eggs)` });
+    navigate("/subscription");
   };
 
   return (
@@ -325,10 +326,10 @@ export const ProductDetailPage = () => {
               <Button 
                 size="lg" 
                 className="px-6 h-12 rounded-xl text-base font-semibold"
-                onClick={handleAddToCart}
+                onClick={handleProceedToCheckout}
               >
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                Add to Cart
+                Proceed to Checkout
+                <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </div>
           </div>

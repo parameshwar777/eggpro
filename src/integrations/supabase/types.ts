@@ -112,12 +112,14 @@ export type Database = {
           address: string
           community: string
           created_at: string
+          customer_name: string | null
           id: string
           items: Json
           order_status: string | null
           payment_id: string | null
           payment_status: string | null
           phone: string
+          subscription_end_date: string | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -126,12 +128,14 @@ export type Database = {
           address: string
           community: string
           created_at?: string
+          customer_name?: string | null
           id?: string
           items: Json
           order_status?: string | null
           payment_id?: string | null
           payment_status?: string | null
           phone: string
+          subscription_end_date?: string | null
           total_amount: number
           updated_at?: string
           user_id: string
@@ -140,12 +144,14 @@ export type Database = {
           address?: string
           community?: string
           created_at?: string
+          customer_name?: string | null
           id?: string
           items?: Json
           order_status?: string | null
           payment_id?: string | null
           payment_status?: string | null
           phone?: string
+          subscription_end_date?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string
