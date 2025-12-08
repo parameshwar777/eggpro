@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Package, ShoppingCart, Bell, Tag, 
-  LogOut, Menu, X, Eye
+  LogOut, Menu, X, Eye, RefreshCw, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,8 +20,12 @@ interface Order {
   items: any;
   total_amount: number;
   payment_status: string | null;
+  payment_id: string | null;
   order_status: string | null;
   created_at: string;
+  customer_name: string | null;
+  subscription_end_date: string | null;
+  user_id: string;
 }
 
 export const AdminOrders = () => {
@@ -82,6 +86,7 @@ export const AdminOrders = () => {
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
     { icon: Package, label: "Products", path: "/admin/products" },
     { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
+    { icon: Users, label: "Communities", path: "/admin/communities" },
     { icon: Bell, label: "Notifications", path: "/admin/notifications" },
     { icon: Tag, label: "Offers", path: "/admin/offers" },
   ];
@@ -92,9 +97,48 @@ export const AdminOrders = () => {
       case "confirmed": return "bg-blue-500";
       case "delivered": return "bg-green-500";
       case "cancelled": return "bg-red-500";
+      case "subscription_active": return "bg-purple-500";
       default: return "bg-gray-500";
     }
   };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "subscription_active": return "Subscription Active";
+      default: return status?.charAt(0).toUpperCase() + status?.slice(1);
+    }
+  };
+
+  // Extract door number and pincode from address
+  const parseAddress = (address: string) => {
+    const parts = address.split(",").map(p => p.trim());
+    const doorNumber = parts[0] || "";
+    const pincodeMatch = address.match(/(\d{6})/);
+    const pincode = pincodeMatch ? pincodeMatch[1] : "";
+    return { doorNumber, pincode };
+  };
+
+  // Get subscription type and end date
+  const getSubscriptionInfo = (items: any) => {
+    if (!items || !items[0]) return { frequency: "N/A", startDate: "N/A", endDate: "N/A" };
+    const item = items[0];
+    const frequency = item.frequency || "one-time";
+    const startDate = item.startDate || "N/A";
+    
+    // Calculate end date based on frequency (assume 30 days for monthly subscriptions)
+    let endDate = "N/A";
+    if (startDate !== "N/A") {
+      const start = new Date(startDate);
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + 1); // Default 1 month subscription
+      endDate = end.toLocaleDateString();
+    }
+    
+    return { frequency, startDate, endDate };
+  };
+
+  // Count subscriptions
+  const subscriptionCount = orders.filter(o => o.order_status === "subscription_active").length;
 
   if (authLoading) {
     return (
@@ -141,11 +185,18 @@ export const AdminOrders = () => {
       {/* Main Content */}
       <main className="flex-1 min-h-screen">
         <header className="bg-slate-800 border-b border-slate-700 p-4 flex items-center justify-between">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-400">
-            <Menu className="w-6 h-6" />
-          </button>
-          <h2 className="text-xl font-semibold text-white">Orders</h2>
-          <div className="w-6" />
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-400">
+              <Menu className="w-6 h-6" />
+            </button>
+            <h2 className="text-xl font-semibold text-white">Orders</h2>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-purple-500/20 px-4 py-2 rounded-lg">
+              <RefreshCw className="w-5 h-5 text-purple-400" />
+              <span className="text-purple-400 font-medium">{subscriptionCount} Active Subscriptions</span>
+            </div>
+          </div>
         </header>
 
         <div className="p-6">
@@ -156,46 +207,77 @@ export const AdminOrders = () => {
           ) : orders.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No orders yet</div>
           ) : (
-            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-              <table className="w-full">
+            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-x-auto">
+              <table className="w-full min-w-[1000px]">
                 <thead className="bg-slate-700/50">
                   <tr>
                     <th className="text-left p-4 text-slate-300 font-medium">Order ID</th>
+                    <th className="text-left p-4 text-slate-300 font-medium">Customer</th>
+                    <th className="text-left p-4 text-slate-300 font-medium">Phone</th>
+                    <th className="text-left p-4 text-slate-300 font-medium">Door No.</th>
                     <th className="text-left p-4 text-slate-300 font-medium">Community</th>
+                    <th className="text-left p-4 text-slate-300 font-medium">Pincode</th>
+                    <th className="text-left p-4 text-slate-300 font-medium">Product</th>
+                    <th className="text-left p-4 text-slate-300 font-medium">Subscription</th>
+                    <th className="text-left p-4 text-slate-300 font-medium">End Date</th>
                     <th className="text-left p-4 text-slate-300 font-medium">Amount</th>
                     <th className="text-left p-4 text-slate-300 font-medium">Status</th>
                     <th className="text-left p-4 text-slate-300 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id} className="border-t border-slate-700">
-                      <td className="p-4 text-white font-mono text-sm">{order.id.slice(0, 8)}...</td>
-                      <td className="p-4 text-slate-300">{order.community}</td>
-                      <td className="p-4 text-white">₹{order.total_amount}</td>
-                      <td className="p-4">
-                        <Badge className={getStatusColor(order.order_status)}>{order.order_status}</Badge>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => setSelectedOrder(order)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Select defaultValue={order.order_status} onValueChange={(value) => updateOrderStatus(order.id, value)}>
-                            <SelectTrigger className="w-32 bg-slate-700 border-slate-600">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="confirmed">Confirmed</SelectItem>
-                              <SelectItem value="delivered">Delivered</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {orders.map((order) => {
+                    const { doorNumber, pincode } = parseAddress(order.address);
+                    const { frequency, endDate } = getSubscriptionInfo(order.items);
+                    
+                    return (
+                      <tr key={order.id} className="border-t border-slate-700">
+                        <td className="p-4 text-white font-mono text-sm">{order.id.slice(0, 8)}...</td>
+                        <td className="p-4 text-slate-300">{order.customer_name || "—"}</td>
+                        <td className="p-4 text-slate-300">{order.phone}</td>
+                        <td className="p-4 text-slate-300">{doorNumber}</td>
+                        <td className="p-4 text-slate-300">{order.community}</td>
+                        <td className="p-4 text-slate-300">{pincode || "—"}</td>
+                        <td className="p-4 text-slate-300">
+                          {order.items?.[0]?.name || "—"}
+                          <span className="text-xs text-slate-500 block">
+                            {order.items?.[0]?.packSize} eggs × {order.items?.[0]?.quantity || 1}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <Badge className={frequency === "daily" ? "bg-green-600" : frequency === "alternate" ? "bg-blue-600" : frequency === "weekly" ? "bg-purple-600" : "bg-gray-600"}>
+                            {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
+                          </Badge>
+                        </td>
+                        <td className="p-4 text-slate-300">{endDate}</td>
+                        <td className="p-4 text-white">₹{order.total_amount}</td>
+                        <td className="p-4">
+                          <Badge className={getStatusColor(order.order_status || "pending")}>
+                            {getStatusLabel(order.order_status || "pending")}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => setSelectedOrder(order)}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Select defaultValue={order.order_status || "pending"} onValueChange={(value) => updateOrderStatus(order.id, value)}>
+                              <SelectTrigger className="w-32 bg-slate-700 border-slate-600">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="confirmed">Confirmed</SelectItem>
+                                <SelectItem value="subscription_active">Subscription Active</SelectItem>
+                                <SelectItem value="delivered">Delivered</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -205,41 +287,67 @@ export const AdminOrders = () => {
 
       {/* Order Details Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-white">Order Details</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
-              <div>
-                <p className="text-slate-400 text-sm">Order ID</p>
-                <p className="text-white font-mono">{selectedOrder.id}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-slate-400 text-sm">Order ID</p>
+                  <p className="text-white font-mono text-sm">{selectedOrder.id}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-sm">Payment ID</p>
+                  <p className="text-white font-mono text-sm">{selectedOrder.payment_id || "—"}</p>
+                </div>
               </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-slate-400 text-sm">Customer Name</p>
+                  <p className="text-white">{selectedOrder.customer_name || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-sm">Phone</p>
+                  <p className="text-white">{selectedOrder.phone}</p>
+                </div>
+              </div>
+
               <div>
                 <p className="text-slate-400 text-sm">Community</p>
                 <p className="text-white">{selectedOrder.community}</p>
               </div>
+
               <div>
-                <p className="text-slate-400 text-sm">Address</p>
+                <p className="text-slate-400 text-sm">Full Address</p>
                 <p className="text-white">{selectedOrder.address}</p>
               </div>
+
               <div>
-                <p className="text-slate-400 text-sm">Phone</p>
-                <p className="text-white">{selectedOrder.phone}</p>
+                <p className="text-slate-400 text-sm">Subscription Details</p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-white">Frequency: {selectedOrder.items?.[0]?.frequency || "One-time"}</p>
+                  <p className="text-white">Start Date: {selectedOrder.items?.[0]?.startDate || "—"}</p>
+                  <p className="text-white">End Date: {getSubscriptionInfo(selectedOrder.items).endDate}</p>
+                </div>
               </div>
+
               <div>
                 <p className="text-slate-400 text-sm">Items</p>
                 <div className="space-y-2 mt-2">
                   {selectedOrder.items?.map((item: any, i: number) => (
-                    <div key={i} className="flex justify-between text-white">
-                      <span>{item.name} x{item.quantity}</span>
+                    <div key={i} className="flex justify-between text-white bg-slate-700/50 p-2 rounded">
+                      <span>{item.name} ({item.packSize} eggs) x{item.quantity}</span>
                       <span>₹{item.price * item.quantity}</span>
                     </div>
                   ))}
                 </div>
               </div>
+
               <div className="pt-2 border-t border-slate-700">
-                <div className="flex justify-between text-white font-bold">
+                <div className="flex justify-between text-white font-bold text-lg">
                   <span>Total</span>
                   <span>₹{selectedOrder.total_amount}</span>
                 </div>
