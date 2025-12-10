@@ -91,14 +91,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = window.location.origin.includes('lovable.app')
-      ? 'https://eggpro.lovable.app/community'
-      : `${window.location.origin}/community`;
+    // For Capacitor apps, use the deployed app URL to handle OAuth callback
+    // The app will detect the auth state change and navigate accordingly
+    const redirectUrl = 'https://eggpro.lovable.app/auth';
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: redirectUrl,
+        skipBrowserRedirect: false,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
