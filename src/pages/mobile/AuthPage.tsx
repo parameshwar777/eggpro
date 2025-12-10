@@ -215,7 +215,7 @@ export const AuthPage = () => {
         <h1 className="text-2xl font-bold text-white text-center">
           {mode === "login" ? "Welcome Back" : mode === "signup" ? "Create Account" : mode === "phone" ? "Phone Login" : mode === "forgot" ? "Reset Password" : "Verify OTP"}
         </h1>
-        <p className="text-white/80 text-center mt-1 text-sm">
+        <p className="text-white/90 text-center mt-1 text-base font-medium">
           {mode === "login" ? "Sign in to continue" : mode === "signup" ? "Join EggPro today" : mode === "phone" ? "Enter your phone number" : mode === "forgot" ? "We'll send you a reset link" : "Enter the code sent to your phone"}
         </p>
       </div>
@@ -239,7 +239,7 @@ export const AuthPage = () => {
                 {/* Google Button */}
                 <Button
                   variant="outline"
-                  className="w-full h-12"
+                  className="w-full h-12 font-semibold text-base"
                   onClick={handleGoogleAuth}
                   disabled={isLoading}
                 >
@@ -255,7 +255,7 @@ export const AuthPage = () => {
                 {/* Phone Login Button */}
                 <Button
                   variant="outline"
-                  className="w-full h-12"
+                  className="w-full h-12 font-semibold text-base"
                   onClick={() => setMode("phone")}
                 >
                   <Phone className="w-5 h-5 mr-2" />
@@ -274,7 +274,7 @@ export const AuthPage = () => {
                 {mode === "signup" && (
                   <>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Full Name</label>
+                      <label className="text-base font-semibold">Full Name</label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <Input
@@ -287,7 +287,7 @@ export const AuthPage = () => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Referral Code (Optional)</label>
+                      <label className="text-base font-semibold">Referral Code (Optional)</label>
                       <Input
                         type="text"
                         placeholder="Enter referral code"
@@ -299,7 +299,7 @@ export const AuthPage = () => {
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
+                  <label className="text-base font-semibold">Email</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
@@ -314,7 +314,7 @@ export const AuthPage = () => {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">Password</label>
+                    <label className="text-base font-semibold">Password</label>
                     {mode === "login" && (
                       <button onClick={() => setMode("forgot")} className="text-xs text-primary">
                         Forgot Password?
@@ -344,18 +344,18 @@ export const AuthPage = () => {
                 </div>
 
                 <Button
-                  className="w-full h-12 gradient-hero text-white"
+                  className="w-full h-12 gradient-hero text-white font-semibold text-base"
                   onClick={handleEmailAuth}
                   disabled={isLoading}
                 >
                   {isLoading ? "Please wait..." : mode === "login" ? "Sign In" : "Sign Up"}
                 </Button>
 
-                <p className="text-center text-sm text-muted-foreground">
+                <p className="text-center text-base font-medium text-muted-foreground">
                   {mode === "login" ? "Don't have an account? " : "Already have an account? "}
                   <button
                     onClick={() => setMode(mode === "login" ? "signup" : "login")}
-                    className="text-primary font-semibold"
+                    className="text-primary font-bold"
                   >
                     {mode === "login" ? "Sign Up" : "Sign In"}
                   </button>
@@ -372,7 +372,7 @@ export const AuthPage = () => {
                 className="space-y-4"
               >
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
+                  <label className="text-base font-semibold">Email</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
@@ -380,13 +380,13 @@ export const AuthPage = () => {
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 h-12 text-base"
                     />
                   </div>
                 </div>
 
                 <Button
-                  className="w-full h-12 gradient-hero text-white"
+                  className="w-full h-12 gradient-hero text-white font-semibold text-base"
                   onClick={handleForgotPassword}
                   disabled={isLoading}
                 >
@@ -395,7 +395,7 @@ export const AuthPage = () => {
 
                 <button
                   onClick={() => setMode("login")}
-                  className="w-full text-center text-sm text-muted-foreground"
+                  className="w-full text-center text-base font-medium text-primary"
                 >
                   Back to login
                 </button>
@@ -411,22 +411,22 @@ export const AuthPage = () => {
                 className="space-y-4"
               >
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Phone Number</label>
+                  <label className="text-base font-semibold">Phone Number</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">+91</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-semibold text-muted-foreground">+91</span>
                     <Input
                       type="tel"
                       placeholder="9876543210"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      className="pl-12"
+                      className="pl-14 h-12 text-base font-medium"
                       maxLength={10}
                     />
                   </div>
                 </div>
 
                 <Button
-                  className="w-full h-12 gradient-hero text-white"
+                  className="w-full h-12 gradient-hero text-white font-semibold text-base"
                   onClick={handlePhoneAuth}
                   disabled={isLoading}
                 >
@@ -435,14 +435,14 @@ export const AuthPage = () => {
 
                 <button
                   onClick={() => setMode("login")}
-                  className="w-full text-center text-sm text-muted-foreground"
+                  className="w-full text-center text-base font-medium text-primary"
                 >
                   Back to email login
                 </button>
               </motion.div>
             )}
 
-            {mode === "otp" && (
+              {mode === "otp" && (
               <motion.div
                 key="otp-form"
                 initial={{ opacity: 0, x: 20 }}
@@ -451,29 +451,30 @@ export const AuthPage = () => {
                 className="space-y-6"
               >
                 <div className="flex flex-col items-center gap-4">
-                  <p className="text-sm text-muted-foreground text-center">
+                  <p className="text-base font-medium text-foreground text-center">
                     Enter the 6-digit code to verify your phone
                   </p>
                   {generatedOtp && (
-                    <div className="bg-secondary p-3 rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground">Your OTP is:</p>
-                      <p className="text-2xl font-bold text-primary tracking-widest">{generatedOtp}</p>
+                    <div className="bg-primary/10 border-2 border-primary p-4 rounded-xl text-center w-full">
+                      <p className="text-sm font-semibold text-foreground mb-2">Your OTP Code</p>
+                      <p className="text-3xl font-black text-primary tracking-[0.5em] font-mono">{generatedOtp}</p>
+                      <p className="text-xs text-muted-foreground mt-2">Enter this code below</p>
                     </div>
                   )}
-                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
+                  <InputOTP maxLength={6} value={otp} onChange={setOtp} className="gap-2">
+                    <InputOTPGroup className="gap-2">
+                      <InputOTPSlot index={0} className="w-12 h-14 text-xl font-bold" />
+                      <InputOTPSlot index={1} className="w-12 h-14 text-xl font-bold" />
+                      <InputOTPSlot index={2} className="w-12 h-14 text-xl font-bold" />
+                      <InputOTPSlot index={3} className="w-12 h-14 text-xl font-bold" />
+                      <InputOTPSlot index={4} className="w-12 h-14 text-xl font-bold" />
+                      <InputOTPSlot index={5} className="w-12 h-14 text-xl font-bold" />
                     </InputOTPGroup>
                   </InputOTP>
                 </div>
 
                 <Button
-                  className="w-full h-12 gradient-hero text-white"
+                  className="w-full h-12 gradient-hero text-white font-semibold text-base"
                   onClick={handleVerifyOtp}
                   disabled={isLoading}
                 >
@@ -482,7 +483,7 @@ export const AuthPage = () => {
 
                 <button
                   onClick={() => setMode("phone")}
-                  className="w-full text-center text-sm text-muted-foreground"
+                  className="w-full text-center text-base font-medium text-primary"
                 >
                   Resend OTP
                 </button>
