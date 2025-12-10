@@ -11,12 +11,19 @@ export const SplashPage = () => {
   useEffect(() => {
     const textTimer = setTimeout(() => setShowText(true), 800);
     
+    // Fallback timeout - navigate to auth if nothing happens in 5 seconds
+    const fallbackTimer = setTimeout(() => {
+      console.log("Fallback navigation to auth");
+      navigate("/auth");
+    }, 5000);
+    
     const checkAuthAndNavigate = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
+        clearTimeout(fallbackTimer);
+        
         if (session?.user) {
-          // User is logged in, check if they have a community set
           const { data: profile } = await supabase
             .from("profiles")
             .select("community")
@@ -34,6 +41,7 @@ export const SplashPage = () => {
         }
       } catch (error) {
         console.error("Auth check error:", error);
+        clearTimeout(fallbackTimer);
         navigate("/auth");
       }
     };
@@ -43,6 +51,7 @@ export const SplashPage = () => {
     return () => {
       clearTimeout(textTimer);
       clearTimeout(navTimer);
+      clearTimeout(fallbackTimer);
     };
   }, [navigate]);
 
