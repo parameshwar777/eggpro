@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { EggLogo } from "@/components/EggLogo";
+import { supabase } from "@/integrations/supabase/client";
 
 export const SplashPage = () => {
   const navigate = useNavigate();
@@ -9,7 +10,35 @@ export const SplashPage = () => {
 
   useEffect(() => {
     const textTimer = setTimeout(() => setShowText(true), 800);
-    const navTimer = setTimeout(() => navigate("/auth"), 2500);
+    
+    const checkAuthAndNavigate = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // User is logged in, check if they have a community set
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("community")
+            .eq("id", session.user.id)
+            .single();
+          
+          if (profile?.community) {
+            localStorage.setItem("selectedCommunity", profile.community);
+            navigate("/home");
+          } else {
+            navigate("/community");
+          }
+        } else {
+          navigate("/auth");
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+        navigate("/auth");
+      }
+    };
+
+    const navTimer = setTimeout(checkAuthAndNavigate, 2500);
     
     return () => {
       clearTimeout(textTimer);
