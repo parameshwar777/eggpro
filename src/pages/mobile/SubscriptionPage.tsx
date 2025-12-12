@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Calendar, Wallet, Tag, Info } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, MapPin, Calendar, Wallet, Tag, Info, Plus, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,17 @@ declare global {
 
 type FrequencyType = "daily" | "alternate" | "weekly";
 
+interface SavedAddress {
+  id: string;
+  label: string;
+  phone: string;
+  address_line1: string;
+  address_line2: string | null;
+  city: string;
+  pincode: string;
+  is_default: boolean;
+}
+
 const WEEKDAYS = [
   { value: "monday", label: "Monday" },
   { value: "tuesday", label: "Tuesday" },
@@ -38,6 +49,10 @@ export const SubscriptionPage = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
   
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("Hyderabad");
@@ -52,18 +67,40 @@ export const SubscriptionPage = () => {
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
-  // Fetch wallet balance
+  // Fetch saved addresses and wallet balance
   useEffect(() => {
-    const fetchWalletBalance = async () => {
+    const fetchData = async () => {
       if (!user) return;
-      const { data } = await supabase
+      
+      // Fetch wallet balance
+      const { data: profile } = await supabase
         .from("profiles")
         .select("wallet_balance")
         .eq("id", user.id)
         .single();
-      setWalletBalance(data?.wallet_balance || 0);
+      setWalletBalance(profile?.wallet_balance || 0);
+
+      // Fetch saved addresses
+      const { data: addresses } = await supabase
+        .from("user_addresses")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("is_default", { ascending: false });
+      
+      if (addresses && addresses.length > 0) {
+        setSavedAddresses(addresses);
+        // Auto-select default address
+        const defaultAddr = addresses.find(a => a.is_default) || addresses[0];
+        setSelectedAddressId(defaultAddr.id);
+        setPhone(defaultAddr.phone);
+        setAddress(`${defaultAddr.address_line1}${defaultAddr.address_line2 ? ', ' + defaultAddr.address_line2 : ''}`);
+        setCity(defaultAddr.city);
+        setPincode(defaultAddr.pincode);
+      } else {
+        setShowNewAddressForm(true);
+      }
     };
-    fetchWalletBalance();
+    fetchData();
   }, [user]);
 
   const frequencies: { value: FrequencyType; label: string; desc: string }[] = [
@@ -87,7 +124,7 @@ export const SubscriptionPage = () => {
         deliveriesPerMonth = Math.ceil(daysInMonth / 2);
         break;
       case "weekly":
-        deliveriesPerMonth = 4; // 4 weeks in a month
+        deliveriesPerMonth = 4;
         break;
     }
     
@@ -98,6 +135,15 @@ export const SubscriptionPage = () => {
   const subscriptionEndDate = useMemo(() => {
     return addMonths(startDate, 1);
   }, [startDate]);
+
+  const handleSelectAddress = (addr: SavedAddress) => {
+    setSelectedAddressId(addr.id);
+    setPhone(addr.phone);
+    setAddress(`${addr.address_line1}${addr.address_line2 ? ', ' + addr.address_line2 : ''}`);
+    setCity(addr.city);
+    setPincode(addr.pincode);
+    setShowNewAddressForm(false);
+  };
 
   const handlePayment = async () => {
     if (!user) {
@@ -116,6 +162,23 @@ export const SubscriptionPage = () => {
     try {
       // If wallet has enough balance and user wants to use it
       if (useWallet && walletBalance >= monthlyAmount) {
+        // Deduct from wallet
+        const newBalance = walletBalance - monthlyAmount;
+        await supabase
+          .from("profiles")
+          .update({ wallet_balance: newBalance })
+          .eq("id", user.id);
+
+        // Add wallet transaction
+        await supabase
+          .from("wallet_transactions")
+          .insert({
+            user_id: user.id,
+            amount: monthlyAmount,
+            type: "debit",
+            description: "Subscription Payment"
+          });
+
         const { error: subError } = await supabase
           .from("orders")
           .insert({
@@ -142,7 +205,7 @@ export const SubscriptionPage = () => {
 
         toast({ title: "Subscription Created!", description: "Payment completed using wallet balance." });
         clearCart();
-        navigate("/account");
+        navigate("/orders");
         return;
       }
 
@@ -287,57 +350,127 @@ export const SubscriptionPage = () => {
         </motion.div>
 
         <div className="p-4 space-y-4">
-          {/* Delivery Address Section */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="bg-card rounded-2xl p-4 shadow-card space-y-4"
-          >
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-100 rounded-full">
-                <MapPin className="w-5 h-5 text-blue-600" />
+          {/* Saved Addresses Section */}
+          {savedAddresses.length > 0 && (
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="bg-card rounded-2xl p-4 shadow-card"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <MapPin className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">Select Address</h3>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => navigate("/address")}
+                  className="gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add
+                </Button>
               </div>
-              <h3 className="font-semibold text-foreground">Delivery Address</h3>
-            </div>
 
-            <div>
-              <label className="text-sm text-muted-foreground">Phone Number *</label>
-              <Input
-                placeholder="10-digit mobile number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="mt-1"
-                maxLength={10}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-muted-foreground">Flat/House No, Building Name *</label>
-              <Input
-                placeholder="Flat/House No, Building Name *"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm text-muted-foreground">City</label>
-                <Input value={city} disabled className="mt-1 bg-secondary" />
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {savedAddresses.map((addr) => (
+                    <motion.button
+                      key={addr.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      onClick={() => handleSelectAddress(addr)}
+                      className={cn(
+                        "w-full text-left p-3 rounded-xl border-2 transition-all",
+                        selectedAddressId === addr.id 
+                          ? "border-primary bg-primary/5" 
+                          : "border-border bg-secondary/30"
+                      )}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{addr.label}</span>
+                            {addr.is_default && (
+                              <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">Default</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {addr.address_line1}{addr.address_line2 && `, ${addr.address_line2}`}, {addr.city} - {addr.pincode}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">📞 {addr.phone}</p>
+                        </div>
+                        {selectedAddressId === addr.id && (
+                          <div className="p-1.5 bg-primary rounded-full">
+                            <Check className="w-4 h-4 text-primary-foreground" />
+                          </div>
+                        )}
+                      </div>
+                    </motion.button>
+                  ))}
+                </AnimatePresence>
               </div>
+            </motion.div>
+          )}
+
+          {/* New Address Form (if no saved addresses or user wants to add new) */}
+          {(showNewAddressForm || savedAddresses.length === 0) && (
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="bg-card rounded-2xl p-4 shadow-card space-y-4"
+            >
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <MapPin className="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 className="font-semibold text-foreground">
+                  {savedAddresses.length > 0 ? "New Delivery Address" : "Delivery Address"}
+                </h3>
+              </div>
+
               <div>
-                <label className="text-sm text-muted-foreground">Pincode *</label>
+                <label className="text-sm text-muted-foreground">Phone Number *</label>
                 <Input
-                  placeholder="Pincode *"
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
+                  placeholder="10-digit mobile number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   className="mt-1"
-                  maxLength={6}
+                  maxLength={10}
                 />
               </div>
-            </div>
-          </motion.div>
+
+              <div>
+                <label className="text-sm text-muted-foreground">Flat/House No, Building Name *</label>
+                <Input
+                  placeholder="Flat/House No, Building Name *"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-muted-foreground">City</label>
+                  <Input value={city} disabled className="mt-1 bg-secondary" />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground">Pincode *</label>
+                  <Input
+                    placeholder="Pincode *"
+                    value={pincode}
+                    onChange={(e) => setPincode(e.target.value)}
+                    className="mt-1"
+                    maxLength={6}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Delivery Frequency Section */}
           <motion.div
@@ -471,41 +604,48 @@ export const SubscriptionPage = () => {
                     <Wallet className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">Use Wallet Balance</h3>
-                    <p className="text-sm text-muted-foreground">Available: ₹{walletBalance}</p>
+                    <p className="font-semibold text-foreground">Pay from Wallet</p>
+                    <p className="text-xs text-muted-foreground">Balance: ₹{walletBalance}</p>
                   </div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={useWallet}
-                  onChange={(e) => setUseWallet(e.target.checked)}
-                  className="w-5 h-5 accent-primary"
-                />
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setUseWallet(!useWallet)}
+                  className={cn(
+                    "w-12 h-7 rounded-full transition-all relative",
+                    useWallet ? "bg-primary" : "bg-secondary"
+                  )}
+                >
+                  <motion.div
+                    animate={{ x: useWallet ? 22 : 2 }}
+                    className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md"
+                  />
+                </motion.button>
               </div>
+              {useWallet && walletBalance < monthlyAmount && (
+                <p className="text-xs text-destructive mt-2">
+                  Insufficient balance. Need ₹{monthlyAmount - walletBalance} more.
+                </p>
+              )}
             </motion.div>
           )}
 
-          {/* Referral Code Section */}
+          {/* Referral Code */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.35 }}
-            className="bg-purple-50 rounded-2xl p-4"
+            className="bg-card rounded-2xl p-4 shadow-card"
           >
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-purple-100 rounded-full">
-                <Tag className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground">Referral Code (Optional)</h3>
-                <Input
-                  placeholder="Enter code"
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                  className="mt-2 bg-card"
-                />
-              </div>
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="w-5 h-5 text-foreground" />
+              <h3 className="font-semibold text-foreground">Referral Code (Optional)</h3>
             </div>
+            <Input
+              placeholder="Enter referral code"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+            />
           </motion.div>
         </div>
 
@@ -513,20 +653,23 @@ export const SubscriptionPage = () => {
         <motion.div
           initial={{ y: 100 }}
           animate={{ y: 0 }}
-          className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-20"
+          className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-elevated z-50"
         >
-          <div className="max-w-lg mx-auto">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-muted-foreground">Monthly Total:</span>
-              <span className="font-bold text-primary text-xl">₹{monthlyAmount}</span>
+          <div className="max-w-lg mx-auto px-4 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Monthly</p>
+                <p className="text-2xl font-bold text-foreground">₹{monthlyAmount}</p>
+              </div>
+              <Button
+                size="lg"
+                className="px-8 h-12 rounded-xl text-base font-semibold"
+                onClick={handlePayment}
+                disabled={isProcessing}
+              >
+                {isProcessing ? "Processing..." : "Pay Now"}
+              </Button>
             </div>
-            <Button
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-14 text-lg font-semibold rounded-xl"
-              onClick={handlePayment}
-              disabled={isProcessing}
-            >
-              {isProcessing ? "Processing..." : "Pay Now"}
-            </Button>
           </div>
         </motion.div>
       </div>
