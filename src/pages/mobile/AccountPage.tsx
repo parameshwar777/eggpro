@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn, Settings, Pencil, Check, X } from "lucide-react";
+import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn, Settings, Pencil, Check, X, ChevronDown } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,8 @@ export const AccountPage = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [selectedCommunity, setSelectedCommunity] = useState(localStorage.getItem("selectedCommunity") || "");
+  const [subscriptionCount, setSubscriptionCount] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
   
   // Edit states
   const [isEditingName, setIsEditingName] = useState(false);
@@ -25,7 +27,10 @@ export const AccountPage = () => {
   useEffect(() => {
     fetchNotifications();
     fetchCommunities();
-    if (user) fetchProfile();
+    if (user) {
+      fetchProfile();
+      fetchSubscriptionCount();
+    }
   }, [user]);
 
   const fetchNotifications = async () => {
@@ -43,6 +48,17 @@ export const AccountPage = () => {
     const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     setProfile(data);
     setEditName(data?.full_name || user?.user_metadata?.full_name || "");
+    setWalletBalance(data?.wallet_balance || 0);
+  };
+
+  const fetchSubscriptionCount = async () => {
+    if (!user) return;
+    const { count } = await supabase
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("order_status", "confirmed");
+    setSubscriptionCount(count || 0);
   };
 
   const handleLogout = async () => {
@@ -71,8 +87,8 @@ export const AccountPage = () => {
 
   const menuItems = [
     { icon: MapPin, label: "Delivery Addresses", desc: "Add your addresses", to: "/addresses", color: "bg-blue-100 text-blue-600" },
-    { icon: Wallet, label: "Wallet", desc: "₹0 available", to: "/wallet", color: "bg-green-100 text-green-600" },
-    { icon: RefreshCw, label: "My Subscriptions", desc: "View active subscriptions", to: "/subscriptions", color: "bg-purple-100 text-purple-600" },
+    { icon: Wallet, label: "Wallet", desc: `₹${walletBalance} available`, to: "/wallet", color: "bg-green-100 text-green-600" },
+    { icon: RefreshCw, label: "My Subscriptions", desc: `${subscriptionCount} active`, to: "/subscriptions", color: "bg-purple-100 text-purple-600" },
     { icon: Bell, label: "Notifications", desc: `${notifications.length} new`, to: "/notifications", color: "bg-red-100 text-red-600" },
     { icon: HelpCircle, label: "Help & Support", desc: "Get help or contact us", to: "#", color: "bg-cyan-100 text-cyan-600" },
   ];
@@ -98,46 +114,115 @@ export const AccountPage = () => {
             <span className="text-xl font-bold text-primary-foreground">{userName[0]?.toUpperCase() || "G"}</span>
           </motion.div>
           <div className="flex-1 min-w-0">
-            {/* Editable Name */}
+            {/* Editable Name with improved UI */}
             {isEditingName ? (
-              <div className="flex items-center gap-2">
-                <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-sm" placeholder="Your name" />
-                <button onClick={handleSaveName} className="p-1 text-green-600"><Check className="w-5 h-5" /></button>
-                <button onClick={() => setIsEditingName(false)} className="p-1 text-red-600"><X className="w-5 h-5" /></button>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 bg-secondary/50 rounded-xl p-2"
+              >
+                <Input 
+                  value={editName} 
+                  onChange={(e) => setEditName(e.target.value)} 
+                  className="h-9 bg-card border-primary/30 focus:border-primary text-sm font-medium" 
+                  placeholder="Your name"
+                  autoFocus
+                />
+                <motion.button 
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleSaveName} 
+                  className="p-2 bg-green-500 rounded-lg text-white shadow-md"
+                >
+                  <Check className="w-4 h-4" />
+                </motion.button>
+                <motion.button 
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setIsEditingName(false)} 
+                  className="p-2 bg-red-500 rounded-lg text-white shadow-md"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
+              </motion.div>
             ) : (
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-foreground">{user ? userName : "Guest User"}</h2>
-                {user && <button onClick={() => { setEditName(userName); setIsEditingName(true); }} className="p-1 text-primary"><Pencil className="w-4 h-4" /></button>}
+                <h2 className="font-semibold text-foreground text-lg">{user ? userName : "Guest User"}</h2>
+                {user && (
+                  <motion.button 
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => { setEditName(userName); setIsEditingName(true); }} 
+                    className="p-1.5 bg-primary/10 rounded-lg text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </motion.button>
+                )}
               </div>
             )}
             <p className="text-sm text-muted-foreground truncate">{user?.email || "Sign in to continue"}</p>
             
-            {/* Editable Community */}
+            {/* Editable Community with improved UI */}
             {isEditingCommunity ? (
-              <div className="mt-2 space-y-1">
-                {communities.map((c) => (
-                  <button key={c.id} onClick={() => handleChangeCommunity(c.name)} className={`w-full text-left text-xs px-2 py-1 rounded ${selectedCommunity === c.name ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}>
-                    {c.name}
-                  </button>
-                ))}
-                <button onClick={() => setIsEditingCommunity(false)} className="w-full text-left text-xs px-2 py-1 text-red-600">Cancel</button>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="mt-3 bg-secondary/30 rounded-xl p-2 border border-primary/20"
+              >
+                <p className="text-xs text-muted-foreground mb-2 px-1">Select your community:</p>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {communities.map((c) => (
+                    <motion.button 
+                      key={c.id} 
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleChangeCommunity(c.name)} 
+                      className={`w-full text-left text-sm px-3 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                        selectedCommunity === c.name 
+                          ? 'bg-primary text-primary-foreground shadow-md' 
+                          : 'bg-card hover:bg-primary/10 text-foreground'
+                      }`}
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      {c.name}
+                    </motion.button>
+                  ))}
+                </div>
+                <motion.button 
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsEditingCommunity(false)} 
+                  className="w-full mt-2 text-center text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600 font-medium"
+                >
+                  Cancel
+                </motion.button>
+              </motion.div>
             ) : (
               selectedCommunity && (
-                <div className="flex items-center gap-1 mt-1">
-                  <MapPin className="w-3 h-3 text-primary" />
-                  <span className="text-xs text-primary">{selectedCommunity}</span>
-                  {user && <button onClick={() => setIsEditingCommunity(true)} className="p-1 text-primary"><Pencil className="w-3 h-3" /></button>}
-                </div>
+                <motion.button 
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => user && setIsEditingCommunity(true)}
+                  className="flex items-center gap-1.5 mt-2 bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs text-primary font-medium">{selectedCommunity}</span>
+                  {user && <ChevronDown className="w-3 h-3 text-primary" />}
+                </motion.button>
               )
             )}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4 mt-5 pt-4 border-t border-border">
-          <div className="text-center"><p className="text-lg font-bold text-foreground">₹0</p><p className="text-xs text-muted-foreground">Wallet</p></div>
-          <div className="text-center border-x border-border"><p className="text-lg font-bold text-foreground">0</p><p className="text-xs text-muted-foreground">Subscriptions</p></div>
-          <div className="text-center flex flex-col items-center"><div className="flex items-center gap-0.5"><Star className="w-4 h-4 fill-primary text-primary" /><span className="text-lg font-bold text-foreground">4.8</span></div><p className="text-xs text-muted-foreground">Rating</p></div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-foreground">₹{walletBalance}</p>
+            <p className="text-xs text-muted-foreground">Wallet</p>
+          </div>
+          <div className="text-center border-x border-border">
+            <p className="text-lg font-bold text-foreground">{subscriptionCount}</p>
+            <p className="text-xs text-muted-foreground">Subscriptions</p>
+          </div>
+          <div className="text-center flex flex-col items-center">
+            <div className="flex items-center gap-0.5">
+              <Star className="w-4 h-4 fill-primary text-primary" />
+              <span className="text-lg font-bold text-foreground">4.8</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Rating</p>
+          </div>
         </div>
       </motion.div>
 
