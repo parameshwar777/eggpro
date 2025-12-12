@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, Plus, Minus, ShoppingCart } from "lucide-react";
+import { Star, Plus, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,14 +31,22 @@ export const ProductCard = ({
   delay = 0,
 }: ProductCardProps) => {
   const navigate = useNavigate();
-  const { addToCart, totalItems } = useCart();
+  const { addToCart, items } = useCart();
   const { toast } = useToast();
   const [selectedPack, setSelectedPack] = useState(packSizes[0]);
-  const [showAdded, setShowAdded] = useState(false);
   const discount = Math.round(((originalPrice - price) / originalPrice) * 100);
+
+  // Check if this product with selected pack size is already in cart
+  const isInCart = useMemo(() => {
+    return items.some(item => item.id === `${id}-${selectedPack}`);
+  }, [items, id, selectedPack]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isInCart) {
+      navigate("/cart");
+      return;
+    }
     addToCart({
       id: `${id}-${selectedPack}`,
       name,
@@ -48,14 +56,7 @@ export const ProductCard = ({
       packSize: selectedPack,
       isSubscription: false
     });
-    setShowAdded(true);
     toast({ title: "Added to cart!", description: `${name} (${selectedPack} eggs)` });
-    setTimeout(() => setShowAdded(false), 2000);
-  };
-
-  const goToCart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate("/cart");
   };
 
   return (
@@ -121,14 +122,14 @@ export const ProductCard = ({
             </div>
             
             <AnimatePresence mode="wait">
-              {showAdded ? (
+              {isInCart ? (
                 <motion.div
                   key="cart"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   exit={{ scale: 0 }}
                 >
-                  <Button size="sm" onClick={goToCart} className="h-8 px-3 gap-1">
+                  <Button size="sm" onClick={handleAddToCart} className="h-8 px-3 gap-1">
                     <ShoppingCart className="w-3.5 h-3.5" />
                     <span className="text-xs">View Cart</span>
                   </Button>

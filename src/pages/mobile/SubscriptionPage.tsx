@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Calendar, Wallet, Tag, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -48,9 +48,23 @@ export const SubscriptionPage = () => {
   const [referralCode, setReferralCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [useWallet, setUseWallet] = useState(false);
-  const [walletBalance] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const community = localStorage.getItem("selectedCommunity") || "";
+
+  // Fetch wallet balance
+  useEffect(() => {
+    const fetchWalletBalance = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("wallet_balance")
+        .eq("id", user.id)
+        .single();
+      setWalletBalance(data?.wallet_balance || 0);
+    };
+    fetchWalletBalance();
+  }, [user]);
 
   const frequencies: { value: FrequencyType; label: string; desc: string }[] = [
     { value: "daily", label: "Daily", desc: "Every day" },
