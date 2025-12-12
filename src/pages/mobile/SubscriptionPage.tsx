@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Calendar, Wallet, Tag } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Wallet, Tag, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,10 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, getDaysInMonth, addMonths } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 declare global {
@@ -20,6 +21,16 @@ declare global {
 }
 
 type FrequencyType = "daily" | "alternate" | "weekly";
+
+const WEEKDAYS = [
+  { value: "monday", label: "Monday" },
+  { value: "tuesday", label: "Tuesday" },
+  { value: "wednesday", label: "Wednesday" },
+  { value: "thursday", label: "Thursday" },
+  { value: "friday", label: "Friday" },
+  { value: "saturday", label: "Saturday" },
+  { value: "sunday", label: "Sunday" },
+];
 
 export const SubscriptionPage = () => {
   const navigate = useNavigate();
@@ -33,6 +44,7 @@ export const SubscriptionPage = () => {
   const [pincode, setPincode] = useState("");
   const [frequency, setFrequency] = useState<FrequencyType>("daily");
   const [startDate, setStartDate] = useState<Date>(new Date());
+  const [weeklyDay, setWeeklyDay] = useState("monday");
   const [referralCode, setReferralCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [useWallet, setUseWallet] = useState(false);
@@ -40,11 +52,38 @@ export const SubscriptionPage = () => {
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
-  const frequencies: { value: FrequencyType; label: string }[] = [
-    { value: "daily", label: "Daily" },
-    { value: "alternate", label: "Alternate Days" },
-    { value: "weekly", label: "Weekly" },
+  const frequencies: { value: FrequencyType; label: string; desc: string }[] = [
+    { value: "daily", label: "Daily", desc: "Every day" },
+    { value: "alternate", label: "Alternate", desc: "Every 2 days" },
+    { value: "weekly", label: "Weekly", desc: "Once a week" },
   ];
+
+  // Calculate monthly subscription amount
+  const monthlyAmount = useMemo(() => {
+    const daysInMonth = getDaysInMonth(startDate);
+    const pricePerDelivery = totalPrice;
+    
+    let deliveriesPerMonth = 0;
+    
+    switch (frequency) {
+      case "daily":
+        deliveriesPerMonth = daysInMonth;
+        break;
+      case "alternate":
+        deliveriesPerMonth = Math.ceil(daysInMonth / 2);
+        break;
+      case "weekly":
+        deliveriesPerMonth = 4; // 4 weeks in a month
+        break;
+    }
+    
+    return pricePerDelivery * deliveriesPerMonth;
+  }, [frequency, startDate, totalPrice]);
+
+  // Calculate subscription end date (1 month from start)
+  const subscriptionEndDate = useMemo(() => {
+    return addMonths(startDate, 1);
+  }, [startDate]);
 
   const handlePayment = async () => {
     if (!user) {
@@ -62,7 +101,7 @@ export const SubscriptionPage = () => {
 
     try {
       // If wallet has enough balance and user wants to use it
-      if (useWallet && walletBalance >= totalPrice) {
+      if (useWallet && walletBalance >= monthlyAmount) {
         const { error: subError } = await supabase
           .from("orders")
           .insert({
@@ -76,11 +115,13 @@ export const SubscriptionPage = () => {
               price: i.price, 
               packSize: i.packSize,
               frequency,
+              weeklyDay: frequency === "weekly" ? weeklyDay : null,
               startDate: format(startDate, "yyyy-MM-dd")
             })),
-            total_amount: totalPrice,
+            total_amount: monthlyAmount,
             payment_status: "completed",
-            order_status: "subscription_active"
+            order_status: "confirmed",
+            subscription_end_date: subscriptionEndDate.toISOString()
           });
 
         if (subError) throw subError;
@@ -113,11 +154,13 @@ export const SubscriptionPage = () => {
             price: i.price, 
             packSize: i.packSize,
             frequency,
+            weeklyDay: frequency === "weekly" ? weeklyDay : null,
             startDate: format(startDate, "yyyy-MM-dd")
           })),
-          total_amount: totalPrice,
+          total_amount: monthlyAmount,
           payment_status: "pending",
-          order_status: "pending"
+          order_status: "pending",
+          subscription_end_date: subscriptionEndDate.toISOString()
         })
         .select()
         .single();
@@ -126,7 +169,7 @@ export const SubscriptionPage = () => {
 
       // Create Razorpay order
       const { data: razorpayData, error: razorpayError } = await supabase.functions.invoke("create-razorpay-order", {
-        body: { amount: totalPrice, receipt: orderData.id }
+        body: { amount: monthlyAmount, receipt: orderData.id }
       });
 
       if (razorpayError) throw razorpayError;
@@ -136,7 +179,7 @@ export const SubscriptionPage = () => {
         amount: razorpayData.amount,
         currency: razorpayData.currency,
         name: "EggPro",
-        description: `${frequency.charAt(0).toUpperCase() + frequency.slice(1)} Subscription`,
+        description: `${frequency.charAt(0).toUpperCase() + frequency.slice(1)} Subscription (1 Month)`,
         order_id: razorpayData.orderId,
         handler: async (response: any) => {
           try {
@@ -149,19 +192,14 @@ export const SubscriptionPage = () => {
                 community,
                 address: `${address}, ${city} - ${pincode}`,
                 phone,
-                customerName: user.email || "Customer",
+                customerName: profile?.full_name || user.email || "Customer",
                 items: items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
-                totalAmount: totalPrice
+                totalAmount: monthlyAmount,
+                subscriptionEndDate: subscriptionEndDate.toISOString()
               }
             });
 
             if (verifyError) throw verifyError;
-
-            // Update order status for subscription
-            await supabase
-              .from("orders")
-              .update({ order_status: "subscription_active" })
-              .eq("id", orderData.id);
 
             // Handle referral reward on first payment
             if (referralCode) {
@@ -173,13 +211,11 @@ export const SubscriptionPage = () => {
                 .single();
 
               if (referral) {
-                // Mark referral as completed
                 await supabase
                   .from("referrals")
                   .update({ status: "completed", completed_at: new Date().toISOString() })
                   .eq("id", referral.id);
 
-                // Add rewards to both wallets via transactions
                 await supabase.from("wallet_transactions").insert([
                   { user_id: referral.referrer_id, amount: 20, type: "credit", description: "Referral reward" },
                   { user_id: user.id, amount: 40, type: "credit", description: "Welcome referral bonus" }
@@ -304,13 +340,14 @@ export const SubscriptionPage = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setFrequency(freq.value)}
                   className={cn(
-                    "py-3 px-2 rounded-xl font-medium transition-all text-sm",
+                    "py-3 px-2 rounded-xl font-medium transition-all text-sm flex flex-col items-center",
                     frequency === freq.value
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-foreground"
                   )}
                 >
-                  {freq.label}
+                  <span>{freq.label}</span>
+                  <span className="text-xs opacity-70">{freq.desc}</span>
                 </motion.button>
               ))}
             </div>
@@ -333,7 +370,7 @@ export const SubscriptionPage = () => {
                   variant="outline"
                   className="w-full justify-start text-left font-normal"
                 >
-                  {format(startDate, "MM/dd/yyyy")}
+                  {format(startDate, "dd MMM yyyy")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -349,12 +386,69 @@ export const SubscriptionPage = () => {
             </Popover>
           </motion.div>
 
+          {/* Weekly Day Selection */}
+          {frequency === "weekly" && (
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="bg-card rounded-2xl p-4 shadow-card"
+            >
+              <h3 className="font-semibold text-foreground mb-3">Delivery Day</h3>
+              <Select value={weeklyDay} onValueChange={setWeeklyDay}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select day" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WEEKDAYS.map((day) => (
+                    <SelectItem key={day.value} value={day.value}>
+                      {day.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </motion.div>
+          )}
+
+          {/* Pricing Summary */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.25 }}
+            className="bg-primary/10 rounded-2xl p-4 border-2 border-primary/20"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-foreground">Monthly Subscription</h3>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Per delivery:</span>
+                <span className="font-semibold">₹{totalPrice}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Deliveries/month:</span>
+                <span className="font-semibold">
+                  {frequency === "daily" ? getDaysInMonth(startDate) : 
+                   frequency === "alternate" ? Math.ceil(getDaysInMonth(startDate) / 2) : 4}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subscription ends:</span>
+                <span className="font-semibold">{format(subscriptionEndDate, "dd MMM yyyy")}</span>
+              </div>
+              <div className="border-t border-primary/20 pt-2 mt-2 flex justify-between">
+                <span className="font-bold text-foreground">Total Amount:</span>
+                <span className="font-bold text-primary text-lg">₹{monthlyAmount}</span>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Wallet Payment Option */}
           {walletBalance > 0 && (
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.25 }}
+              transition={{ delay: 0.3 }}
               className="bg-card rounded-2xl p-4 shadow-card"
             >
               <div className="flex items-center justify-between">
@@ -381,7 +475,7 @@ export const SubscriptionPage = () => {
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.35 }}
             className="bg-purple-50 rounded-2xl p-4"
           >
             <div className="flex items-center gap-2">
@@ -408,6 +502,10 @@ export const SubscriptionPage = () => {
           className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-20"
         >
           <div className="max-w-lg mx-auto">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-muted-foreground">Monthly Total:</span>
+              <span className="font-bold text-primary text-xl">₹{monthlyAmount}</span>
+            </div>
             <Button
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-14 text-lg font-semibold rounded-xl"
               onClick={handlePayment}
