@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { BackButtonHandler } from "@/components/BackButtonHandler";
 
 // Mobile Pages
 import { SplashPage } from "./pages/mobile/SplashPage";
@@ -44,6 +45,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <BackButtonHandler />
             <Routes>
               {/* Mobile User Routes */}
               <Route path="/" element={<SplashPage />} />
