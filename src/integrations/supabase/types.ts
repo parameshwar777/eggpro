@@ -114,11 +114,14 @@ export type Database = {
           created_at: string
           customer_name: string | null
           id: string
+          is_paused: boolean | null
           items: Json
           order_status: string | null
+          paused_at: string | null
           payment_id: string | null
           payment_status: string | null
           phone: string
+          resume_at: string | null
           subscription_end_date: string | null
           total_amount: number
           updated_at: string
@@ -130,11 +133,14 @@ export type Database = {
           created_at?: string
           customer_name?: string | null
           id?: string
+          is_paused?: boolean | null
           items: Json
           order_status?: string | null
+          paused_at?: string | null
           payment_id?: string | null
           payment_status?: string | null
           phone: string
+          resume_at?: string | null
           subscription_end_date?: string | null
           total_amount: number
           updated_at?: string
@@ -146,11 +152,14 @@ export type Database = {
           created_at?: string
           customer_name?: string | null
           id?: string
+          is_paused?: boolean | null
           items?: Json
           order_status?: string | null
+          paused_at?: string | null
           payment_id?: string | null
           payment_status?: string | null
           phone?: string
+          resume_at?: string | null
           subscription_end_date?: string | null
           total_amount?: number
           updated_at?: string
@@ -266,6 +275,48 @@ export type Database = {
           referrer_id?: string
           referrer_reward?: number | null
           status?: string
+        }
+        Relationships: []
+      }
+      user_addresses: {
+        Row: {
+          address_line1: string
+          address_line2: string | null
+          city: string
+          created_at: string
+          id: string
+          is_default: boolean | null
+          label: string
+          phone: string
+          pincode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_line1: string
+          address_line2?: string | null
+          city?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          label?: string
+          phone: string
+          pincode: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_line1?: string
+          address_line2?: string | null
+          city?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          label?: string
+          phone?: string
+          pincode?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

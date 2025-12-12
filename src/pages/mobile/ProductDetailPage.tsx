@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Star, Leaf, Shield, Zap, Minus, Plus, ArrowRight } from "lucide-react";
+import { ArrowLeft, Star, Leaf, Shield, Zap, Minus, Plus, ShoppingCart } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +57,7 @@ const products: Record<string, any> = {
 export const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { addToCart } = useCart();
+  const { addToCart, items } = useCart();
   
   const product = products[id || "1"];
   
@@ -82,9 +82,15 @@ export const ProductDetailPage = () => {
   const savings = currentPrice.buy - currentPrice.subscribe;
   const discountPercent = Math.round((savings / currentPrice.buy) * 100);
 
-  const handleProceedToCheckout = () => {
+  // Check if item is already in cart
+  const cartItemId = `${product.id}-${selectedPack}-${isSubscription ? 's' : 'b'}`;
+  const isInCart = useMemo(() => {
+    return items.some(item => item.id === cartItemId);
+  }, [items, cartItemId]);
+
+  const handleAddToCart = () => {
     addToCart({
-      id: `${product.id}-${selectedPack}-${isSubscription ? 's' : 'b'}`,
+      id: cartItemId,
       name: product.name,
       image: product.image,
       price: finalPrice,
@@ -93,7 +99,10 @@ export const ProductDetailPage = () => {
       isSubscription,
     });
     toast({ title: "Added to cart!", description: `${product.name} (${selectedPack} eggs)` });
-    navigate("/subscription");
+  };
+
+  const handleViewCart = () => {
+    navigate("/cart");
   };
 
   return (
@@ -323,14 +332,26 @@ export const ProductDetailPage = () => {
                   <p className="text-sm text-green-600 font-medium">You save ₹{savings * quantity}</p>
                 )}
               </div>
-              <Button 
-                size="lg" 
-                className="px-6 h-12 rounded-xl text-base font-semibold"
-                onClick={handleProceedToCheckout}
-              >
-                Proceed to Checkout
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+              {isInCart ? (
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="px-6 h-12 rounded-xl text-base font-semibold border-primary text-primary"
+                  onClick={handleViewCart}
+                >
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  View Cart
+                </Button>
+              ) : (
+                <Button 
+                  size="lg" 
+                  className="px-6 h-12 rounded-xl text-base font-semibold"
+                  onClick={handleAddToCart}
+                >
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  Add to Cart
+                </Button>
+              )}
             </div>
           </div>
         </motion.div>

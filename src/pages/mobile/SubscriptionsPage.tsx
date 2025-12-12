@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, RefreshCw, Calendar, Package } from "lucide-react";
+import { ArrowLeft, RefreshCw, Calendar, Package, Pause, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { toast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 interface Subscription {
   id: string;
@@ -14,6 +19,10 @@ interface Subscription {
   created_at: string;
   address: string;
   community: string;
+  is_paused: boolean | null;
+  paused_at: string | null;
+  resume_at: string | null;
+  subscription_end_date: string | null;
 }
 
 export const SubscriptionsPage = () => {
@@ -21,6 +30,9 @@ export const SubscriptionsPage = () => {
   const { user } = useAuth();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPauseDialog, setShowPauseDialog] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+  const [resumeDate, setResumeDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     if (user) {
@@ -37,7 +49,7 @@ export const SubscriptionsPage = () => {
       .from("orders")
       .select("*")
       .eq("user_id", user.id)
-      .eq("order_status", "subscription_active")
+      .in("order_status", ["subscription_active", "confirmed"])
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -52,6 +64,58 @@ export const SubscriptionsPage = () => {
       case "alternate": return "Alternate Days";
       case "weekly": return "Weekly";
       default: return "One Time";
+    }
+  };
+
+  const handlePauseSubscription = (sub: Subscription) => {
+    setSelectedSubscription(sub);
+    setResumeDate(undefined);
+    setShowPauseDialog(true);
+  };
+
+  const confirmPause = async () => {
+    if (!selectedSubscription || !resumeDate) {
+      toast({ title: "Select resume date", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          is_paused: true,
+          paused_at: new Date().toISOString(),
+          resume_at: resumeDate.toISOString()
+        })
+        .eq("id", selectedSubscription.id);
+
+      if (error) throw error;
+
+      toast({ title: "Subscription Paused", description: `Will resume on ${format(resumeDate, "dd MMM yyyy")}` });
+      setShowPauseDialog(false);
+      fetchSubscriptions();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleResumeSubscription = async (subId: string) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          is_paused: false,
+          paused_at: null,
+          resume_at: null
+        })
+        .eq("id", subId);
+
+      if (error) throw error;
+
+      toast({ title: "Subscription Resumed" });
+      fetchSubscriptions();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
@@ -144,7 +208,11 @@ export const SubscriptionsPage = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge className="bg-green-100 text-green-700">Active</Badge>
+                  {sub.is_paused ? (
+                    <Badge className="bg-yellow-100 text-yellow-700">Paused</Badge>
+                  ) : (
+                    <Badge className="bg-green-100 text-green-700">Active</Badge>
+                  )}
                 </div>
 
                 <div className="space-y-2 text-sm">
@@ -156,17 +224,78 @@ export const SubscriptionsPage = () => {
                     <Calendar className="w-4 h-4" />
                     <span>Started: {new Date(sub.created_at).toLocaleDateString()}</span>
                   </div>
+                  {sub.subscription_end_date && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="w-4 h-4" />
+                      <span>Ends: {new Date(sub.subscription_end_date).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {sub.is_paused && sub.resume_at && (
+                    <div className="flex items-center gap-2 text-yellow-600">
+                      <Play className="w-4 h-4" />
+                      <span>Resumes: {new Date(sub.resume_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                   <p className="text-lg font-bold text-primary">₹{sub.total_amount}</p>
-                  <p className="text-xs text-muted-foreground">per delivery</p>
+                  {sub.is_paused ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleResumeSubscription(sub.id)}
+                      className="gap-1"
+                    >
+                      <Play className="w-4 h-4" />
+                      Resume Now
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePauseSubscription(sub)}
+                      className="gap-1"
+                    >
+                      <Pause className="w-4 h-4" />
+                      Pause
+                    </Button>
+                  )}
                 </div>
               </motion.div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Pause Dialog */}
+      <Dialog open={showPauseDialog} onOpenChange={setShowPauseDialog}>
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-sm mx-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Pause Subscription</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Select the date when you want to resume your subscription
+            </p>
+            <CalendarComponent
+              mode="single"
+              selected={resumeDate}
+              onSelect={setResumeDate}
+              disabled={(date) => date < new Date()}
+              className="rounded-xl border mx-auto"
+            />
+            {resumeDate && (
+              <p className="text-center text-sm">
+                Resume on: <span className="font-semibold">{format(resumeDate, "dd MMM yyyy")}</span>
+              </p>
+            )}
+            <Button className="w-full" onClick={confirmPause} disabled={!resumeDate}>
+              Confirm Pause
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
