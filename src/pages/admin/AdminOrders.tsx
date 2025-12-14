@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, RefreshCw } from "lucide-react";
+import { Eye, RefreshCw, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -32,7 +32,6 @@ export const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
-    // Check for expired subscriptions
     checkExpiredSubscriptions();
   }, []);
 
@@ -54,7 +53,6 @@ export const AdminOrders = () => {
   const checkExpiredSubscriptions = async () => {
     try {
       const now = new Date().toISOString();
-      // Update orders where subscription has ended
       const { error } = await supabase
         .from("orders")
         .update({ order_status: "inactive" })
@@ -79,6 +77,40 @@ export const AdminOrders = () => {
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
+  };
+
+  const sendWhatsAppNotification = (order: Order) => {
+    const itemsList = order.items?.map((i: any) => `${i.name} (${i.packSize} eggs) x${i.quantity}`).join("\n") || "";
+    const frequency = order.items?.[0]?.frequency || "one-time";
+    const endDate = order.subscription_end_date ? new Date(order.subscription_end_date).toLocaleDateString() : "N/A";
+    
+    const message = `🥚 *New Order - EggPro*
+
+📋 *Order ID:* ${order.id.slice(0, 8).toUpperCase()}
+💳 *Payment ID:* ${order.payment_id || "Pending"}
+
+👤 *Customer:* ${order.customer_name || "N/A"}
+📞 *Phone:* ${order.phone}
+
+🏠 *Address:*
+${order.address}
+📍 *Community:* ${order.community}
+
+📦 *Items:*
+${itemsList}
+
+🔄 *Frequency:* ${frequency}
+📅 *End Date:* ${endDate}
+
+💰 *Total:* ₹${order.total_amount}
+✅ *Payment:* ${order.payment_status === "completed" ? "Paid" : "Pending"}`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const adminPhone = "919440229378"; // Admin WhatsApp number
+    const whatsappUrl = `https://wa.me/${adminPhone}?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, "_blank");
+    toast({ title: "WhatsApp Opened", description: "Order details ready to send" });
   };
 
   const getStatusColor = (status: string) => {
@@ -139,18 +171,17 @@ export const AdminOrders = () => {
         <div className="text-center py-12 text-amber-300">No orders yet</div>
       ) : (
         <div className="bg-amber-900/50 rounded-xl border border-amber-800 overflow-x-auto">
-          <table className="w-full min-w-[1000px]">
+          <table className="w-full min-w-[1100px]">
             <thead className="bg-amber-800/50">
               <tr>
                 <th className="text-left p-4 text-amber-200 font-medium">Order ID</th>
+                <th className="text-left p-4 text-amber-200 font-medium">Payment ID</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Customer</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Phone</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Door No.</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Community</th>
-                <th className="text-left p-4 text-amber-200 font-medium">Pincode</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Product</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Subscription</th>
-                <th className="text-left p-4 text-amber-200 font-medium">End Date</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Amount</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Status</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Actions</th>
@@ -158,17 +189,19 @@ export const AdminOrders = () => {
             </thead>
             <tbody>
               {orders.map((order) => {
-                const { doorNumber, pincode } = parseAddress(order.address);
-                const { frequency, endDate } = getSubscriptionInfo(order.items, order.subscription_end_date);
+                const { doorNumber } = parseAddress(order.address);
+                const { frequency } = getSubscriptionInfo(order.items, order.subscription_end_date);
                 
                 return (
                   <tr key={order.id} className="border-t border-amber-800">
                     <td className="p-4 text-amber-100 font-mono text-sm">{order.id.slice(0, 8)}...</td>
+                    <td className="p-4 text-amber-200 font-mono text-xs">
+                      {order.payment_id ? order.payment_id.slice(0, 12) + "..." : "—"}
+                    </td>
                     <td className="p-4 text-amber-200">{order.customer_name || "—"}</td>
                     <td className="p-4 text-amber-200">{order.phone}</td>
                     <td className="p-4 text-amber-200">{doorNumber}</td>
                     <td className="p-4 text-amber-200">{order.community}</td>
-                    <td className="p-4 text-amber-200">{pincode || "—"}</td>
                     <td className="p-4 text-amber-200">
                       {order.items?.[0]?.name || "—"}
                       <span className="text-xs text-amber-400 block">
@@ -180,8 +213,7 @@ export const AdminOrders = () => {
                         {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
                       </Badge>
                     </td>
-                    <td className="p-4 text-amber-200">{endDate}</td>
-                    <td className="p-4 text-amber-100">₹{order.total_amount}</td>
+                    <td className="p-4 text-amber-100 font-bold">₹{order.total_amount}</td>
                     <td className="p-4">
                       <Badge className={getStatusColor(order.order_status || "pending")}>
                         {getStatusLabel(order.order_status || "pending")}
@@ -189,11 +221,25 @@ export const AdminOrders = () => {
                     </td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" className="text-amber-300 hover:text-amber-100 hover:bg-amber-800" onClick={() => setSelectedOrder(order)}>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-amber-300 hover:text-amber-100 hover:bg-amber-800" 
+                          onClick={() => setSelectedOrder(order)}
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-green-400 hover:text-green-200 hover:bg-green-800/50" 
+                          onClick={() => sendWhatsAppNotification(order)}
+                          title="Send to WhatsApp"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </Button>
                         <Select defaultValue={order.order_status || "pending"} onValueChange={(value) => updateOrderStatus(order.id, value)}>
-                          <SelectTrigger className="w-28 bg-amber-800 border-amber-700 text-amber-100 text-xs">
+                          <SelectTrigger className="w-24 bg-amber-800 border-amber-700 text-amber-100 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-amber-900 border-amber-700">
@@ -227,7 +273,7 @@ export const AdminOrders = () => {
                 </div>
                 <div>
                   <p className="text-amber-400 text-sm">Payment ID</p>
-                  <p className="text-amber-100 font-mono text-sm">{selectedOrder.payment_id || "—"}</p>
+                  <p className="text-amber-100 font-mono text-sm break-all">{selectedOrder.payment_id || "—"}</p>
                 </div>
               </div>
               
@@ -279,6 +325,15 @@ export const AdminOrders = () => {
                   <span>₹{selectedOrder.total_amount}</span>
                 </div>
               </div>
+
+              {/* WhatsApp Button */}
+              <Button 
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => sendWhatsAppNotification(selectedOrder)}
+              >
+                <MessageCircle className="w-5 h-5 mr-2" />
+                Send to WhatsApp
+              </Button>
             </div>
           )}
         </DialogContent>
