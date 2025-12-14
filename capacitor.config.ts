@@ -10,6 +10,11 @@ const config: CapacitorConfig = {
   plugins: {
     CapacitorHttp: {
       enabled: true
+    },
+    GoogleAuth: {
+      scopes: ['profile', 'email'],
+      serverClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true
     }
   },
   // For development hot reload, uncomment below:

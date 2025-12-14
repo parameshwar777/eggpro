@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { Capacitor } from "@capacitor/core";
+import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +24,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize Google Auth for native platforms
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      GoogleAuth.initialize({
+        clientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: true,
+      });
+    }
+  }, []);
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -91,22 +104,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
-    // For Capacitor apps, use the deployed app URL to handle OAuth callback
-    // The app will detect the auth state change and navigate accordingly
-    const redirectUrl = 'https://eggpro.lovable.app/auth';
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: false,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        }
+    try {
+      // Check if running on native platform
+      if (Capacitor.isNativePlatform()) {
+        // Use native Google Auth
+        const googleUser = await GoogleAuth.signIn();
+        
+        // Sign in to Supabase with the ID token
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: googleUser.authentication.idToken,
+        });
+        
+        return { error };
+      } else {
+        // Web fallback - use OAuth redirect
+        const redirectUrl = 'https://eggpro.lovable.app/auth';
+        
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: redirectUrl,
+            skipBrowserRedirect: false,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            }
+          }
+        });
+        return { error };
       }
-    });
-    return { error };
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      return { error };
+    }
   };
 
   const signInWithPhone = async (phone: string) => {
@@ -120,6 +151,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    // Sign out from Google if on native platform
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await GoogleAuth.signOut();
+      } catch (e) {
+        console.log('Google sign out error:', e);
+      }
+    }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
