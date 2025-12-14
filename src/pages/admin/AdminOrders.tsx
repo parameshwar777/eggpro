@@ -29,11 +29,26 @@ export const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [adminWhatsapp, setAdminWhatsapp] = useState("919440229378");
 
   useEffect(() => {
     fetchOrders();
     checkExpiredSubscriptions();
+    fetchAdminWhatsapp();
   }, []);
+
+  const fetchAdminWhatsapp = async () => {
+    try {
+      const { data } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "admin_whatsapp")
+        .single();
+      if (data) setAdminWhatsapp(data.value);
+    } catch (error) {
+      console.error("Error fetching admin WhatsApp:", error);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -106,8 +121,7 @@ ${itemsList}
 ✅ *Payment:* ${order.payment_status === "completed" ? "Paid" : "Pending"}`;
 
     const encodedMessage = encodeURIComponent(message);
-    const adminPhone = "919440229378"; // Admin WhatsApp number
-    const whatsappUrl = `https://wa.me/${adminPhone}?text=${encodedMessage}`;
+    const whatsappUrl = `https://wa.me/${adminWhatsapp}?text=${encodedMessage}`;
     
     window.open(whatsappUrl, "_blank");
     toast({ title: "WhatsApp Opened", description: "Order details ready to send" });

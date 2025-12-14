@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Package, ShoppingCart, Bell, Tag, 
-  LogOut, Menu, X, Users
+  LogOut, Menu, X, Users, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +37,7 @@ export const AdminLayout = ({ children, title, headerActions }: AdminLayoutProps
     { icon: Users, label: "Communities", path: "/admin/communities" },
     { icon: Bell, label: "Notifications", path: "/admin/notifications" },
     { icon: Tag, label: "Offers", path: "/admin/offers" },
+    { icon: Settings, label: "Settings", path: "/admin/settings" },
   ];
 
   if (isLoading) {
