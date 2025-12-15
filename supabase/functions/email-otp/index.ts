@@ -110,7 +110,9 @@ serve(async (req: Request) => {
               "Email delivery failed. Please try again later.",
           }),
           {
-            status: 400,
+            // Return 200 so the client can read the structured error in `data`
+            // (Supabase `invoke` treats non-2xx as a transport error and can hide the real message).
+            status: 200,
             headers: { "Content-Type": "application/json", ...corsHeaders },
           }
         );
