@@ -93,9 +93,29 @@ serve(async (req: Request) => {
           </div>
         `,
       });
-      
+
       console.log("Email send result:", emailResult);
-      
+
+      // Resend returns `{ data, error }` (it may not throw), so we must fail explicitly.
+      const resendError = (emailResult as any)?.error;
+      if (resendError) {
+        // Avoid leaving a valid OTP stored when email delivery failed.
+        await supabase.from("email_otps").delete().eq("email", email.toLowerCase().trim());
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error:
+              resendError?.message ||
+              "Email delivery failed. Please try again later.",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
       return new Response(JSON.stringify({ success: true, message: "OTP sent" }), {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
