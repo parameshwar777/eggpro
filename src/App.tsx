@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BackButtonHandler } from "@/components/BackButtonHandler";
+import { PlatformGuard } from "@/components/PlatformGuard";
 
 // Mobile Pages
 import { SplashPage } from "./pages/mobile/SplashPage";
@@ -43,41 +44,43 @@ const App = () => (
     <AuthProvider>
       <CartProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <BackButtonHandler />
-            <Routes>
-              {/* Mobile User Routes */}
-              <Route path="/" element={<SplashPage />} />
-              <Route path="/community" element={<CommunitySelectPage />} />
-              <Route path="/home" element={<HomePage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/refer" element={<ReferPage />} />
-              <Route path="/account" element={<AccountPage />} />
-              <Route path="/wallet" element={<WalletPage />} />
-              <Route path="/addresses" element={<AddressPage />} />
-              <Route path="/product/:id" element={<ProductDetailPage />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/subscription" element={<SubscriptionPage />} />
-              <Route path="/subscriptions" element={<SubscriptionsPage />} />
+          <PlatformGuard>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <BackButtonHandler />
+              <Routes>
+                {/* Mobile User Routes */}
+                <Route path="/" element={<SplashPage />} />
+                <Route path="/community" element={<CommunitySelectPage />} />
+                <Route path="/home" element={<HomePage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/refer" element={<ReferPage />} />
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/wallet" element={<WalletPage />} />
+                <Route path="/addresses" element={<AddressPage />} />
+                <Route path="/product/:id" element={<ProductDetailPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/subscription" element={<SubscriptionPage />} />
+                <Route path="/subscriptions" element={<SubscriptionsPage />} />
 
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/products" element={<AdminProducts />} />
-              <Route path="/admin/orders" element={<AdminOrders />} />
-              <Route path="/admin/notifications" element={<AdminNotifications />} />
-              <Route path="/admin/offers" element={<AdminOffers />} />
-              <Route path="/admin/communities" element={<AdminCommunities />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
+                {/* Admin Routes */}
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/products" element={<AdminProducts />} />
+                <Route path="/admin/orders" element={<AdminOrders />} />
+                <Route path="/admin/notifications" element={<AdminNotifications />} />
+                <Route path="/admin/offers" element={<AdminOffers />} />
+                <Route path="/admin/communities" element={<AdminCommunities />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </PlatformGuard>
         </TooltipProvider>
       </CartProvider>
     </AuthProvider>
