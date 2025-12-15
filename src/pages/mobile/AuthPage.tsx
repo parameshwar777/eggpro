@@ -69,9 +69,15 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
+      // Store password temporarily in sessionStorage for verification step
+      sessionStorage.setItem("signup_password", password);
+      sessionStorage.setItem("signup_fullname", fullName);
+      
       const response = await supabase.functions.invoke("email-otp", {
-        body: { action: "send", email, fullName, password }
+        body: { action: "send", email: email.toLowerCase().trim() }
       });
+
+      console.log("Send OTP response:", response);
 
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Failed to send OTP");
@@ -80,6 +86,7 @@ export const AuthPage = () => {
       setMode("verify-otp");
       setResendTimer(60);
     } catch (error: any) {
+      console.error("Send OTP error:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
@@ -94,12 +101,28 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
+      // Retrieve stored signup data
+      const storedPassword = sessionStorage.getItem("signup_password") || password;
+      const storedFullName = sessionStorage.getItem("signup_fullname") || fullName;
+      
       const response = await supabase.functions.invoke("email-otp", {
-        body: { action: "verify", email, otp }
+        body: { 
+          action: "verify", 
+          email: email.toLowerCase().trim(), 
+          otp,
+          password: storedPassword,
+          fullName: storedFullName
+        }
       });
+
+      console.log("Verify OTP response:", response);
 
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Verification failed");
+
+      // Clear stored signup data
+      sessionStorage.removeItem("signup_password");
+      sessionStorage.removeItem("signup_fullname");
 
       // Handle referral code if provided
       if (referralCode && response.data?.userId) {
@@ -122,11 +145,12 @@ export const AuthPage = () => {
       toast({ title: "Account Created!", description: "Signing you in..." });
       
       // Sign in the user
-      const { error: signInError } = await signInWithEmail(email, password);
+      const { error: signInError } = await signInWithEmail(email.toLowerCase().trim(), storedPassword);
       if (signInError) throw signInError;
       
       navigate("/community");
     } catch (error: any) {
+      console.error("Verify OTP error:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
@@ -139,8 +163,10 @@ export const AuthPage = () => {
     setIsLoading(true);
     try {
       const response = await supabase.functions.invoke("email-otp", {
-        body: { action: "send", email, fullName, password }
+        body: { action: "send", email: email.toLowerCase().trim() }
       });
+
+      console.log("Resend OTP response:", response);
 
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Failed to resend OTP");
@@ -149,6 +175,7 @@ export const AuthPage = () => {
       setResendTimer(60);
       setOtp("");
     } catch (error: any) {
+      console.error("Resend OTP error:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
