@@ -1,20 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { EggLogo } from "@/components/EggLogo";
 import { supabase } from "@/integrations/supabase/client";
+import { Capacitor } from "@capacitor/core";
 
-type AuthMode = "login" | "signup" | "forgot";
+type AuthMode = "login" | "signup" | "forgot" | "verify-otp";
 
 export const AuthPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
+  const { signInWithEmail, signInWithGoogle, user } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
@@ -23,62 +25,165 @@ export const AuthPage = () => {
   const [referralCode, setReferralCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [resendTimer, setResendTimer] = useState(0);
 
-  const handleEmailAuth = async () => {
-    if (mode === "login") {
-      if (!email || !password) {
-        toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
-        return;
-      }
-    } else {
-      if (!email || !password || !fullName) {
-        toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
-        return;
-      }
-      if (password.length < 6) {
-        toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
-        return;
-      }
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      const checkCommunity = async () => {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("community")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile?.community) {
+          localStorage.setItem("selectedCommunity", profile.community);
+          navigate("/home", { replace: true });
+        } else {
+          navigate("/community", { replace: true });
+        }
+      };
+      checkCommunity();
+    }
+  }, [user, navigate]);
+
+  // Resend timer countdown
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
+  const handleSendOTP = async () => {
+    if (!email || !password || !fullName) {
+      toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
+      return;
+    }
+    if (password.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
     }
 
     setIsLoading(true);
     try {
-      if (mode === "login") {
-        const { error } = await signInWithEmail(email, password);
-        if (error) throw error;
-        toast({ title: "Welcome back!", description: "You've successfully signed in." });
+      const response = await supabase.functions.invoke("email-otp", {
+        body: { action: "send", email, fullName, password }
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Failed to send OTP");
+
+      toast({ title: "OTP Sent!", description: "Check your email for the verification code." });
+      setMode("verify-otp");
+      setResendTimer(60);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otp.length !== 6) {
+      toast({ title: "Error", description: "Please enter the complete 6-digit OTP", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await supabase.functions.invoke("email-otp", {
+        body: { action: "verify", email, otp }
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Verification failed");
+
+      // Handle referral code if provided
+      if (referralCode && response.data?.userId) {
+        const { data: referrer } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("referral_code", referralCode.toUpperCase())
+          .single();
         
-        // Check if user has community set
-        const { data: profile } = await supabase.from("profiles").select("community").eq("id", (await supabase.auth.getUser()).data.user?.id).single();
-        if (profile?.community) {
-          localStorage.setItem("selectedCommunity", profile.community);
-          navigate("/home");
-        } else {
-          navigate("/community");
+        if (referrer) {
+          await supabase.from("referrals").insert({
+            referrer_id: referrer.id,
+            referred_id: response.data.userId,
+            referral_code: referralCode.toUpperCase(),
+            status: "pending"
+          });
         }
+      }
+
+      toast({ title: "Account Created!", description: "Signing you in..." });
+      
+      // Sign in the user
+      const { error: signInError } = await signInWithEmail(email, password);
+      if (signInError) throw signInError;
+      
+      navigate("/community");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendTimer > 0) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await supabase.functions.invoke("email-otp", {
+        body: { action: "send", email, fullName, password }
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Failed to resend OTP");
+
+      toast({ title: "OTP Resent!", description: "Check your email for the new code." });
+      setResendTimer(60);
+      setOtp("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async () => {
+    if (mode === "signup") {
+      await handleSendOTP();
+      return;
+    }
+
+    // Login flow
+    if (!email || !password) {
+      toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await signInWithEmail(email, password);
+      if (error) throw error;
+      toast({ title: "Welcome back!", description: "You've successfully signed in." });
+      
+      // Check if user has community set
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("community")
+        .eq("id", (await supabase.auth.getUser()).data.user?.id)
+        .single();
+      
+      if (profile?.community) {
+        localStorage.setItem("selectedCommunity", profile.community);
+        navigate("/home");
       } else {
-        const { error, data } = await signUpWithEmail(email, password, fullName);
-        if (error) throw error;
-        
-        // Handle referral code if provided
-        if (referralCode && data?.user) {
-          const { data: referrer } = await supabase
-            .from("profiles")
-            .select("id")
-            .eq("referral_code", referralCode.toUpperCase())
-            .single();
-          
-          if (referrer) {
-            await supabase.from("referrals").insert({
-              referrer_id: referrer.id,
-              referred_id: data.user.id,
-              referral_code: referralCode.toUpperCase(),
-              status: "pending"
-            });
-          }
-        }
-        
-        toast({ title: "Account Created!", description: "You've successfully signed up." });
         navigate("/community");
       }
     } catch (error: any) {
@@ -113,9 +218,22 @@ export const AuthPage = () => {
     setIsLoading(true);
     try {
       const { error } = await signInWithGoogle();
-      if (error) throw error;
+      if (error) {
+        console.error("Google Sign-In error:", error);
+        throw error;
+      }
+      // On native, the auth state change will handle navigation
+      if (!Capacitor.isNativePlatform()) {
+        // Web will redirect, so don't do anything
+      }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      console.error("Google auth failed:", error);
+      toast({ 
+        title: "Google Sign-In Failed", 
+        description: error.message || "Something went wrong. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -124,17 +242,33 @@ export const AuthPage = () => {
     <div className="min-h-[100dvh] bg-background flex flex-col">
       {/* Header */}
       <div className="gradient-hero p-4 pt-12 pb-8 rounded-b-3xl">
-        <button onClick={() => navigate(-1)} className="text-white mb-4">
+        <button 
+          onClick={() => {
+            if (mode === "verify-otp") {
+              setMode("signup");
+              setOtp("");
+            } else {
+              navigate(-1);
+            }
+          }} 
+          className="text-white mb-4"
+        >
           <ArrowLeft className="w-6 h-6" />
         </button>
         <div className="flex justify-center mb-4">
           <EggLogo size="lg" />
         </div>
         <h1 className="text-2xl font-bold text-white text-center">
-          {mode === "login" ? "Welcome Back" : mode === "signup" ? "Create Account" : "Reset Password"}
+          {mode === "login" ? "Welcome Back" : 
+           mode === "signup" ? "Create Account" : 
+           mode === "verify-otp" ? "Verify Email" :
+           "Reset Password"}
         </h1>
         <p className="text-white/90 text-center mt-1 text-base font-medium">
-          {mode === "login" ? "Sign in to continue" : mode === "signup" ? "Join EggPro today" : "We'll send you a reset link"}
+          {mode === "login" ? "Sign in to continue" : 
+           mode === "signup" ? "Join EggPro today" : 
+           mode === "verify-otp" ? `Enter the code sent to ${email}` :
+           "We'll send you a reset link"}
         </p>
       </div>
 
@@ -146,6 +280,52 @@ export const AuthPage = () => {
           animate={{ opacity: 1, y: 0 }}
         >
           <AnimatePresence mode="wait">
+            {mode === "verify-otp" && (
+              <motion.div
+                key="otp-form"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
+                    value={otp}
+                    onChange={(value) => setOtp(value)}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                <Button
+                  className="w-full h-12 gradient-hero text-white font-semibold text-base"
+                  onClick={handleVerifyOTP}
+                  disabled={isLoading || otp.length !== 6}
+                >
+                  {isLoading ? "Verifying..." : "Verify & Create Account"}
+                </Button>
+
+                <p className="text-center text-base text-muted-foreground">
+                  Didn't receive the code?{" "}
+                  <button
+                    onClick={handleResendOTP}
+                    disabled={resendTimer > 0 || isLoading}
+                    className={`font-bold ${resendTimer > 0 ? 'text-muted-foreground' : 'text-primary'}`}
+                  >
+                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP"}
+                  </button>
+                </p>
+              </motion.div>
+            )}
+
             {(mode === "login" || mode === "signup") && (
               <motion.div
                 key="email-form"
@@ -256,7 +436,7 @@ export const AuthPage = () => {
                   onClick={handleEmailAuth}
                   disabled={isLoading}
                 >
-                  {isLoading ? "Please wait..." : mode === "login" ? "Sign In" : "Sign Up"}
+                  {isLoading ? "Please wait..." : mode === "login" ? "Sign In" : "Continue"}
                 </Button>
 
                 <p className="text-center text-base font-medium text-muted-foreground">
