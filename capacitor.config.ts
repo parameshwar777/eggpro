@@ -12,9 +12,12 @@ const config: CapacitorConfig = {
       enabled: true
     },
     GoogleAuth: {
-      scopes: ['profile', 'email'],
-      serverClientId: '417484278904-seliop9r1alchip6bp08ksn09tgel53l.apps.googleusercontent.com',
-      forceCodeForRefreshToken: true
+      scopes: ["profile", "email"],
+      // Web OAuth client ID (used to mint the id_token)
+      serverClientId: "417484278904-t3ls8666bg39cha1cip8p0is64ccmua5.apps.googleusercontent.com",
+      // Android OAuth client ID (package name + SHA-1 restricted)
+      androidClientId: "417484278904-seliop9r1alchip6bp08ksn09tgel53l.apps.googleusercontent.com",
+      forceCodeForRefreshToken: true,
     }
   },
   // For development hot reload, uncomment below:
