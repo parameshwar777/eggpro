@@ -79,6 +79,7 @@ export const AuthPage = () => {
 
       console.log("Send OTP response:", response);
 
+      // Prefer structured errors returned from the backend.
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Failed to send OTP");
 
@@ -87,7 +88,13 @@ export const AuthPage = () => {
       setResendTimer(60);
     } catch (error: any) {
       console.error("Send OTP error:", error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+
+      const msg =
+        typeof error?.message === "string" && error.message.length
+          ? error.message
+          : "Could not send OTP. Please try again.";
+
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
