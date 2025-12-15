@@ -28,13 +28,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Initialize Google Auth for native platforms
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      GoogleAuth.initialize({
-        clientId: '417484278904-seliop9r1alchip6bp08ksn09tgel53l.apps.googleusercontent.com',
-        scopes: ['profile', 'email'],
-        grantOfflineAccess: true,
-      });
+      try {
+        // Uses GoogleAuth config from capacitor.config.ts (serverClientId, scopes, etc.)
+        GoogleAuth.initialize();
+      } catch (e) {
+        console.error("GoogleAuth initialize error:", e);
+      }
     }
   }, []);
+
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -105,40 +107,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
-      // Check if running on native platform
       if (Capacitor.isNativePlatform()) {
-        // Use native Google Auth
         const googleUser = await GoogleAuth.signIn();
-        
-        // Sign in to Supabase with the ID token
+
+        const idToken =
+          (googleUser as any)?.authentication?.idToken ??
+          (googleUser as any)?.idToken ??
+          (googleUser as any)?.result?.idToken ??
+          null;
+
+        if (!idToken) {
+          return {
+            error: new Error(
+              "Google sign-in did not return an ID token. Please verify: (1) Android OAuth SHA-1 is added in Google Cloud, and (2) serverClientId is your Web Client ID."
+            ),
+          };
+        }
+
         const { error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: googleUser.authentication.idToken,
-        });
-        
-        return { error };
-      } else {
-        // Web fallback - use OAuth redirect
-        const redirectUrl = 'https://eggpro.lovable.app/auth';
-        
-        const { error } = await supabase.auth.signInWithOAuth({
           provider: "google",
-          options: {
-            redirectTo: redirectUrl,
-            skipBrowserRedirect: false,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
-            }
-          }
+          token: idToken,
         });
+
         return { error };
       }
-    } catch (error: any) {
-      console.error('Google sign in error:', error);
+
+      const redirectUrl = `${window.location.origin}/auth`;
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: false,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
       return { error };
+    } catch (error: any) {
+      // Native errors often include numeric codes (e.g., 10 = SHA-1 / OAuth config issue)
+      const message =
+        typeof error?.message === "string"
+          ? error.message
+          : JSON.stringify(error);
+      console.error("Google sign in error:", error);
+      return { error: new Error(message) };
     }
   };
+
 
   const signInWithPhone = async (phone: string) => {
     const { error } = await supabase.auth.signInWithOtp({ phone });
