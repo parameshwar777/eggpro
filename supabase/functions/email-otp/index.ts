@@ -7,6 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function normalizeEmail(email: unknown): string {
+  return typeof email === "string" ? email.toLowerCase().trim() : "";
+}
+
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -41,39 +45,47 @@ serve(async (req: Request) => {
     
     const body = await req.json();
     const { action, email, otp, fullName, password } = body;
-    
-    console.log("Action:", action, "Email:", email);
+    const normalizedEmail = normalizeEmail(email);
+
+    console.log("Action:", action, "Email:", normalizedEmail || email);
     
     if (action === "send") {
-      if (!email) {
-        return new Response(JSON.stringify({ success: false, error: "Email is required" }), {
-          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+      if (!normalizedEmail) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Email is required" }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
-      
+
       const generatedOtp = generateOTP();
       const otpHash = await hashOTP(generatedOtp);
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
-      
+
       // Store OTP in database (upsert to handle re-sends)
       const { error: dbError } = await supabase
         .from("email_otps")
-        .upsert({
-          email: email.toLowerCase().trim(),
-          otp_hash: otpHash,
-          expires_at: expiresAt,
-        }, { onConflict: "email" });
+        .upsert(
+          {
+            email: normalizedEmail,
+            otp_hash: otpHash,
+            expires_at: expiresAt,
+          },
+          { onConflict: "email" }
+        );
       
       if (dbError) {
         console.error("Database error storing OTP:", dbError);
         throw new Error("Failed to store OTP");
       }
       
-      console.log("Sending OTP email to:", email);
-      
+      console.log("Sending OTP email to:", normalizedEmail);
+
       const emailResult = await resend.emails.send({
         from: "EggPro <noreply@eggpro.in>",
-        to: [email],
+        to: [normalizedEmail],
         subject: "Your EggPro Verification Code",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
@@ -100,7 +112,7 @@ serve(async (req: Request) => {
       const resendError = (emailResult as any)?.error;
       if (resendError) {
         // Avoid leaving a valid OTP stored when email delivery failed.
-        await supabase.from("email_otps").delete().eq("email", email.toLowerCase().trim());
+        await supabase.from("email_otps").delete().eq("email", normalizedEmail);
 
         return new Response(
           JSON.stringify({
@@ -124,51 +136,77 @@ serve(async (req: Request) => {
     } 
     
     if (action === "verify") {
-      if (!email || !otp) {
-        return new Response(JSON.stringify({ success: false, error: "Email and OTP are required" }), {
-          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+      if (!normalizedEmail || !otp) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Email and OTP are required" }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
-      
+
       const otpHash = await hashOTP(otp);
-      
-      // Fetch stored OTP
+
+      // Fetch stored OTP (be tolerant if multiple rows exist)
       const { data: stored, error: fetchError } = await supabase
         .from("email_otps")
         .select("*")
-        .eq("email", email.toLowerCase().trim())
-        .single();
-      
+        .eq("email", normalizedEmail)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       if (fetchError || !stored) {
-        console.error("OTP not found for email:", email);
-        return new Response(JSON.stringify({ success: false, error: "OTP not found. Please request a new one." }), {
-          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+        console.error("OTP lookup failed:", { normalizedEmail, fetchError });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "OTP not found. Please request a new one.",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
-      
+
       // Check expiration
       if (new Date(stored.expires_at) < new Date()) {
         // Clean up expired OTP
-        await supabase.from("email_otps").delete().eq("email", email.toLowerCase().trim());
-        return new Response(JSON.stringify({ success: false, error: "OTP expired. Please request a new one." }), {
-          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+        await supabase.from("email_otps").delete().eq("email", normalizedEmail);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "OTP expired. Please request a new one.",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
-      
+
       // Verify OTP hash
       if (stored.otp_hash !== otpHash) {
-        console.error("Invalid OTP for email:", email);
-        return new Response(JSON.stringify({ success: false, error: "Invalid OTP" }), {
-          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+        console.error("Invalid OTP for email:", normalizedEmail);
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid OTP" }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
-      
+
       // OTP is valid - delete it
-      await supabase.from("email_otps").delete().eq("email", email.toLowerCase().trim());
+      await supabase.from("email_otps").delete().eq("email", normalizedEmail);
       
       // Check if user already exists
       const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase().trim());
+      const existingUser = existingUsers?.users?.find(
+        (u) => u.email?.toLowerCase() === normalizedEmail
+      );
       
       if (existingUser) {
         console.log("User already exists:", email);
@@ -183,13 +221,17 @@ serve(async (req: Request) => {
       
       // Create new user (password should be passed from frontend during signup flow)
       if (!password) {
-        return new Response(JSON.stringify({ success: false, error: "Password required for new user" }), {
-          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+        return new Response(
+          JSON.stringify({ success: false, error: "Password required for new user" }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
       
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: email.toLowerCase().trim(),
+        email: normalizedEmail,
         password: password,
         email_confirm: true,
         user_metadata: { full_name: fullName || "" }
