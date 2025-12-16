@@ -73,28 +73,25 @@ export const AuthPage = () => {
       sessionStorage.setItem("signup_password", password);
       sessionStorage.setItem("signup_fullname", fullName);
       
-      const response = await supabase.functions.invoke("email-otp", {
-        body: { action: "send", email: email.toLowerCase().trim() }
+      // Use Supabase native OTP - no domain verification needed
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.toLowerCase().trim(),
+        options: {
+          shouldCreateUser: true,
+          data: {
+            full_name: fullName,
+          },
+        },
       });
 
-      console.log("Send OTP response:", response);
-
-      // Prefer structured errors returned from the backend.
-      if (response.error) throw new Error(response.error.message);
-      if (!response.data?.success) throw new Error(response.data?.error || "Failed to send OTP");
+      if (error) throw error;
 
       toast({ title: "OTP Sent!", description: "Check your email for the verification code." });
       setMode("verify-otp");
       setResendTimer(60);
     } catch (error: any) {
       console.error("Send OTP error:", error);
-
-      const msg =
-        typeof error?.message === "string" && error.message.length
-          ? error.message
-          : "Could not send OTP. Please try again.";
-
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Could not send OTP. Please try again.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -108,31 +105,21 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
-      // Retrieve stored signup data
-      const storedPassword = sessionStorage.getItem("signup_password") || password;
-      const storedFullName = sessionStorage.getItem("signup_fullname") || fullName;
-      
-      const response = await supabase.functions.invoke("email-otp", {
-        body: { 
-          action: "verify", 
-          email: email.toLowerCase().trim(), 
-          otp,
-          password: storedPassword,
-          fullName: storedFullName
-        }
+      // Verify OTP using Supabase native method
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.toLowerCase().trim(),
+        token: otp,
+        type: "email",
       });
 
-      console.log("Verify OTP response:", response);
-
-      if (response.error) throw new Error(response.error.message);
-      if (!response.data?.success) throw new Error(response.data?.error || "Verification failed");
+      if (error) throw error;
 
       // Clear stored signup data
       sessionStorage.removeItem("signup_password");
       sessionStorage.removeItem("signup_fullname");
 
       // Handle referral code if provided
-      if (referralCode && response.data?.userId) {
+      if (referralCode && data.user?.id) {
         const { data: referrer } = await supabase
           .from("profiles")
           .select("id")
@@ -142,19 +129,14 @@ export const AuthPage = () => {
         if (referrer) {
           await supabase.from("referrals").insert({
             referrer_id: referrer.id,
-            referred_id: response.data.userId,
+            referred_id: data.user.id,
             referral_code: referralCode.toUpperCase(),
             status: "pending"
           });
         }
       }
 
-      toast({ title: "Account Created!", description: "Signing you in..." });
-      
-      // Sign in the user
-      const { error: signInError } = await signInWithEmail(email.toLowerCase().trim(), storedPassword);
-      if (signInError) throw signInError;
-      
+      toast({ title: "Welcome!", description: "Account verified successfully." });
       navigate("/community");
     } catch (error: any) {
       console.error("Verify OTP error:", error);
@@ -169,14 +151,14 @@ export const AuthPage = () => {
     
     setIsLoading(true);
     try {
-      const response = await supabase.functions.invoke("email-otp", {
-        body: { action: "send", email: email.toLowerCase().trim() }
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.toLowerCase().trim(),
+        options: {
+          shouldCreateUser: true,
+        },
       });
 
-      console.log("Resend OTP response:", response);
-
-      if (response.error) throw new Error(response.error.message);
-      if (!response.data?.success) throw new Error(response.data?.error || "Failed to resend OTP");
+      if (error) throw error;
 
       toast({ title: "OTP Resent!", description: "Check your email for the new code." });
       setResendTimer(60);
