@@ -73,20 +73,15 @@ export const AuthPage = () => {
       sessionStorage.setItem("signup_password", password);
       sessionStorage.setItem("signup_fullname", fullName);
       
-      // Use Supabase native OTP - no domain verification needed
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.toLowerCase().trim(),
-        options: {
-          shouldCreateUser: true,
-          data: {
-            full_name: fullName,
-          },
-        },
+      // Use custom edge function to send a real 6-digit OTP email
+      const response = await supabase.functions.invoke("email-otp", {
+        body: { action: "send", email: email.toLowerCase().trim() }
       });
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Failed to send OTP");
 
-      toast({ title: "OTP Sent!", description: "Check your email for the verification code." });
+      toast({ title: "OTP Sent!", description: "Check your email for the 6-digit verification code." });
       setMode("verify-otp");
       setResendTimer(60);
     } catch (error: any) {
@@ -105,21 +100,30 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
-      // Verify OTP using Supabase native method
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email.toLowerCase().trim(),
-        token: otp,
-        type: "email",
+      // Retrieve stored signup data
+      const storedPassword = sessionStorage.getItem("signup_password") || password;
+      const storedFullName = sessionStorage.getItem("signup_fullname") || fullName;
+      
+      // Verify OTP using custom edge function (creates user if valid)
+      const response = await supabase.functions.invoke("email-otp", {
+        body: { 
+          action: "verify", 
+          email: email.toLowerCase().trim(), 
+          otp,
+          password: storedPassword,
+          fullName: storedFullName
+        }
       });
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Verification failed");
 
       // Clear stored signup data
       sessionStorage.removeItem("signup_password");
       sessionStorage.removeItem("signup_fullname");
 
       // Handle referral code if provided
-      if (referralCode && data.user?.id) {
+      if (referralCode && response.data?.userId) {
         const { data: referrer } = await supabase
           .from("profiles")
           .select("id")
@@ -129,14 +133,19 @@ export const AuthPage = () => {
         if (referrer) {
           await supabase.from("referrals").insert({
             referrer_id: referrer.id,
-            referred_id: data.user.id,
+            referred_id: response.data.userId,
             referral_code: referralCode.toUpperCase(),
             status: "pending"
           });
         }
       }
 
-      toast({ title: "Welcome!", description: "Account verified successfully." });
+      toast({ title: "Account Created!", description: "Signing you in..." });
+      
+      // Sign in the user
+      const { error: signInError } = await signInWithEmail(email.toLowerCase().trim(), storedPassword);
+      if (signInError) throw signInError;
+      
       navigate("/community");
     } catch (error: any) {
       console.error("Verify OTP error:", error);
@@ -151,14 +160,12 @@ export const AuthPage = () => {
     
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.toLowerCase().trim(),
-        options: {
-          shouldCreateUser: true,
-        },
+      const response = await supabase.functions.invoke("email-otp", {
+        body: { action: "send", email: email.toLowerCase().trim() }
       });
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Failed to resend OTP");
 
       toast({ title: "OTP Resent!", description: "Check your email for the new code." });
       setResendTimer(60);
