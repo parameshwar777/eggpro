@@ -72,7 +72,7 @@ serve(async (req: Request) => {
       console.log("Sending OTP email to:", email);
       
       const emailResult = await resend.emails.send({
-        from: "EggPro <onboarding@resend.dev>",
+        from: "EggPro <noreply@eggpro.in>",
         to: [email],
         subject: "Your EggPro Verification Code",
         html: `
