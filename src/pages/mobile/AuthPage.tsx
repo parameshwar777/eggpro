@@ -28,17 +28,23 @@ export const AuthPage = () => {
   const [otp, setOtp] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
 
-  // Get password from sessionStorage (set during signup) - this should always exist when in verify-otp mode
-  // since we set it in handleSendOTP before navigating to verify-otp
+  // Persist signup draft so OTP verification never loses the password on Android (release builds can reclaim memory)
   const getStoredPassword = () => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("signup_password");
-    }
-    return null;
+    if (typeof window === "undefined") return null;
+    return (
+      sessionStorage.getItem("signup_password") ||
+      localStorage.getItem("signup_password")
+    );
   };
-  
-  // The password should be available from sessionStorage when in verify-otp mode
-  // Only show password field if sessionStorage somehow lost the value (e.g., page refresh)
+
+  const getStoredFullName = () => {
+    if (typeof window === "undefined") return null;
+    return (
+      sessionStorage.getItem("signup_fullname") ||
+      localStorage.getItem("signup_fullname")
+    );
+  };
+
   const storedPasswordExists = mode === "verify-otp" ? !!getStoredPassword() : true;
   const effectivePassword = getStoredPassword() || password;
 
@@ -83,9 +89,11 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
-      // Store password temporarily in sessionStorage for verification step
+      // Store signup draft for the verification step (use both storages for reliability)
       sessionStorage.setItem("signup_password", password);
+      localStorage.setItem("signup_password", password);
       sessionStorage.setItem("signup_fullname", fullName);
+      localStorage.setItem("signup_fullname", fullName);
       
       // Use custom edge function to send a real 6-digit OTP email
       const response = await supabase.functions.invoke("email-otp", {
@@ -114,12 +122,8 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
-      // Use effectivePassword (from sessionStorage or current password state)
       const verifyPassword = getStoredPassword() || password;
-      const storedFullName =
-        (typeof window !== "undefined"
-          ? sessionStorage.getItem("signup_fullname")
-          : null) || fullName;
+      const storedFullName = getStoredFullName() || fullName;
 
       if (!verifyPassword || verifyPassword.length < 6) {
         toast({
@@ -146,7 +150,9 @@ export const AuthPage = () => {
 
       // Clear stored signup data
       sessionStorage.removeItem("signup_password");
+      localStorage.removeItem("signup_password");
       sessionStorage.removeItem("signup_fullname");
+      localStorage.removeItem("signup_fullname");
 
       // Handle referral code if provided
       if (referralCode && response.data?.userId) {

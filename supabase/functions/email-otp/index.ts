@@ -220,16 +220,26 @@ serve(async (req: Request) => {
       }
       
       // Create new user (password should be passed from frontend during signup flow)
-      if (!password) {
+      if (!password || String(password).trim().length === 0) {
+        console.error("Missing password in OTP verify request", {
+          email: normalizedEmail,
+          hasPassword: !!password,
+          passwordType: typeof password,
+        });
+
         return new Response(
-          JSON.stringify({ success: false, error: "Password required for new user" }),
+          JSON.stringify({
+            success: false,
+            error:
+              "Password required for new user. Please go back and re-enter your password, then try again.",
+          }),
           {
             status: 200,
             headers: { "Content-Type": "application/json", ...corsHeaders },
           }
         );
       }
-      
+
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: normalizedEmail,
         password: password,
