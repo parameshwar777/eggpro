@@ -28,11 +28,19 @@ export const AuthPage = () => {
   const [otp, setOtp] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
 
-  const signupPassword =
-    (typeof window !== "undefined"
-      ? sessionStorage.getItem("signup_password")
-      : null) || password;
-  const needsPasswordForOtpVerification = mode === "verify-otp" && !signupPassword;
+  // Get password from sessionStorage (set during signup) - this should always exist when in verify-otp mode
+  // since we set it in handleSendOTP before navigating to verify-otp
+  const getStoredPassword = () => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("signup_password");
+    }
+    return null;
+  };
+  
+  // The password should be available from sessionStorage when in verify-otp mode
+  // Only show password field if sessionStorage somehow lost the value (e.g., page refresh)
+  const storedPasswordExists = mode === "verify-otp" ? !!getStoredPassword() : true;
+  const effectivePassword = getStoredPassword() || password;
 
   // Redirect if already logged in
   useEffect(() => {
@@ -106,26 +114,14 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
-      // Retrieve stored signup data
-      const storedPassword =
-        (typeof window !== "undefined"
-          ? sessionStorage.getItem("signup_password")
-          : null) || password;
+      // Use effectivePassword (from sessionStorage or current password state)
+      const verifyPassword = getStoredPassword() || password;
       const storedFullName =
         (typeof window !== "undefined"
           ? sessionStorage.getItem("signup_fullname")
           : null) || fullName;
 
-      if (!storedPassword) {
-        toast({
-          title: "Error",
-          description: "Password required for new user. Please enter your password.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (storedPassword.length < 6) {
+      if (!verifyPassword || verifyPassword.length < 6) {
         toast({
           title: "Error",
           description: "Password must be at least 6 characters",
@@ -140,7 +136,7 @@ export const AuthPage = () => {
           action: "verify",
           email: email.toLowerCase().trim(),
           otp,
-          password: storedPassword,
+          password: verifyPassword,
           fullName: storedFullName,
         },
       });
@@ -173,7 +169,7 @@ export const AuthPage = () => {
       toast({ title: "Account Created!", description: "Signing you in..." });
       
       // Sign in the user
-      const { error: signInError } = await signInWithEmail(email.toLowerCase().trim(), storedPassword);
+      const { error: signInError } = await signInWithEmail(email.toLowerCase().trim(), verifyPassword);
       if (signInError) throw signInError;
       
       navigate("/community");
@@ -358,7 +354,7 @@ export const AuthPage = () => {
                   </InputOTP>
                 </div>
 
-                {needsPasswordForOtpVerification && (
+                {!storedPasswordExists && (
                   <div className="space-y-2">
                     <label className="text-base font-semibold">Password</label>
                     <div className="relative">
@@ -388,8 +384,8 @@ export const AuthPage = () => {
                   disabled={
                     isLoading ||
                     otp.length !== 6 ||
-                    !signupPassword ||
-                    signupPassword.length < 6
+                    !effectivePassword ||
+                    effectivePassword.length < 6
                   }
                 >
                   {isLoading ? "Verifying..." : "Verify & Create Account"}
