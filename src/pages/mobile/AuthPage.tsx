@@ -28,6 +28,12 @@ export const AuthPage = () => {
   const [otp, setOtp] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
 
+  const signupPassword =
+    (typeof window !== "undefined"
+      ? sessionStorage.getItem("signup_password")
+      : null) || password;
+  const needsPasswordForOtpVerification = mode === "verify-otp" && !signupPassword;
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
@@ -101,18 +107,42 @@ export const AuthPage = () => {
     setIsLoading(true);
     try {
       // Retrieve stored signup data
-      const storedPassword = sessionStorage.getItem("signup_password") || password;
-      const storedFullName = sessionStorage.getItem("signup_fullname") || fullName;
-      
+      const storedPassword =
+        (typeof window !== "undefined"
+          ? sessionStorage.getItem("signup_password")
+          : null) || password;
+      const storedFullName =
+        (typeof window !== "undefined"
+          ? sessionStorage.getItem("signup_fullname")
+          : null) || fullName;
+
+      if (!storedPassword) {
+        toast({
+          title: "Error",
+          description: "Password required for new user. Please enter your password.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (storedPassword.length < 6) {
+        toast({
+          title: "Error",
+          description: "Password must be at least 6 characters",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Verify OTP using custom edge function (creates user if valid)
       const response = await supabase.functions.invoke("email-otp", {
-        body: { 
-          action: "verify", 
-          email: email.toLowerCase().trim(), 
+        body: {
+          action: "verify",
+          email: email.toLowerCase().trim(),
           otp,
           password: storedPassword,
-          fullName: storedFullName
-        }
+          fullName: storedFullName,
+        },
       });
 
       if (response.error) throw new Error(response.error.message);
@@ -328,10 +358,39 @@ export const AuthPage = () => {
                   </InputOTP>
                 </div>
 
+                {needsPasswordForOtpVerification && (
+                  <div className="space-y-2">
+                    <label className="text-base font-semibold">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10 pr-10 h-12 text-base"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Required to create your account</p>
+                  </div>
+                )}
+
                 <Button
                   className="w-full h-12 gradient-hero text-white font-semibold text-base"
                   onClick={handleVerifyOTP}
-                  disabled={isLoading || otp.length !== 6}
+                  disabled={
+                    isLoading ||
+                    otp.length !== 6 ||
+                    !signupPassword ||
+                    signupPassword.length < 6
+                  }
                 >
                   {isLoading ? "Verifying..." : "Verify & Create Account"}
                 </Button>
