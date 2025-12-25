@@ -107,15 +107,8 @@ export const HomePage = () => {
         </div>
 
         {/* Brand */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-center gap-3 mb-4"
-        >
-          <motion.img
-            animate={{ rotate: [0, 5, -5, 0] }}
-            transition={{ repeat: Infinity, duration: 4 }}
+        <div className="flex items-center gap-3 mb-4">
+          <img
             src={eggMascot}
             alt="Nutri Eggs"
             className="w-10 h-10"
@@ -124,7 +117,7 @@ export const HomePage = () => {
             <h1 className="text-xl font-bold text-foreground">Nutri Eggs</h1>
             <p className="text-xs text-foreground/70">Nature's Immunity Boosters</p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Features */}
         <motion.div
