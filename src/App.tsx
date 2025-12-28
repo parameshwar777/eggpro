@@ -23,6 +23,9 @@ import { AuthPage } from "./pages/mobile/AuthPage";
 import { NotificationsPage } from "./pages/mobile/NotificationsPage";
 import { SubscriptionPage } from "./pages/mobile/SubscriptionPage";
 import { SubscriptionsPage } from "./pages/mobile/SubscriptionsPage";
+import { PrivacyPolicyPage } from "./pages/mobile/PrivacyPolicyPage";
+import { TermsPage } from "./pages/mobile/TermsPage";
+import { AboutPage } from "./pages/mobile/AboutPage";
 
 // Admin Pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
@@ -65,6 +68,9 @@ const App = () => (
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/subscription" element={<SubscriptionPage />} />
                 <Route path="/subscriptions" element={<SubscriptionsPage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/about" element={<AboutPage />} />
 
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminPage />} />

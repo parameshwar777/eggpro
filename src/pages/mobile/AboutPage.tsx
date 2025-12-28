@@ -22,7 +22,7 @@ export const AboutPage = () => {
         <div className="p-4 space-y-6">
           {/* Logo Section */}
           <div className="flex flex-col items-center py-6">
-            <EggLogo size={80} />
+            <EggLogo size="lg" />
             <h2 className="text-2xl font-bold text-foreground mt-4">NutriEggs</h2>
             <p className="text-muted-foreground">by EggPro</p>
             <p className="text-sm text-muted-foreground mt-2">Version 1.0.0</p>

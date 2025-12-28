@@ -62,22 +62,47 @@ serve(async (req: Request) => {
 
     await supabase.from("orders").update(updateData).eq("id", orderId);
 
-    // Send admin email via Resend API
+    // Send admin email via Resend API to all admin emails
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const adminEmail = Deno.env.get("ADMIN_EMAIL");
     
-    if (resendApiKey && adminEmail) {
+    // List of all admin emails to notify
+    const adminEmails = [
+      adminEmail,
+      "eggproindia@gmail.com"
+    ].filter(Boolean) as string[];
+    
+    console.log("Sending notification to admin emails:", adminEmails);
+    
+    if (resendApiKey && adminEmails.length > 0) {
       try {
         const itemsList = items.map((i: any) => `${i.name} x ${i.quantity} - ₹${i.price * i.quantity}`).join("<br>");
         const emailHtml = `<div style="font-family:Arial;max-width:600px;margin:0 auto"><div style="background:linear-gradient(135deg,#F59E0B,#EA580C);padding:20px;border-radius:10px 10px 0 0"><h1 style="color:white;margin:0">🥚 New Order!</h1></div><div style="background:#fff8e7;padding:20px;border:1px solid #f3d4a0"><p><b>Order ID:</b> ${orderId}</p><p><b>Payment ID:</b> ${razorpay_payment_id}</p><p><b>Customer:</b> ${customerName}</p><p><b>Phone:</b> ${phone}</p><p><b>Community:</b> ${community}</p><p><b>Address:</b> ${address}</p>${subscriptionEndDate ? `<p><b>Ends:</b> ${new Date(subscriptionEndDate).toLocaleDateString()}</p>` : ""}<h3>Items</h3><div style="background:white;padding:15px;border-radius:8px">${itemsList}</div><div style="background:#fde68a;padding:15px;border-radius:8px;margin-top:20px"><h2 style="color:#92400e;margin:0">Total: ₹${totalAmount}</h2></div></div></div>`;
         
-        await fetch("https://api.resend.com/emails", {
+        const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { "Authorization": `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ from: "EggPro <onboarding@resend.dev>", to: [adminEmail], subject: `New Order #${orderId.slice(0, 8)} - ₹${totalAmount}`, html: emailHtml })
+          body: JSON.stringify({ 
+            from: "EggPro <onboarding@resend.dev>", 
+            to: adminEmails, 
+            subject: `New Order #${orderId.slice(0, 8)} - ₹${totalAmount}`, 
+            html: emailHtml 
+          })
         });
-        console.log("Admin email sent");
-      } catch (e) { console.error("Email error:", e); }
+        
+        const emailResult = await emailResponse.json();
+        console.log("Admin email response:", emailResult);
+        
+        if (!emailResponse.ok) {
+          console.error("Email API error:", emailResult);
+        } else {
+          console.log("Admin emails sent successfully to:", adminEmails);
+        }
+      } catch (e) { 
+        console.error("Email error:", e); 
+      }
+    } else {
+      console.log("Email not sent - missing resendApiKey or adminEmails:", { hasResendKey: !!resendApiKey, adminEmailsCount: adminEmails.length });
     }
 
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
