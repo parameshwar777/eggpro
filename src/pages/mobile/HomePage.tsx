@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { MapPin, ShoppingCart, Leaf, Shield, Truck, ChevronRight, Zap } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/mobile/ProductCard";
 import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 import eggMascot from "@/assets/egg-mascot.png";
 
 const features = [
@@ -14,54 +15,89 @@ const features = [
   { icon: Truck, label: "Free Delivery" },
 ];
 
-// Hardcoded 4 products matching the design
-const products = [
-  {
-    id: "1",
-    name: "Premium White Eggs",
-    description: "Farm fresh white eggs from free-range hens. Nature's immunity boosters packed with protein,...",
-    image: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=600",
-    price: 62,
-    originalPrice: 78,
-    rating: 4.8,
-    packSizes: [6, 12, 30] as number[],
-  },
-  {
-    id: "2",
-    name: "Premium Brown Eggs",
-    description: "Organic brown eggs with enhanced nutritional value. Rich in Omega-3 and essential nutrients for...",
-    image: "https://images.unsplash.com/photo-1569288052389-dac9b0ac9eac?w=600",
-    price: 77,
-    originalPrice: 96,
-    rating: 4.8,
-    packSizes: [6, 12, 30] as number[],
-  },
-  {
-    id: "3",
-    name: "Cage Free Premium Brown Eggs",
-    description: "Ethically sourced from cage-free farms. Superior taste with highest protein content for health-...",
-    image: "https://images.unsplash.com/photo-1598965675045-45c5e72c7d05?w=600",
-    price: 106,
-    originalPrice: 132,
-    rating: 4.8,
-    packSizes: [6, 12, 30] as number[],
-  },
-  {
-    id: "4",
-    name: "Organic Country Eggs",
-    description: "Traditional desi eggs from free-roaming country hens. Authentic taste with maximum nutrition in...",
-    image: "https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=600",
-    price: 144,
-    originalPrice: 180,
-    rating: 4.8,
-    packSizes: [6, 12, 30] as number[],
-  },
-];
+interface DBProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  original_price: number | null;
+  unit: string | null;
+  image_url: string | null;
+  in_stock: boolean | null;
+}
+
+interface GroupedProduct {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  price: number;
+  originalPrice: number;
+  rating: number;
+  packSizes: number[];
+}
 
 export const HomePage = () => {
   const { totalItems } = useCart();
   const navigate = useNavigate();
   const selectedCommunity = localStorage.getItem("selectedCommunity") || "Select Community";
+  const [dbProducts, setDbProducts] = useState<DBProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .eq("in_stock", true)
+          .order("name");
+        
+        if (error) throw error;
+        setDbProducts(data || []);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProducts();
+  }, []);
+
+  // Group products by name and extract pack sizes
+  const products = useMemo<GroupedProduct[]>(() => {
+    const grouped = new Map<string, DBProduct[]>();
+    
+    dbProducts.forEach((product) => {
+      const existing = grouped.get(product.name) || [];
+      existing.push(product);
+      grouped.set(product.name, existing);
+    });
+
+    return Array.from(grouped.entries()).map(([name, variants]) => {
+      // Sort variants by pack size (extracted from unit)
+      const sortedVariants = variants.sort((a, b) => {
+        const aSize = parseInt(a.unit?.replace(/\D/g, '') || '0');
+        const bSize = parseInt(b.unit?.replace(/\D/g, '') || '0');
+        return aSize - bSize;
+      });
+
+      const baseVariant = sortedVariants[0]; // 6 eggs variant (smallest)
+      const packSizes = sortedVariants.map(v => parseInt(v.unit?.replace(/\D/g, '') || '6'));
+
+      return {
+        id: baseVariant.id,
+        name: name,
+        description: baseVariant.description || '',
+        image: baseVariant.image_url || 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=600',
+        price: baseVariant.price,
+        originalPrice: baseVariant.original_price || baseVariant.price,
+        rating: 4.8,
+        packSizes,
+      };
+    });
+  }, [dbProducts]);
 
   return (
     <MobileLayout>
