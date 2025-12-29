@@ -1,57 +1,37 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Star, Leaf, Shield, Zap, Minus, Plus, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Star, Leaf, Shield, Zap, Minus, Plus, ShoppingCart, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-const products: Record<string, any> = {
-  "1": {
-    id: "1",
-    name: "Premium White Eggs",
-    description: "Farm fresh white eggs from free-range hens. Nature's immunity boosters packed with protein, vitamins & minerals.",
-    image: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=600",
-    prices: { 6: { buy: 78, subscribe: 62 }, 12: { buy: 156, subscribe: 125 }, 30: { buy: 390, subscribe: 312 } },
-    rating: 4.8,
-    reviews: 128,
-    features: ["Farm Fresh", "FSSAI Certified", "Protein Rich"],
-    nutrition: { calories: 140, protein: "13.5g", calcium: "50mg", iron: "1mg" },
-  },
-  "2": {
-    id: "2",
-    name: "Premium Brown Eggs",
-    description: "Premium brown eggs with enhanced nutritional value. Rich in protein and essential vitamins.",
-    image: "https://images.unsplash.com/photo-1569288052389-dac9b0ac9eac?w=600",
-    prices: { 6: { buy: 96, subscribe: 77 }, 12: { buy: 192, subscribe: 154 }, 30: { buy: 480, subscribe: 384 } },
-    rating: 4.8,
-    reviews: 96,
-    features: ["Premium Quality", "FSSAI Certified", "Protein Rich"],
-    nutrition: { calories: 155, protein: "14g", calcium: "55mg", iron: "1.2mg" },
-  },
-  "3": {
-    id: "3",
-    name: "Cage Free Premium Brown Eggs",
-    description: "Cage-free premium brown eggs from humanely raised hens. Superior taste and nutrition.",
-    image: "https://images.unsplash.com/photo-1598965675045-45c5e72c7d05?w=600",
-    prices: { 6: { buy: 132, subscribe: 106 }, 12: { buy: 264, subscribe: 211 }, 30: { buy: 660, subscribe: 528 } },
-    rating: 4.9,
-    reviews: 74,
-    features: ["Cage Free", "FSSAI Certified", "Humanely Raised"],
-    nutrition: { calories: 160, protein: "14.5g", calcium: "52mg", iron: "1.3mg" },
-  },
-  "4": {
-    id: "4",
-    name: "Organic Country Eggs",
-    description: "Traditional organic country eggs from native hens. Rich flavor and superior nutrition.",
-    image: "https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=600",
-    prices: { 6: { buy: 180, subscribe: 144 }, 12: { buy: 360, subscribe: 288 } },
-    rating: 4.9,
-    reviews: 52,
-    features: ["Organic", "FSSAI Certified", "Native Hens"],
-    nutrition: { calories: 165, protein: "15g", calcium: "58mg", iron: "1.5mg" },
-  },
+interface DBProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  original_price: number | null;
+  unit: string | null;
+  image_url: string | null;
+  in_stock: boolean | null;
+}
+
+// Feature mappings for product types
+const productFeatures: Record<string, string[]> = {
+  "Premium White Eggs": ["Farm Fresh", "FSSAI Certified", "Protein Rich"],
+  "Premium Brown Eggs": ["Premium Quality", "FSSAI Certified", "Protein Rich"],
+  "Cage Free Premium Brown Eggs": ["Cage Free", "FSSAI Certified", "Humanely Raised"],
+  "Organic Country Eggs": ["Organic", "FSSAI Certified", "Native Hens"],
+};
+
+const productNutrition: Record<string, { calories: number; protein: string; calcium: string; iron: string }> = {
+  "Premium White Eggs": { calories: 140, protein: "13.5g", calcium: "50mg", iron: "1mg" },
+  "Premium Brown Eggs": { calories: 155, protein: "14g", calcium: "55mg", iron: "1.2mg" },
+  "Cage Free Premium Brown Eggs": { calories: 160, protein: "14.5g", calcium: "52mg", iron: "1.3mg" },
+  "Organic Country Eggs": { calories: 165, protein: "15g", calcium: "58mg", iron: "1.5mg" },
 };
 
 export const ProductDetailPage = () => {
@@ -59,10 +39,100 @@ export const ProductDetailPage = () => {
   const { id } = useParams();
   const { addToCart, items } = useCart();
   
-  const product = products[id || "1"];
+  const [variants, setVariants] = useState<DBProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedPack, setSelectedPack] = useState<number>(6);
+  const [isSubscription, setIsSubscription] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) return;
+      
+      try {
+        // First fetch the clicked product to get its name
+        const { data: clickedProduct, error: clickedError } = await supabase
+          .from("products")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        
+        if (clickedError) throw clickedError;
+        
+        if (!clickedProduct) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Then fetch all variants with the same name
+        const { data: allVariants, error: variantsError } = await supabase
+          .from("products")
+          .select("*")
+          .eq("name", clickedProduct.name)
+          .eq("in_stock", true)
+          .order("price");
+        
+        if (variantsError) throw variantsError;
+        
+        setVariants(allVariants || []);
+        
+        // Set initial selected pack based on first variant
+        if (allVariants && allVariants.length > 0) {
+          const firstPackSize = parseInt(allVariants[0].unit?.replace(/\D/g, '') || '6');
+          setSelectedPack(firstPackSize);
+        }
+      } catch (error) {
+        console.error("Error fetching product:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProduct();
+  }, [id]);
+
+  // Build prices object from variants
+  const prices = useMemo(() => {
+    const priceMap: Record<number, { buy: number; subscribe: number }> = {};
+    variants.forEach((v) => {
+      const packSize = parseInt(v.unit?.replace(/\D/g, '') || '6');
+      priceMap[packSize] = {
+        buy: v.original_price || v.price,
+        subscribe: v.price,
+      };
+    });
+    return priceMap;
+  }, [variants]);
+
+  const packSizes = useMemo(() => Object.keys(prices).map(Number).sort((a, b) => a - b), [prices]);
+  
+  const product = useMemo(() => {
+    if (variants.length === 0) return null;
+    const baseVariant = variants[0];
+    return {
+      id: baseVariant.id,
+      name: baseVariant.name,
+      description: baseVariant.description || '',
+      image: baseVariant.image_url || 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=600',
+      features: productFeatures[baseVariant.name] || ["Farm Fresh", "FSSAI Certified", "Protein Rich"],
+      nutrition: productNutrition[baseVariant.name] || { calories: 140, protein: "13.5g", calcium: "50mg", iron: "1mg" },
+      rating: 4.8,
+      reviews: 128,
+    };
+  }, [variants]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-[100dvh] bg-background w-full flex flex-col items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground mt-4">Loading product...</p>
+      </div>
+    );
+  }
   
   // Handle invalid product ID
-  if (!product) {
+  if (!product || packSizes.length === 0) {
     return (
       <div className="min-h-[100dvh] bg-background w-full flex flex-col items-center justify-center">
         <p className="text-muted-foreground mb-4">Product not found</p>
@@ -70,23 +140,19 @@ export const ProductDetailPage = () => {
       </div>
     );
   }
-  
-  const packSizes = Object.keys(product.prices).map(Number);
-  
-  const [selectedPack, setSelectedPack] = useState(packSizes[0]);
-  const [isSubscription, setIsSubscription] = useState(true);
-  const [quantity, setQuantity] = useState(1);
 
-  const currentPrice = product.prices[selectedPack];
+  const currentPrice = prices[selectedPack] || prices[packSizes[0]];
   const finalPrice = isSubscription ? currentPrice.subscribe : currentPrice.buy;
   const savings = currentPrice.buy - currentPrice.subscribe;
   const discountPercent = Math.round((savings / currentPrice.buy) * 100);
 
+  // Get variant ID for the selected pack size
+  const selectedVariant = variants.find(v => parseInt(v.unit?.replace(/\D/g, '') || '0') === selectedPack);
+  const variantId = selectedVariant?.id || product.id;
+
   // Check if item is already in cart
-  const cartItemId = `${product.id}-${selectedPack}-${isSubscription ? 's' : 'b'}`;
-  const isInCart = useMemo(() => {
-    return items.some(item => item.id === cartItemId);
-  }, [items, cartItemId]);
+  const cartItemId = `${variantId}-${selectedPack}-${isSubscription ? 's' : 'b'}`;
+  const isInCart = items.some(item => item.id === cartItemId);
 
   const handleAddToCart = () => {
     addToCart({
