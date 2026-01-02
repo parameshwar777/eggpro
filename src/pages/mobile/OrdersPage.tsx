@@ -225,15 +225,20 @@ export const OrdersPage = () => {
                           </Badge>
                         </div>
 
-                        <div className="space-y-1.5 mb-3">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <RefreshCw className="w-4 h-4" />
-                            <span className="text-base font-semibold">{order.items?.[0]?.frequency || "One Time"}</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground font-semibold">
-                            Ordered: {new Date(order.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
+                                        <div className="space-y-1.5 mb-3">
+                                          <div className="flex items-center gap-2 text-muted-foreground">
+                                            <RefreshCw className="w-4 h-4" />
+                                            <span className="text-base font-semibold">{order.items?.[0]?.frequency || "One Time"}</span>
+                                          </div>
+                                          <p className="text-sm text-muted-foreground font-semibold">
+                                            Ordered: {new Date(order.created_at).toLocaleDateString()}
+                                          </p>
+                                          {order.items?.[0]?.isOneTime && (
+                                            <p className="text-sm text-green-600 font-semibold">
+                                              🚚 Delivery in 1-3 days (6 AM - 9 AM)
+                                            </p>
+                                          )}
+                                        </div>
 
                         <div className="pt-3 border-t border-border flex items-center justify-between">
                           <p className="text-xl font-bold text-primary">₹{order.total_amount}</p>

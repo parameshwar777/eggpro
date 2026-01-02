@@ -163,7 +163,11 @@ export const CartPage = () => {
                 <Button 
                   className="w-full gradient-hero text-white h-14 text-lg font-semibold rounded-xl" 
                   size="lg"
-                  onClick={() => navigate("/subscription")}
+                  onClick={() => {
+                    // Check if any item is a subscription
+                    const hasSubscription = items.some(item => item.isSubscription);
+                    navigate(hasSubscription ? "/subscription" : "/checkout");
+                  }}
                 >
                   Proceed to Checkout
                 </Button>
