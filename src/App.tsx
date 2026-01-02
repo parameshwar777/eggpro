@@ -22,6 +22,7 @@ import { CartPage } from "./pages/mobile/CartPage";
 import { AuthPage } from "./pages/mobile/AuthPage";
 import { NotificationsPage } from "./pages/mobile/NotificationsPage";
 import { SubscriptionPage } from "./pages/mobile/SubscriptionPage";
+import { CheckoutPage } from "./pages/mobile/CheckoutPage";
 import { SubscriptionsPage } from "./pages/mobile/SubscriptionsPage";
 import { PrivacyPolicyPage } from "./pages/mobile/PrivacyPolicyPage";
 import { TermsPage } from "./pages/mobile/TermsPage";
@@ -67,6 +68,7 @@ const App = () => (
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/subscription" element={<SubscriptionPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/subscriptions" element={<SubscriptionsPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms" element={<TermsPage />} />
