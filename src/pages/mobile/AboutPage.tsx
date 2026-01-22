@@ -86,7 +86,8 @@ export const AboutPage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Phone</p>
-                  <p className="text-foreground">+91 94402 29378</p>
+                  <p className="text-foreground">+91 98585 97999</p>
+                  <p className="text-foreground">+91 89888 07555</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

@@ -11,7 +11,7 @@ import { EggLogo } from "@/components/EggLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Capacitor } from "@capacitor/core";
 
-type AuthMode = "login" | "signup" | "forgot" | "verify-otp";
+type AuthMode = "login" | "signup" | "forgot" | "verify-otp" | "reset-otp";
 
 export const AuthPage = () => {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ export const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [otp, setOtp] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
+  const [newPassword, setNewPassword] = useState("");
 
   // Persist signup draft so OTP verification never loses the password on Android (release builds can reclaim memory)
   const getStoredPassword = () => {
@@ -256,12 +257,76 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?mode=reset`,
+      const response = await supabase.functions.invoke("email-otp", {
+        body: { action: "reset-send", email: email.toLowerCase().trim() }
       });
-      if (error) throw error;
-      toast({ title: "Email Sent!", description: "Check your email for password reset link." });
+
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Failed to send OTP");
+
+      toast({ title: "OTP Sent!", description: "Check your email for the 6-digit code to reset your password." });
+      setMode("reset-otp");
+      setResendTimer(60);
+      setOtp("");
+      setNewPassword("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (otp.length !== 6) {
+      toast({ title: "Error", description: "Please enter the complete 6-digit OTP", variant: "destructive" });
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await supabase.functions.invoke("email-otp", {
+        body: {
+          action: "reset-verify",
+          email: email.toLowerCase().trim(),
+          otp,
+          newPassword
+        }
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Password reset failed");
+
+      toast({ title: "Password Reset!", description: "You can now sign in with your new password." });
       setMode("login");
+      setOtp("");
+      setNewPassword("");
+      setPassword("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendResetOTP = async () => {
+    if (resendTimer > 0) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await supabase.functions.invoke("email-otp", {
+        body: { action: "reset-send", email: email.toLowerCase().trim() }
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Failed to resend OTP");
+
+      toast({ title: "OTP Resent!", description: "Check your email for the new code." });
+      setResendTimer(60);
+      setOtp("");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -302,6 +367,10 @@ export const AuthPage = () => {
             if (mode === "verify-otp") {
               setMode("signup");
               setOtp("");
+            } else if (mode === "reset-otp") {
+              setMode("forgot");
+              setOtp("");
+              setNewPassword("");
             } else {
               navigate(-1);
             }
@@ -317,13 +386,15 @@ export const AuthPage = () => {
           {mode === "login" ? "Welcome Back" : 
            mode === "signup" ? "Create Account" : 
            mode === "verify-otp" ? "Verify Email" :
-           "Reset Password"}
+           mode === "reset-otp" ? "Reset Password" :
+           "Forgot Password"}
         </h1>
         <p className="text-white/90 text-center mt-1 text-base font-medium">
           {mode === "login" ? "Sign in to continue" : 
            mode === "signup" ? "Join EggPro today" : 
            mode === "verify-otp" ? `Enter the code sent to ${email}` :
-           "We'll send you a reset link"}
+           mode === "reset-otp" ? `Enter the code sent to ${email}` :
+           "Enter your email to get reset code"}
         </p>
       </div>
 

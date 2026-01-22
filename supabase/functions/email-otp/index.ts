@@ -44,10 +44,167 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     const body = await req.json();
-    const { action, email, otp, fullName, password } = body;
+    const { action, email, otp, fullName, password, newPassword } = body;
     const normalizedEmail = normalizeEmail(email);
 
     console.log("Action:", action, "Email:", normalizedEmail || email);
+    
+    // Password reset: send OTP for password reset
+    if (action === "reset-send") {
+      if (!normalizedEmail) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Email is required" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Check if user exists
+      const { data: existingUsers } = await supabase.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find(
+        (u) => u.email?.toLowerCase() === normalizedEmail
+      );
+      
+      if (!existingUser) {
+        return new Response(
+          JSON.stringify({ success: false, error: "No account found with this email" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      const generatedOtp = generateOTP();
+      const otpHash = await hashOTP(generatedOtp);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+      const { error: dbError } = await supabase
+        .from("email_otps")
+        .upsert(
+          { email: normalizedEmail, otp_hash: otpHash, expires_at: expiresAt },
+          { onConflict: "email" }
+        );
+      
+      if (dbError) {
+        console.error("Database error storing OTP:", dbError);
+        throw new Error("Failed to store OTP");
+      }
+      
+      const emailResult = await resend.emails.send({
+        from: "EggPro <noreply@eggpro.in>",
+        to: [normalizedEmail],
+        subject: "Reset Your EggPro Password",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="color: #FF6B35; font-size: 28px; margin: 0;">EggPro</h1>
+              <p style="color: #666; margin-top: 8px;">Password Reset</p>
+            </div>
+            <div style="background: linear-gradient(135deg, #FF6B35, #FF8C5A); border-radius: 16px; padding: 32px; text-align: center;">
+              <p style="color: white; margin: 0 0 16px 0; font-size: 16px;">Your password reset code is:</p>
+              <div style="background: white; color: #FF6B35; font-size: 36px; font-weight: bold; padding: 16px 24px; border-radius: 12px; letter-spacing: 8px; display: inline-block;">
+                ${generatedOtp}
+              </div>
+            </div>
+            <p style="color: #999; text-align: center; margin-top: 24px; font-size: 14px;">
+              This code expires in 10 minutes. If you didn't request this, please ignore.
+            </p>
+          </div>
+        `,
+      });
+
+      const resendError = (emailResult as any)?.error;
+      if (resendError) {
+        await supabase.from("email_otps").delete().eq("email", normalizedEmail);
+        return new Response(
+          JSON.stringify({ success: false, error: resendError?.message || "Email delivery failed" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      return new Response(JSON.stringify({ success: true, message: "Reset OTP sent" }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    
+    // Password reset: verify OTP and set new password
+    if (action === "reset-verify") {
+      if (!normalizedEmail || !otp || !newPassword) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Email, OTP, and new password are required" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      if (String(newPassword).length < 6) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Password must be at least 6 characters" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      const otpHash = await hashOTP(otp);
+
+      const { data: stored, error: fetchError } = await supabase
+        .from("email_otps")
+        .select("*")
+        .eq("email", normalizedEmail)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError || !stored) {
+        return new Response(
+          JSON.stringify({ success: false, error: "OTP not found. Please request a new one." }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      if (new Date(stored.expires_at) < new Date()) {
+        await supabase.from("email_otps").delete().eq("email", normalizedEmail);
+        return new Response(
+          JSON.stringify({ success: false, error: "OTP expired. Please request a new one." }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      if (stored.otp_hash !== otpHash) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid OTP" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // OTP valid - delete it
+      await supabase.from("email_otps").delete().eq("email", normalizedEmail);
+
+      // Find user and update password
+      const { data: existingUsers } = await supabase.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find(
+        (u) => u.email?.toLowerCase() === normalizedEmail
+      );
+
+      if (!existingUser) {
+        return new Response(
+          JSON.stringify({ success: false, error: "User not found" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        existingUser.id,
+        { password: newPassword }
+      );
+
+      if (updateError) {
+        console.error("Error updating password:", updateError);
+        return new Response(
+          JSON.stringify({ success: false, error: "Failed to update password" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      return new Response(JSON.stringify({ success: true, message: "Password updated successfully" }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
     
     if (action === "send") {
       if (!normalizedEmail) {
