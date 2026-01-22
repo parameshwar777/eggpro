@@ -25,7 +25,7 @@ export const AboutPage = () => {
             <EggLogo size="lg" />
             <h2 className="text-2xl font-bold text-foreground mt-4">NutriEggs</h2>
             <p className="text-muted-foreground">by EggPro</p>
-            <p className="text-sm text-muted-foreground mt-2">Version 1.0.0</p>
+            <p className="text-sm text-muted-foreground mt-2">Version 1.2.0</p>
           </div>
 
           <section>
@@ -107,7 +107,7 @@ export const AboutPage = () => {
               Made with ❤️ in Hyderabad
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              © 2024 EggPro. All rights reserved.
+              © 2025 EggPro. All rights reserved.
             </p>
           </section>
         </div>
