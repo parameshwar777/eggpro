@@ -609,7 +609,7 @@ export const AuthPage = () => {
                   onClick={handleForgotPassword}
                   disabled={isLoading}
                 >
-                  {isLoading ? "Sending..." : "Send Reset Link"}
+                  {isLoading ? "Sending..." : "Send Reset Code"}
                 </Button>
 
                 <button
@@ -618,6 +618,74 @@ export const AuthPage = () => {
                 >
                   Back to login
                 </button>
+              </motion.div>
+            )}
+
+            {mode === "reset-otp" && (
+              <motion.div
+                key="reset-otp-form"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
+                    value={otp}
+                    onChange={(value) => setOtp(value)}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-base font-semibold">New Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter new password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pl-10 pr-10 h-12 text-base"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+                </div>
+
+                <Button
+                  className="w-full h-12 gradient-hero text-white font-semibold text-base"
+                  onClick={handleResetPassword}
+                  disabled={isLoading || otp.length !== 6 || !newPassword || newPassword.length < 6}
+                >
+                  {isLoading ? "Resetting..." : "Reset Password"}
+                </Button>
+
+                <p className="text-center text-base text-muted-foreground">
+                  Didn't receive the code?{" "}
+                  <button
+                    onClick={handleResendResetOTP}
+                    disabled={resendTimer > 0 || isLoading}
+                    className={`font-bold ${resendTimer > 0 ? 'text-muted-foreground' : 'text-primary'}`}
+                  >
+                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP"}
+                  </button>
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
