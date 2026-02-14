@@ -278,27 +278,7 @@ export const SubscriptionPage = () => {
 
             if (verifyError) throw verifyError;
 
-            // Handle referral reward on first payment
-            if (referralCode) {
-              const { data: referral } = await supabase
-                .from("referrals")
-                .select("*")
-                .eq("referred_id", user.id)
-                .eq("status", "pending")
-                .single();
-
-              if (referral) {
-                await supabase
-                  .from("referrals")
-                  .update({ status: "completed", completed_at: new Date().toISOString() })
-                  .eq("id", referral.id);
-
-                await supabase.from("wallet_transactions").insert([
-                  { user_id: referral.referrer_id, amount: 20, type: "credit", description: "Referral reward" },
-                  { user_id: user.id, amount: 40, type: "credit", description: "Welcome referral bonus" }
-                ]);
-              }
-            }
+            // Referral rewards are now handled server-side in verify-payment
 
             toast({ title: "Subscription Created!", description: "Your order has been confirmed." });
             clearCart();
