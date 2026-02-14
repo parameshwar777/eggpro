@@ -37,7 +37,7 @@ const productNutrition: Record<string, { calories: number; protein: string; calc
 export const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { addToCart, items } = useCart();
+  const { addToCart, items, updateQuantity, removeFromCart } = useCart();
   
   const [variants, setVariants] = useState<DBProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -399,15 +399,37 @@ export const ProductDetailPage = () => {
                 )}
               </div>
               {isInCart ? (
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="px-6 h-12 rounded-xl text-base font-semibold border-primary text-primary"
-                  onClick={handleViewCart}
-                >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  View Cart
-                </Button>
+                <div className="flex items-center gap-3">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      const cartItem = items.find(i => i.id === cartItemId);
+                      if (cartItem && cartItem.quantity <= 1) {
+                        removeFromCart(cartItemId);
+                      } else if (cartItem) {
+                        updateQuantity(cartItemId, cartItem.quantity - 1);
+                      }
+                    }}
+                    className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
+                  >
+                    <Minus className="w-5 h-5 text-foreground" />
+                  </motion.button>
+                  <span className="text-xl font-bold text-foreground w-8 text-center">
+                    {items.find(i => i.id === cartItemId)?.quantity || 0}
+                  </span>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      const cartItem = items.find(i => i.id === cartItemId);
+                      if (cartItem) {
+                        updateQuantity(cartItemId, cartItem.quantity + 1);
+                      }
+                    }}
+                    className="w-10 h-10 rounded-full bg-primary flex items-center justify-center"
+                  >
+                    <Plus className="w-5 h-5 text-primary-foreground" />
+                  </motion.button>
+                </div>
               ) : (
                 <Button 
                   size="lg" 

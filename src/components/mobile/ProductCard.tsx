@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Star, Plus, ShoppingCart } from "lucide-react";
+import { motion } from "framer-motion";
+import { Star, Plus, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,24 +31,22 @@ export const ProductCard = ({
   delay = 0,
 }: ProductCardProps) => {
   const navigate = useNavigate();
-  const { addToCart, items } = useCart();
+  const { addToCart, items, updateQuantity, removeFromCart } = useCart();
   const { toast } = useToast();
   const [selectedPack, setSelectedPack] = useState(packSizes[0]);
   const discount = Math.round(((originalPrice - price) / originalPrice) * 100);
 
-  // Check if this product with selected pack size is already in cart
-  const isInCart = useMemo(() => {
-    return items.some(item => item.id === `${id}-${selectedPack}`);
-  }, [items, id, selectedPack]);
+  const cartItemId = `${id}-${selectedPack}`;
+
+  // Get the cart item for this product + pack size
+  const cartItem = useMemo(() => {
+    return items.find(item => item.id === cartItemId);
+  }, [items, cartItemId]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isInCart) {
-      navigate("/cart");
-      return;
-    }
     addToCart({
-      id: `${id}-${selectedPack}`,
+      id: cartItemId,
       name,
       image,
       price: price * (selectedPack / packSizes[0]),
@@ -57,6 +55,24 @@ export const ProductCard = ({
       isSubscription: false
     });
     toast({ title: "Added to cart!", description: `${name} (${selectedPack} eggs)` });
+  };
+
+  const handleIncrement = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (cartItem) {
+      updateQuantity(cartItemId, cartItem.quantity + 1);
+    }
+  };
+
+  const handleDecrement = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (cartItem) {
+      if (cartItem.quantity <= 1) {
+        removeFromCart(cartItemId);
+      } else {
+        updateQuantity(cartItemId, cartItem.quantity - 1);
+      }
+    }
   };
 
   return (
@@ -121,33 +137,32 @@ export const ProductCard = ({
               </span>
             </div>
             
-            <AnimatePresence mode="wait">
-              {isInCart ? (
-                <motion.div
-                  key="cart"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
+            {cartItem ? (
+              <div className="flex items-center gap-1.5 bg-secondary rounded-full p-0.5">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleDecrement}
+                  className="p-1.5 rounded-full bg-card"
                 >
-                  <Button size="sm" onClick={handleAddToCart} className="h-8 px-3 gap-1">
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span className="text-xs">View Cart</span>
-                  </Button>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="add"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
+                  <Minus className="w-3 h-3 text-foreground" />
+                </motion.button>
+                <span className="font-medium text-foreground w-5 text-center text-sm">
+                  {cartItem.quantity}
+                </span>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleIncrement}
+                  className="p-1.5 rounded-full bg-card"
                 >
-                  <Button size="sm" onClick={handleAddToCart} className="h-8 px-3 gap-1">
-                    <Plus className="w-3.5 h-3.5" />
-                    <span className="text-xs">Add</span>
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <Plus className="w-3 h-3 text-foreground" />
+                </motion.button>
+              </div>
+            ) : (
+              <Button size="sm" onClick={handleAddToCart} className="h-8 px-3 gap-1">
+                <Plus className="w-3.5 h-3.5" />
+                <span className="text-xs">Add</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
