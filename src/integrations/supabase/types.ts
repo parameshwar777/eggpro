@@ -38,6 +38,51 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_items: {
+        Row: {
+          created_at: string
+          id: string
+          image: string
+          is_subscription: boolean
+          name: string
+          original_price: number
+          pack_size: number
+          price: number
+          product_id: string
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image: string
+          is_subscription?: boolean
+          name: string
+          original_price: number
+          pack_size: number
+          price: number
+          product_id: string
+          quantity?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image?: string
+          is_subscription?: boolean
+          name?: string
+          original_price?: number
+          pack_size?: number
+          price?: number
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       communities: {
         Row: {
           city: string
