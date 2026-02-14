@@ -60,7 +60,72 @@ serve(async (req: Request) => {
     const updateData: any = { payment_id: razorpay_payment_id, payment_status: "completed", order_status: "confirmed" };
     if (subscriptionEndDate) updateData.subscription_end_date = subscriptionEndDate;
 
+    // Get user_id from the order
+    const { data: orderRow } = await supabase.from("orders").select("user_id").eq("id", orderId).single();
     await supabase.from("orders").update(updateData).eq("id", orderId);
+
+    // Handle referral reward: check if this user has a pending referral
+    if (orderRow?.user_id) {
+      const userId = orderRow.user_id;
+      const { data: pendingReferral } = await supabase
+        .from("referrals")
+        .select("*")
+        .eq("referred_id", userId)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (pendingReferral) {
+        console.log("Processing referral reward for referral:", pendingReferral.id);
+        
+        // Mark referral as completed
+        await supabase
+          .from("referrals")
+          .update({ status: "completed", completed_at: new Date().toISOString() })
+          .eq("id", pendingReferral.id);
+
+        // Credit referrer wallet: ₹20
+        const { data: referrerProfile } = await supabase
+          .from("profiles")
+          .select("wallet_balance")
+          .eq("id", pendingReferral.referrer_id)
+          .single();
+        
+        const referrerNewBalance = (referrerProfile?.wallet_balance || 0) + 20;
+        await supabase
+          .from("profiles")
+          .update({ wallet_balance: referrerNewBalance })
+          .eq("id", pendingReferral.referrer_id);
+
+        await supabase.from("wallet_transactions").insert({
+          user_id: pendingReferral.referrer_id,
+          amount: 20,
+          type: "credit",
+          description: "Referral reward - friend's first order"
+        });
+
+        // Credit referred user wallet: ₹40
+        const { data: referredProfile } = await supabase
+          .from("profiles")
+          .select("wallet_balance")
+          .eq("id", userId)
+          .single();
+        
+        const referredNewBalance = (referredProfile?.wallet_balance || 0) + 40;
+        await supabase
+          .from("profiles")
+          .update({ wallet_balance: referredNewBalance })
+          .eq("id", userId);
+
+        await supabase.from("wallet_transactions").insert({
+          user_id: userId,
+          amount: 40,
+          type: "credit",
+          description: "Welcome referral bonus"
+        });
+
+        console.log("Referral rewards credited successfully");
+      }
+    }
 
     // Send admin email via Resend API to all admin emails
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
