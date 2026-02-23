@@ -246,7 +246,7 @@ export const CommunitySelectPage = () => {
 
   return (
     <div className="min-h-[100dvh] gradient-hero flex flex-col">
-      <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
+      <div className="mx-auto w-full flex-1 flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center px-6 pt-12">
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.5 }}>
             <EggLogo size="lg" className="mb-4" />
