@@ -177,32 +177,7 @@ export const HomePage = () => {
         </motion.div>
       </motion.div>
 
-      {/* Refer Banner */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => navigate("/refer")}
-        className="mx-4 -mt-4 bg-primary rounded-2xl p-3 shadow-elevated cursor-pointer"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="p-2 bg-card/20 rounded-xl flex-shrink-0"
-            >
-              <Zap className="w-5 h-5 text-primary-foreground" />
-            </motion.div>
-            <div className="min-w-0">
-              <p className="font-semibold text-primary-foreground text-sm">Refer & Earn ₹20</p>
-              <p className="text-xs text-primary-foreground/80 truncate">Friends get ₹40 off first order</p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-primary-foreground flex-shrink-0" />
-        </div>
-      </motion.div>
+
 
       {/* Products Section */}
       <div className="px-4 py-5">

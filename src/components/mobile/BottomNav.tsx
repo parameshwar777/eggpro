@@ -1,17 +1,20 @@
-import { Home, ClipboardList, Gift, User } from "lucide-react";
+import { Home, ClipboardList, Gift, User, ShoppingCart } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/contexts/CartContext";
 
 const navItems = [
   { to: "/home", icon: Home, label: "Home" },
   { to: "/orders", icon: ClipboardList, label: "Orders" },
+  { to: "/cart", icon: ShoppingCart, label: "Cart" },
   { to: "/refer", icon: Gift, label: "Refer" },
   { to: "/account", icon: User, label: "Account" },
 ];
 
 export const BottomNav = () => {
   const location = useLocation();
+  const { totalItems } = useCart();
 
   return (
     <motion.nav
@@ -19,14 +22,14 @@ export const BottomNav = () => {
       animate={{ y: 0 }}
       className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border"
     >
-      <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex items-center justify-around py-2 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (
             <NavLink
               key={item.to}
               to={item.to}
-              className="relative flex flex-col items-center py-2 px-4 min-w-[64px]"
+              className="relative flex flex-col items-center py-2 px-2 sm:px-4 min-w-0 flex-1"
             >
               <motion.div
                 whileTap={{ scale: 0.9 }}
@@ -37,10 +40,15 @@ export const BottomNav = () => {
               >
                 <item.icon
                   className={cn(
-                    "w-6 h-6 transition-colors duration-200",
+                    "w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-200",
                     isActive ? "text-primary" : "text-muted-foreground"
                   )}
                 />
+                {item.to === "/cart" && totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent text-accent-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
+                    {totalItems}
+                  </span>
+                )}
               </motion.div>
               <span
                 className={cn(

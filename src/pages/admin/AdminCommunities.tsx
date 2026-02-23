@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, MapPin, Trash2, Pencil, X } from "lucide-react";
+import { Plus, MapPin, Trash2, Pencil, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,10 +20,11 @@ interface Community {
   latitude: number | null;
   longitude: number | null;
   is_active: boolean;
+  pincode: string;
+  is_visible_production: boolean;
 }
 
 export const AdminCommunities = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin, isLoading: authLoading } = useAuth();
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -31,18 +32,14 @@ export const AdminCommunities = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCommunity, setEditingCommunity] = useState<Community | null>(null);
   const [formData, setFormData] = useState({
-    name: "", city: "Hyderabad", radius: "1.5", delivery_hours: "6 AM - 9 AM", latitude: "", longitude: ""
+    name: "", city: "Hyderabad", radius: "1.5", delivery_hours: "6 AM - 9 AM", latitude: "", longitude: "", pincode: ""
   });
-
-  useEffect(() => {
-    if (!authLoading && !isAdmin) navigate("/admin");
-  }, [isAdmin, authLoading, navigate]);
 
   useEffect(() => { fetchCommunities(); }, []);
 
   const fetchCommunities = async () => {
     const { data, error } = await supabase.from("communities").select("*").order("name");
-    if (!error) setCommunities(data || []);
+    if (!error) setCommunities((data as Community[]) || []);
     setIsLoading(false);
   };
 
@@ -59,6 +56,7 @@ export const AdminCommunities = () => {
       delivery_hours: formData.delivery_hours,
       latitude: formData.latitude ? parseFloat(formData.latitude) : null,
       longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+      pincode: formData.pincode,
     };
 
     try {
@@ -73,7 +71,7 @@ export const AdminCommunities = () => {
       }
       setDialogOpen(false);
       setEditingCommunity(null);
-      setFormData({ name: "", city: "Hyderabad", radius: "1.5", delivery_hours: "6 AM - 9 AM", latitude: "", longitude: "" });
+      setFormData({ name: "", city: "Hyderabad", radius: "1.5", delivery_hours: "6 AM - 9 AM", latitude: "", longitude: "", pincode: "" });
       fetchCommunities();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -89,6 +87,7 @@ export const AdminCommunities = () => {
       delivery_hours: community.delivery_hours,
       latitude: community.latitude?.toString() || "",
       longitude: community.longitude?.toString() || "",
+      pincode: community.pincode || "",
     });
     setDialogOpen(true);
   };
@@ -96,6 +95,14 @@ export const AdminCommunities = () => {
   const toggleActive = async (id: string, currentStatus: boolean) => {
     const { error } = await supabase.from("communities").update({ is_active: !currentStatus }).eq("id", id);
     if (!error) fetchCommunities();
+  };
+
+  const toggleProductionVisibility = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from("communities").update({ is_visible_production: !currentStatus }).eq("id", id);
+    if (!error) {
+      fetchCommunities();
+      toast({ title: !currentStatus ? "Visible in production" : "Hidden from production" });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -107,70 +114,71 @@ export const AdminCommunities = () => {
     }
   };
 
-  if (authLoading || isLoading) {
-    return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="bg-white border-b px-4 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/admin")} className="p-2 rounded-full bg-slate-100"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-lg font-bold">Communities</h1>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" onClick={() => { setEditingCommunity(null); setFormData({ name: "", city: "Hyderabad", radius: "1.5", delivery_hours: "6 AM - 9 AM", latitude: "", longitude: "" }); }}>
-              <Plus className="w-4 h-4 mr-1" /> Add Community
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editingCommunity ? "Edit" : "Add"} Community</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <Input placeholder="Community Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+    <AdminLayout title="Communities" headerActions={
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm" onClick={() => { setEditingCommunity(null); setFormData({ name: "", city: "Hyderabad", radius: "1.5", delivery_hours: "6 AM - 9 AM", latitude: "", longitude: "", pincode: "" }); }}>
+            <Plus className="w-4 h-4 mr-1" /> Add
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editingCommunity ? "Edit" : "Add"} Community</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <Input placeholder="Community Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+            <div className="grid grid-cols-2 gap-3">
               <Input placeholder="City" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} />
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="Radius (km)" type="number" value={formData.radius} onChange={(e) => setFormData({ ...formData, radius: e.target.value })} />
-                <Input placeholder="Delivery Hours" value={formData.delivery_hours} onChange={(e) => setFormData({ ...formData, delivery_hours: e.target.value })} />
+              <Input placeholder="Pincode" value={formData.pincode} onChange={(e) => setFormData({ ...formData, pincode: e.target.value })} maxLength={6} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input placeholder="Radius (km)" type="number" value={formData.radius} onChange={(e) => setFormData({ ...formData, radius: e.target.value })} />
+              <Input placeholder="Delivery Hours" value={formData.delivery_hours} onChange={(e) => setFormData({ ...formData, delivery_hours: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input placeholder="Latitude" type="number" step="any" value={formData.latitude} onChange={(e) => setFormData({ ...formData, latitude: e.target.value })} />
+              <Input placeholder="Longitude" type="number" step="any" value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} />
+            </div>
+            <Button onClick={handleSubmit} className="w-full">{editingCommunity ? "Update" : "Add"} Community</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    }>
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {communities.map((c) => (
+            <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-amber-900/50 rounded-xl p-4 border border-amber-800">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-amber-100">{c.name}</h3>
+                </div>
+                <div className="flex gap-1">
+                  <Badge variant={c.is_active ? "default" : "secondary"} className="text-xs">{c.is_active ? "Active" : "Inactive"}</Badge>
+                  {c.is_visible_production && (
+                    <Badge className="bg-green-600 text-xs">Production</Badge>
+                  )}
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="Latitude" type="number" step="any" value={formData.latitude} onChange={(e) => setFormData({ ...formData, latitude: e.target.value })} />
-                <Input placeholder="Longitude" type="number" step="any" value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} />
+              <p className="text-sm text-amber-300 mb-1">{c.city} {c.pincode && `- ${c.pincode}`}</p>
+              <div className="grid grid-cols-2 gap-2 text-xs text-amber-400 mb-3">
+                <div>Radius: <span className="text-amber-200">{c.radius} km</span></div>
+                <div>Hours: <span className="text-amber-200">{c.delivery_hours}</span></div>
               </div>
-              <Button onClick={handleSubmit} className="w-full">{editingCommunity ? "Update" : "Add"} Community</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="p-4 grid gap-3 md:grid-cols-2">
-        {communities.map((c) => (
-          <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl p-4 shadow-sm">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                <h3 className="font-semibold">{c.name}</h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button size="sm" variant="outline" className="flex-1 border-amber-700 text-amber-200 hover:bg-amber-800" onClick={() => toggleProductionVisibility(c.id, c.is_visible_production)}>
+                  {c.is_visible_production ? <><EyeOff className="w-3 h-3 mr-1" /> Hide</> : <><Eye className="w-3 h-3 mr-1" /> Show in Prod</>}
+                </Button>
+                <Button size="sm" variant="ghost" className="text-amber-300" onClick={() => handleEdit(c)}><Pencil className="w-4 h-4" /></Button>
+                <Button size="sm" variant="ghost" className="text-red-400" onClick={() => handleDelete(c.id)}><Trash2 className="w-4 h-4" /></Button>
               </div>
-              <Badge variant={c.is_active ? "default" : "secondary"}>{c.is_active ? "Active" : "Inactive"}</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground mb-1">{c.city}</p>
-            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
-              <div>Radius: <span className="text-foreground">{c.radius} km</span></div>
-              <div>Hours: <span className="text-foreground">{c.delivery_hours}</span></div>
-            </div>
-            {c.latitude && c.longitude && (
-              <p className="text-xs text-primary mb-3">{c.latitude}, {c.longitude}</p>
-            )}
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" className="flex-1" onClick={() => toggleActive(c.id, c.is_active)}>
-                {c.is_active ? "Deactivate" : "Activate"}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => handleEdit(c)}><Pencil className="w-4 h-4" /></Button>
-              <Button size="sm" variant="ghost" className="text-red-500" onClick={() => handleDelete(c.id)}><Trash2 className="w-4 h-4" /></Button>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </AdminLayout>
   );
 };

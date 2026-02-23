@@ -10,6 +10,14 @@ import { MobileLayout } from "@/components/mobile/MobileLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface Community {
+  id: string;
+  name: string;
+  city: string;
+  pincode: string;
+}
 
 interface Address {
   id: string;
@@ -35,6 +43,9 @@ export const AddressPage = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [selectedCommunityId, setSelectedCommunityId] = useState("");
+  
   // Form states
   const [selectedLabel, setSelectedLabel] = useState("Home");
   const [phone, setPhone] = useState("");
@@ -50,7 +61,26 @@ export const AddressPage = () => {
     } else {
       setIsLoading(false);
     }
+    fetchCommunities();
   }, [user]);
+
+  const fetchCommunities = async () => {
+    const { data } = await supabase
+      .from("communities")
+      .select("id, name, city, pincode")
+      .eq("is_active", true)
+      .order("name");
+    setCommunities(data || []);
+  };
+
+  const handleCommunityChange = (communityId: string) => {
+    setSelectedCommunityId(communityId);
+    const community = communities.find(c => c.id === communityId);
+    if (community) {
+      setCity(community.city || "Hyderabad");
+      setPincode(community.pincode || "");
+    }
+  };
 
   const fetchAddresses = async () => {
     if (!user) return;
@@ -75,6 +105,7 @@ export const AddressPage = () => {
     setCity("Hyderabad");
     setPincode("");
     setIsDefault(true);
+    setSelectedCommunityId("");
   };
 
   const handleSaveAddress = async () => {
@@ -326,6 +357,23 @@ export const AddressPage = () => {
                   </motion.button>
                 ))}
               </div>
+            </div>
+
+            {/* Community Select */}
+            <div>
+              <label className="text-xs sm:text-sm font-medium text-foreground">
+                Community <span className="text-destructive">*</span>
+              </label>
+              <Select value={selectedCommunityId} onValueChange={handleCommunityChange}>
+                <SelectTrigger className="mt-1 text-sm">
+                  <SelectValue placeholder="Select your community" />
+                </SelectTrigger>
+                <SelectContent>
+                  {communities.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Phone */}
