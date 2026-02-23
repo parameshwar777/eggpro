@@ -1,10 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import landingImage from "@/assets/landing_page.png";
 
 export const SplashPage = () => {
   const navigate = useNavigate();
+  const [wallpaper, setWallpaper] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch custom wallpaper from admin settings
+    const fetchWallpaper = async () => {
+      const { data } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "splash_wallpaper")
+        .single();
+      if (data?.value) setWallpaper(data.value);
+    };
+    fetchWallpaper();
+  }, []);
 
   useEffect(() => {
     const checkAuthAndNavigate = async () => {
@@ -43,7 +57,7 @@ export const SplashPage = () => {
   return (
     <div 
       className="min-h-[100dvh] w-full bg-cover bg-center bg-no-repeat flex items-center justify-center"
-      style={{ backgroundImage: `url(${landingImage})` }}
+      style={{ backgroundImage: `url(${wallpaper || landingImage})` }}
     >
       {/* The background image contains the branding and loading dots */}
     </div>

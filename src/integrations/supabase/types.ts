@@ -90,9 +90,11 @@ export type Database = {
           delivery_hours: string
           id: string
           is_active: boolean | null
+          is_visible_production: boolean | null
           latitude: number | null
           longitude: number | null
           name: string
+          pincode: string | null
           radius: number
         }
         Insert: {
@@ -101,9 +103,11 @@ export type Database = {
           delivery_hours?: string
           id?: string
           is_active?: boolean | null
+          is_visible_production?: boolean | null
           latitude?: number | null
           longitude?: number | null
           name: string
+          pincode?: string | null
           radius?: number
         }
         Update: {
@@ -112,9 +116,11 @@ export type Database = {
           delivery_hours?: string
           id?: string
           is_active?: boolean | null
+          is_visible_production?: boolean | null
           latitude?: number | null
           longitude?: number | null
           name?: string
+          pincode?: string | null
           radius?: number
         }
         Relationships: []

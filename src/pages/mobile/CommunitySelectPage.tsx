@@ -82,6 +82,7 @@ export const CommunitySelectPage = () => {
       .from("communities")
       .select("*")
       .eq("is_active", true)
+      .eq("is_visible_production", true)
       .order("name");
     setCommunities(data || []);
     setFilteredCommunities(data || []);
