@@ -65,8 +65,7 @@ export const AdminSettings = () => {
 
     setIsUploadingWallpaper(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `splash-wallpaper.${fileExt}`;
+      const fileName = `splash-wallpaper.png`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")

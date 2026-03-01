@@ -127,11 +127,61 @@ serve(async (req: Request) => {
       }
     }
 
+    // Send WhatsApp notification to ALL admin phone numbers
+    try {
+      // Fetch all admin user IDs
+      const { data: adminRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (adminRoles && adminRoles.length > 0) {
+        const adminUserIds = adminRoles.map(r => r.user_id);
+        const { data: adminProfiles } = await supabase
+          .from("profiles")
+          .select("phone, full_name")
+          .in("id", adminUserIds);
+
+        // Also get admin_whatsapp from settings as fallback
+        const { data: settingsData } = await supabase
+          .from("admin_settings")
+          .select("value")
+          .eq("key", "admin_whatsapp")
+          .single();
+
+        const adminPhones = new Set<string>();
+        if (settingsData?.value) adminPhones.add(settingsData.value);
+        if (adminProfiles) {
+          for (const p of adminProfiles) {
+            if (p.phone) adminPhones.add(p.phone);
+          }
+        }
+
+        console.log("Sending WhatsApp to admin phones:", Array.from(adminPhones));
+
+        const itemsList = items.map((i: any) => `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
+        const message = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
+
+        // Send to each admin phone via WhatsApp API (callmebot or similar)
+        for (const adminPhone of adminPhones) {
+          try {
+            // Using CallMeBot WhatsApp API
+            const apiUrl = `https://api.callmebot.com/whatsapp.php?phone=${adminPhone}&text=${encodeURIComponent(message)}&apikey=123456`;
+            await fetch(apiUrl);
+            console.log("WhatsApp sent to:", adminPhone);
+          } catch (e) {
+            console.error("WhatsApp send error for", adminPhone, e);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("WhatsApp notification error:", e);
+    }
+
     // Send admin email via Resend API to all admin emails
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const adminEmail = Deno.env.get("ADMIN_EMAIL");
     
-    // List of all admin emails to notify
     const adminEmails = [
       adminEmail,
       "eggproindia@gmail.com"
@@ -141,8 +191,8 @@ serve(async (req: Request) => {
     
     if (resendApiKey && adminEmails.length > 0) {
       try {
-        const itemsList = items.map((i: any) => `${i.name} x ${i.quantity} - ₹${i.price * i.quantity}`).join("<br>");
-        const emailHtml = `<div style="font-family:Arial;max-width:600px;margin:0 auto"><div style="background:linear-gradient(135deg,#F59E0B,#EA580C);padding:20px;border-radius:10px 10px 0 0"><h1 style="color:white;margin:0">🥚 New Order!</h1></div><div style="background:#fff8e7;padding:20px;border:1px solid #f3d4a0"><p><b>Order ID:</b> ${orderId}</p><p><b>Payment ID:</b> ${razorpay_payment_id}</p><p><b>Customer:</b> ${customerName}</p><p><b>Phone:</b> ${phone}</p><p><b>Community:</b> ${community}</p><p><b>Address:</b> ${address}</p>${subscriptionEndDate ? `<p><b>Ends:</b> ${new Date(subscriptionEndDate).toLocaleDateString()}</p>` : ""}<h3>Items</h3><div style="background:white;padding:15px;border-radius:8px">${itemsList}</div><div style="background:#fde68a;padding:15px;border-radius:8px;margin-top:20px"><h2 style="color:#92400e;margin:0">Total: ₹${totalAmount}</h2></div></div></div>`;
+        const emailItemsList = items.map((i: any) => `${i.name} x ${i.quantity} - ₹${i.price * i.quantity}`).join("<br>");
+        const emailHtml = `<div style="font-family:Arial;max-width:600px;margin:0 auto"><div style="background:linear-gradient(135deg,#F59E0B,#EA580C);padding:20px;border-radius:10px 10px 0 0"><h1 style="color:white;margin:0">🥚 New Order!</h1></div><div style="background:#fff8e7;padding:20px;border:1px solid #f3d4a0"><p><b>Order ID:</b> ${orderId}</p><p><b>Payment ID:</b> ${razorpay_payment_id}</p><p><b>Customer:</b> ${customerName}</p><p><b>Phone:</b> ${phone}</p><p><b>Community:</b> ${community}</p><p><b>Address:</b> ${address}</p>${subscriptionEndDate ? `<p><b>Ends:</b> ${new Date(subscriptionEndDate).toLocaleDateString()}</p>` : ""}<h3>Items</h3><div style="background:white;padding:15px;border-radius:8px">${emailItemsList}</div><div style="background:#fde68a;padding:15px;border-radius:8px;margin-top:20px"><h2 style="color:#92400e;margin:0">Total: ₹${totalAmount}</h2></div></div></div>`;
         
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -157,17 +207,9 @@ serve(async (req: Request) => {
         
         const emailResult = await emailResponse.json();
         console.log("Admin email response:", emailResult);
-        
-        if (!emailResponse.ok) {
-          console.error("Email API error:", emailResult);
-        } else {
-          console.log("Admin emails sent successfully to:", adminEmails);
-        }
       } catch (e) { 
         console.error("Email error:", e); 
       }
-    } else {
-      console.log("Email not sent - missing resendApiKey or adminEmails:", { hasResendKey: !!resendApiKey, adminEmailsCount: adminEmails.length });
     }
 
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
