@@ -288,7 +288,7 @@ export const CheckoutPage = () => {
                 <Button 
                   size="sm" 
                   variant="outline"
-                  onClick={() => navigate("/address")}
+                  onClick={() => navigate("/addresses")}
                   className="gap-1"
                 >
                   <Plus className="w-4 h-4" />

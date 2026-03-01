@@ -25,7 +25,6 @@ export const AdminUsers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchEmail, setSearchEmail] = useState("");
-  const [searchPhone, setSearchPhone] = useState("");
   const [foundUsers, setFoundUsers] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -44,7 +43,6 @@ export const AdminUsers = () => {
       return;
     }
 
-    // Fetch profiles for each admin
     const adminList: AdminUser[] = [];
     for (const role of roles) {
       const { data: profile } = await supabase
@@ -65,21 +63,22 @@ export const AdminUsers = () => {
   };
 
   const searchUsers = async () => {
-    if (!searchPhone) {
-      toast({ title: "Enter phone number to search", variant: "destructive" });
+    if (!searchEmail.trim()) {
+      toast({ title: "Enter an email to search", variant: "destructive" });
       return;
     }
     setIsSearching(true);
     
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, full_name, phone")
-      .eq("phone", searchPhone);
+    // Search via edge function that can look up auth users by email
+    const { data, error } = await supabase.functions.invoke("search-user-by-email", {
+      body: { email: searchEmail.trim() }
+    });
 
-    if (!error && data) {
-      // Filter out existing admins
+    if (!error && data?.users) {
       const existingAdminIds = admins.map(a => a.user_id);
-      setFoundUsers(data.filter(u => !existingAdminIds.includes(u.id)));
+      setFoundUsers(data.users.filter((u: any) => !existingAdminIds.includes(u.id)));
+    } else {
+      setFoundUsers([]);
     }
     setIsSearching(false);
   };
@@ -94,7 +93,7 @@ export const AdminUsers = () => {
 
       toast({ title: "Admin role assigned!" });
       setDialogOpen(false);
-      setSearchPhone("");
+      setSearchEmail("");
       setFoundUsers([]);
       fetchAdmins();
     } catch (error: any) {
@@ -135,12 +134,14 @@ export const AdminUsers = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-muted-foreground">Search by Phone Number</label>
+              <label className="text-sm text-muted-foreground">Search by Email</label>
               <div className="flex gap-2 mt-1">
                 <Input
-                  placeholder="Enter phone number"
-                  value={searchPhone}
-                  onChange={(e) => setSearchPhone(e.target.value)}
+                  placeholder="Enter user email"
+                  type="email"
+                  value={searchEmail}
+                  onChange={(e) => setSearchEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && searchUsers()}
                 />
                 <Button onClick={searchUsers} disabled={isSearching}>
                   <Search className="w-4 h-4" />
@@ -155,7 +156,7 @@ export const AdminUsers = () => {
                   <div key={u.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                     <div>
                       <p className="font-medium text-foreground">{u.full_name || "No Name"}</p>
-                      <p className="text-xs text-muted-foreground">{u.phone}</p>
+                      <p className="text-xs text-muted-foreground">{u.email}</p>
                     </div>
                     <Button size="sm" onClick={() => makeAdmin(u.id)}>
                       <Shield className="w-4 h-4 mr-1" /> Make Admin
@@ -165,8 +166,8 @@ export const AdminUsers = () => {
               </div>
             )}
 
-            {foundUsers.length === 0 && searchPhone && !isSearching && (
-              <p className="text-sm text-muted-foreground text-center py-4">No users found with this phone number</p>
+            {foundUsers.length === 0 && searchEmail && !isSearching && (
+              <p className="text-sm text-muted-foreground text-center py-4">No users found with this email</p>
             )}
           </div>
         </DialogContent>
@@ -189,7 +190,7 @@ export const AdminUsers = () => {
                 key={admin.user_id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-amber-900/50 rounded-xl p-4 border border-amber-800 flex items-center justify-between"
+                className="bg-secondary rounded-xl p-4 border border-border flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
@@ -198,10 +199,10 @@ export const AdminUsers = () => {
                     </span>
                   </div>
                   <div>
-                    <p className="font-semibold text-amber-100">
+                    <p className="font-semibold text-foreground">
                       {admin.profile?.full_name || "Unknown"}
                     </p>
-                    <p className="text-sm text-amber-300">{admin.profile?.phone || "No phone"}</p>
+                    <p className="text-sm text-muted-foreground">{admin.profile?.phone || "No phone"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -209,7 +210,7 @@ export const AdminUsers = () => {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-red-400"
+                    className="text-destructive"
                     onClick={() => removeAdmin(admin.user_id)}
                   >
                     <Trash2 className="w-4 h-4" />
