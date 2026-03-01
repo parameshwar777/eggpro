@@ -127,6 +127,18 @@ serve(async (req: Request) => {
       }
     }
 
+    // Insert in-app notification for admins
+    try {
+      const itemsSummary = items.map((i: any) => `${i.name} x${i.quantity}`).join(", ");
+      await supabase.from("notifications").insert({
+        title: `🥚 New Order #${orderId.slice(0, 8)} - ₹${totalAmount}`,
+        message: `${customerName} ordered: ${itemsSummary}. Community: ${community}. Phone: ${phone}.`,
+        is_active: true
+      });
+    } catch (e) {
+      console.error("In-app notification error:", e);
+    }
+
     // Send WhatsApp notification to ALL admin phone numbers
     try {
       // Fetch all admin user IDs
