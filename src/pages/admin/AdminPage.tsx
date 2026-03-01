@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Package, ShoppingCart, MapPin, TrendingUp, Bell, ArrowLeft, ChevronRight,
-  LayoutDashboard, Tag, Settings
+  LayoutDashboard, Tag, Settings, Users
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +57,8 @@ export const AdminPage = () => {
     { label: "Subscriptions", desc: `${stats.activeSubscriptions} total`, icon: TrendingUp, to: "#", color: "bg-orange-50 text-orange-600" },
     { label: "Announcements", desc: "0 total", icon: Bell, to: "/admin/notifications", color: "bg-pink-50 text-pink-600" },
     { label: "Offers", desc: "Manage offers", icon: Tag, to: "/admin/offers", color: "bg-cyan-50 text-cyan-600" },
+    { label: "Manage Admins", desc: "Add/remove admins", icon: Users, to: "/admin/users", color: "bg-indigo-50 text-indigo-600" },
+    { label: "Settings", desc: "Wallpaper & more", icon: Settings, to: "/admin/settings", color: "bg-gray-50 text-gray-600" },
   ];
 
   if (isLoading) {

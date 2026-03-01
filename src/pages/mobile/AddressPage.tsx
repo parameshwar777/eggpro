@@ -69,8 +69,20 @@ export const AddressPage = () => {
       .from("communities")
       .select("id, name, city, pincode")
       .eq("is_active", true)
+      .eq("is_visible_production", true)
       .order("name");
     setCommunities(data || []);
+    
+    // Auto-select user's community and disable it
+    const userCommunity = localStorage.getItem("selectedCommunity");
+    if (userCommunity && data) {
+      const match = data.find(c => c.name === userCommunity);
+      if (match) {
+        setSelectedCommunityId(match.id);
+        setCity(match.city || "Hyderabad");
+        setPincode(match.pincode || "");
+      }
+    }
   };
 
   const handleCommunityChange = (communityId: string) => {
@@ -359,21 +371,16 @@ export const AddressPage = () => {
               </div>
             </div>
 
-            {/* Community Select */}
+            {/* Community (auto-filled, disabled) */}
             <div>
               <label className="text-xs sm:text-sm font-medium text-foreground">
-                Community <span className="text-destructive">*</span>
+                Community
               </label>
-              <Select value={selectedCommunityId} onValueChange={handleCommunityChange}>
-                <SelectTrigger className="mt-1 text-sm">
-                  <SelectValue placeholder="Select your community" />
-                </SelectTrigger>
-                <SelectContent>
-                  {communities.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input 
+                className="mt-1 text-sm bg-secondary" 
+                value={communities.find(c => c.id === selectedCommunityId)?.name || ""} 
+                disabled 
+              />
             </div>
 
             {/* Phone */}
@@ -414,27 +421,22 @@ export const AddressPage = () => {
               />
             </div>
 
-            {/* City & Pincode */}
+            {/* City & Pincode (auto-filled from community, disabled) */}
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div>
                 <label className="text-xs sm:text-sm font-medium text-foreground">City</label>
                 <Input 
-                  placeholder="City" 
-                  className="mt-1 text-sm" 
+                  className="mt-1 text-sm bg-secondary" 
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  disabled
                 />
               </div>
               <div>
-                <label className="text-xs sm:text-sm font-medium text-foreground">
-                  Pincode <span className="text-destructive">*</span>
-                </label>
+                <label className="text-xs sm:text-sm font-medium text-foreground">Pincode</label>
                 <Input 
-                  placeholder="Pincode" 
-                  className="mt-1 text-sm"
+                  className="mt-1 text-sm bg-secondary"
                   value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                  maxLength={6}
+                  disabled
                 />
               </div>
             </div>
