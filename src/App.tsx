@@ -7,6 +7,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BackButtonHandler } from "@/components/BackButtonHandler";
 import { PlatformGuard } from "@/components/PlatformGuard";
+import { AppUpdateChecker } from "@/components/AppUpdateChecker";
 
 // Mobile Pages
 import { SplashPage } from "./pages/mobile/SplashPage";
@@ -50,6 +51,7 @@ const App = () => (
       <CartProvider>
         <TooltipProvider>
           <PlatformGuard>
+            <AppUpdateChecker />
             <Toaster />
             <Sonner />
             <BrowserRouter>
