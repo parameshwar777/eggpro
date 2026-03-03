@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Capacitor } from "@capacitor/core";
-
-const APP_VERSION = "1.0.0"; // Update this with each Play Store release
+import { App } from "@capacitor/app";
 
 export const AppUpdateChecker = () => {
   const [showUpdate, setShowUpdate] = useState(false);
@@ -12,13 +11,16 @@ export const AppUpdateChecker = () => {
 
     const checkVersion = async () => {
       try {
+        const appInfo = await App.getInfo();
+        const currentVersion = appInfo.version; // reads versionName from build.gradle
+
         const { data } = await supabase
           .from("admin_settings")
           .select("value")
           .eq("key", "app_current_version")
           .single();
 
-        if (data?.value && data.value !== APP_VERSION) {
+        if (data?.value && data.value !== currentVersion) {
           setShowUpdate(true);
         }
       } catch (e) {
