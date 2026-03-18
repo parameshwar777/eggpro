@@ -3,6 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 
+/**
+ * Compare two semver strings (e.g. "8.0.0" vs "8.1.0").
+ * Returns true if current < required (i.e. update needed).
+ */
+const isVersionOutdated = (current: string, required: string): boolean => {
+  const parseParts = (v: string) => v.split(".").map((n) => parseInt(n, 10) || 0);
+  const cur = parseParts(current);
+  const req = parseParts(required);
+  for (let i = 0; i < Math.max(cur.length, req.length); i++) {
+    const c = cur[i] || 0;
+    const r = req[i] || 0;
+    if (c < r) return true;
+    if (c > r) return false;
+  }
+  return false;
+};
+
 export const AppUpdateChecker = () => {
   const [showUpdate, setShowUpdate] = useState(false);
 
@@ -12,7 +29,7 @@ export const AppUpdateChecker = () => {
     const checkVersion = async () => {
       try {
         const appInfo = await App.getInfo();
-        const currentVersion = appInfo.version; // reads versionName from build.gradle
+        const currentVersion = appInfo.version;
 
         const { data } = await supabase
           .from("admin_settings")
@@ -20,7 +37,7 @@ export const AppUpdateChecker = () => {
           .eq("key", "app_current_version")
           .single();
 
-        if (data?.value && data.value !== currentVersion) {
+        if (data?.value && isVersionOutdated(currentVersion, data.value)) {
           setShowUpdate(true);
         }
       } catch (e) {
