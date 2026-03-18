@@ -34,24 +34,39 @@ serve(async (req: Request) => {
     const { email } = await req.json();
     if (!email) throw new Error("Email is required");
 
-    // Search auth users by email using admin API
-    const { data: { users }, error } = await supabase.auth.admin.listUsers();
-    if (error) throw error;
+    // Search all auth users with pagination
+    const matched: any[] = [];
+    let page = 1;
+    const perPage = 1000;
 
-    const matched = users
-      .filter(u => u.email?.toLowerCase().includes(email.toLowerCase()))
-      .slice(0, 10)
-      .map(u => ({
-        id: u.id,
-        email: u.email,
-        full_name: u.user_metadata?.full_name || u.user_metadata?.name || null,
-      }));
+    while (true) {
+      const { data: { users }, error } = await supabase.auth.admin.listUsers({
+        page,
+        perPage,
+      });
+      if (error) throw error;
+      if (!users || users.length === 0) break;
 
-    return new Response(JSON.stringify({ users: matched }), {
+      for (const u of users) {
+        if (u.email?.toLowerCase().includes(email.toLowerCase())) {
+          matched.push({
+            id: u.id,
+            email: u.email,
+            full_name: u.user_metadata?.full_name || u.user_metadata?.name || null,
+          });
+        }
+      }
+
+      if (users.length < perPage) break;
+      page++;
+    }
+
+    return new Response(JSON.stringify({ users: matched.slice(0, 10) }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
+    console.error("search-user-by-email error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { "Content-Type": "application/json", ...corsHeaders },
