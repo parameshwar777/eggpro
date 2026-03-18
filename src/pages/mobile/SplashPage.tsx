@@ -41,6 +41,17 @@ export const SplashPage = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
+          // Check if user is a merchant — redirect to merchant portal
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id);
+          const userRoles = roles?.map(r => r.role) || [];
+          if (userRoles.includes("merchant") && !userRoles.includes("admin")) {
+            navigate("/merchant/orders");
+            return;
+          }
+
           const { data: profile } = await supabase
             .from("profiles")
             .select("community")

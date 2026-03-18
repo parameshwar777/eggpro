@@ -52,7 +52,18 @@ export const AuthPage = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      const checkCommunity = async () => {
+      const checkRoleAndRedirect = async () => {
+        // Check if user is a merchant
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        const userRoles = roles?.map(r => r.role) || [];
+        if (userRoles.includes("merchant") && !userRoles.includes("admin")) {
+          navigate("/merchant/orders", { replace: true });
+          return;
+        }
+
         const { data: profile } = await supabase
           .from("profiles")
           .select("community")
@@ -66,7 +77,7 @@ export const AuthPage = () => {
           navigate("/community", { replace: true });
         }
       };
-      checkCommunity();
+      checkRoleAndRedirect();
     }
   }, [user, navigate]);
 
