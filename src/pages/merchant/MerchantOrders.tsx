@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
-import { Eye, RefreshCw, MessageCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { RefreshCw, Download, Printer, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MerchantLayout } from "@/components/merchant/MerchantLayout";
+import { MerchantOrderCard } from "@/components/merchant/MerchantOrderCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface Order {
+export interface MerchantOrder {
   id: string;
   community: string;
   address: string;
@@ -26,28 +26,24 @@ interface Order {
 
 export const MerchantOrders = () => {
   const { toast } = useToast();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<MerchantOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [adminWhatsapp, setAdminWhatsapp] = useState("919440229378");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchOrders();
-    fetchAdminWhatsapp();
-  }, []);
 
-  const fetchAdminWhatsapp = async () => {
-    try {
-      const { data } = await supabase
-        .from("admin_settings")
-        .select("value")
-        .eq("key", "admin_whatsapp")
-        .single();
-      if (data) setAdminWhatsapp(data.value);
-    } catch (error) {
-      console.error("Error fetching admin WhatsApp:", error);
-    }
-  };
+    // Realtime subscription for order changes
+    const channel = supabase
+      .channel("merchant-orders")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -71,212 +67,175 @@ export const MerchantOrders = () => {
         .update({ order_status: status })
         .eq("id", orderId);
       if (error) throw error;
-      toast({ title: "Success", description: "Order status updated" });
+      toast({ title: "✅ Status Updated", description: `Order marked as ${status}` });
       fetchOrders();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
-  const sendWhatsAppNotification = (order: Order) => {
-    const itemsList = order.items?.map((i: any) => `${i.name} (${i.packSize} eggs) x${i.quantity}`).join("\n") || "";
-    const frequency = order.items?.[0]?.frequency || "one-time";
-    const endDate = order.subscription_end_date ? new Date(order.subscription_end_date).toLocaleDateString() : "N/A";
+  const filteredOrders = statusFilter === "all"
+    ? orders
+    : orders.filter(o => o.order_status === statusFilter);
 
-    const message = `🥚 *Order - EggPro*\n\n📋 *Order ID:* ${order.id.slice(0, 8).toUpperCase()}\n👤 *Customer:* ${order.customer_name || "N/A"}\n📞 *Phone:* ${order.phone}\n🏠 *Address:* ${order.address}\n📍 *Community:* ${order.community}\n\n📦 *Items:*\n${itemsList}\n\n🔄 *Frequency:* ${frequency}\n📅 *End Date:* ${endDate}\n💰 *Total:* ₹${order.total_amount}`;
-
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${adminWhatsapp}?text=${encodedMessage}`, "_blank");
+  const statusCounts = {
+    all: orders.length,
+    pending: orders.filter(o => o.order_status === "pending").length,
+    confirmed: orders.filter(o => o.order_status === "confirmed").length,
+    delivered: orders.filter(o => o.order_status === "delivered").length,
+    cancelled: orders.filter(o => o.order_status === "cancelled").length,
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending": return "bg-yellow-500";
-      case "confirmed": return "bg-green-500";
-      case "inactive": return "bg-gray-500";
-      case "cancelled": return "bg-red-500";
-      default: return "bg-gray-500";
-    }
+  const handleDownloadCSV = () => {
+    const headers = ["Order ID", "Customer", "Phone", "Community", "Address", "Items", "Amount", "Status", "Date"];
+    const rows = filteredOrders.map(o => [
+      o.id.slice(0, 8).toUpperCase(),
+      o.customer_name || "N/A",
+      o.phone,
+      o.community,
+      `"${o.address}"`,
+      `"${o.items?.map((i: any) => `${i.name} (${i.packSize}eggs) x${i.quantity}`).join(", ") || ""}"`,
+      `₹${o.total_amount}`,
+      o.order_status || "pending",
+      new Date(o.created_at).toLocaleDateString(),
+    ]);
+    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "📥 Downloaded", description: "Orders CSV file downloaded" });
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "confirmed": return "Active";
-      case "inactive": return "Inactive";
-      default: return status?.charAt(0).toUpperCase() + status?.slice(1);
-    }
+  const handlePrint = () => {
+    const printContent = document.getElementById("print-orders");
+    if (!printContent) return;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`
+      <html>
+        <head>
+          <title>EggPro Orders - ${new Date().toLocaleDateString()}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; color: #1a1a1a; }
+            h1 { font-size: 22px; margin-bottom: 4px; }
+            .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; font-size: 13px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background: #f5f5f5; font-weight: 600; }
+            .status { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+            .pending { background: #fef3c7; color: #92400e; }
+            .confirmed { background: #d1fae5; color: #065f46; }
+            .delivered { background: #dbeafe; color: #1e40af; }
+            .cancelled { background: #fee2e2; color: #991b1b; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>🥚 EggPro - Delivery Orders</h1>
+          <div class="subtitle">${new Date().toLocaleDateString()} · ${filteredOrders.length} orders</div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Door/Address</th>
+                <th>Community</th>
+                <th>Items</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredOrders.map((o, i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${o.customer_name || "N/A"}</td>
+                  <td>${o.phone}</td>
+                  <td>${o.address}</td>
+                  <td>${o.community}</td>
+                  <td>${o.items?.map((it: any) => `${it.name} (${it.packSize}) x${it.quantity}`).join(", ") || ""}</td>
+                  <td>₹${o.total_amount}</td>
+                  <td><span class="status ${o.order_status || "pending"}">${o.order_status || "pending"}</span></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.print();
   };
-
-  const parseAddress = (address: string) => {
-    const parts = address.split(",").map(p => p.trim());
-    return { doorNumber: parts[0] || "" };
-  };
-
-  const activeCount = orders.filter(o => o.order_status === "confirmed").length;
 
   const headerActions = (
-    <div className="flex items-center gap-2 bg-green-600/20 px-4 py-2 rounded-lg">
-      <RefreshCw className="w-5 h-5 text-green-400" />
-      <span className="text-green-400 font-medium">{activeCount} Active</span>
+    <div className="flex items-center gap-2">
+      <Button size="sm" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800" onClick={handleDownloadCSV}>
+        <Download className="w-4 h-4" />
+      </Button>
+      <Button size="sm" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800" onClick={handlePrint}>
+        <Printer className="w-4 h-4" />
+      </Button>
+      <Button size="sm" variant="ghost" className="text-slate-300" onClick={() => { setIsLoading(true); fetchOrders(); }}>
+        <RefreshCw className="w-4 h-4" />
+      </Button>
     </div>
   );
 
   return (
     <MerchantLayout title="Orders" headerActions={headerActions}>
+      {/* Status Filter Chips */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        {(["all", "pending", "confirmed", "delivered", "cancelled"] as const).map(status => (
+          <button
+            key={status}
+            onClick={() => setStatusFilter(status)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+              statusFilter === status
+                ? status === "all" ? "bg-primary text-primary-foreground"
+                  : status === "pending" ? "bg-yellow-500 text-yellow-950"
+                  : status === "confirmed" ? "bg-green-500 text-green-950"
+                  : status === "delivered" ? "bg-blue-500 text-blue-950"
+                  : "bg-red-500 text-red-950"
+                : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+            }`}
+          >
+            {status === "all" ? "All" : status === "confirmed" ? "Active" : status.charAt(0).toUpperCase() + status.slice(1)}
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              statusFilter === status ? "bg-white/20" : "bg-slate-700"
+            }`}>
+              {statusCounts[status]}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
         </div>
-      ) : orders.length === 0 ? (
-        <div className="text-center py-12 text-slate-300">No orders yet</div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-20 h-20 mx-auto mb-4 bg-slate-800 rounded-full flex items-center justify-center">
+            <Filter className="w-10 h-10 text-slate-600" />
+          </div>
+          <p className="text-slate-400 text-lg">No {statusFilter !== "all" ? statusFilter : ""} orders found</p>
+        </div>
       ) : (
-        <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-x-auto">
-          <table className="w-full min-w-[1000px]">
-            <thead className="bg-slate-800/50">
-              <tr>
-                <th className="text-left p-4 text-slate-200 font-medium">Order ID</th>
-                <th className="text-left p-4 text-slate-200 font-medium">Customer</th>
-                <th className="text-left p-4 text-slate-200 font-medium">Phone</th>
-                <th className="text-left p-4 text-slate-200 font-medium">Door No.</th>
-                <th className="text-left p-4 text-slate-200 font-medium">Community</th>
-                <th className="text-left p-4 text-slate-200 font-medium">Product</th>
-                <th className="text-left p-4 text-slate-200 font-medium">Amount</th>
-                <th className="text-left p-4 text-slate-200 font-medium">Status</th>
-                <th className="text-left p-4 text-slate-200 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => {
-                const { doorNumber } = parseAddress(order.address);
-                const frequency = order.items?.[0]?.frequency || "one-time";
-
-                return (
-                  <tr key={order.id} className="border-t border-slate-800">
-                    <td className="p-4 text-slate-100 font-mono text-sm">{order.id.slice(0, 8)}...</td>
-                    <td className="p-4 text-slate-200">{order.customer_name || "—"}</td>
-                    <td className="p-4 text-slate-200">{order.phone}</td>
-                    <td className="p-4 text-slate-200">{doorNumber}</td>
-                    <td className="p-4 text-slate-200">{order.community}</td>
-                    <td className="p-4 text-slate-200">
-                      {order.items?.[0]?.name || "—"}
-                      <span className="text-xs text-slate-400 block">
-                        {order.items?.[0]?.packSize} eggs × {order.items?.[0]?.quantity || 1}
-                      </span>
-                    </td>
-                    <td className="p-4 text-slate-100 font-bold">₹{order.total_amount}</td>
-                    <td className="p-4">
-                      <Badge className={getStatusColor(order.order_status || "pending")}>
-                        {getStatusLabel(order.order_status || "pending")}
-                      </Badge>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-slate-300 hover:text-slate-100 hover:bg-slate-800"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-green-400 hover:text-green-200 hover:bg-green-800/50"
-                          onClick={() => sendWhatsAppNotification(order)}
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                        </Button>
-                        <Select defaultValue={order.order_status || "pending"} onValueChange={(value) => updateOrderStatus(order.id, value)}>
-                          <SelectTrigger className="w-24 bg-slate-800 border-slate-700 text-slate-100 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-slate-900 border-slate-700">
-                            <SelectItem value="pending" className="text-slate-100">Pending</SelectItem>
-                            <SelectItem value="confirmed" className="text-slate-100">Active</SelectItem>
-                            <SelectItem value="inactive" className="text-slate-100">Inactive</SelectItem>
-                            <SelectItem value="cancelled" className="text-slate-100">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div id="print-orders" className="space-y-4">
+          {filteredOrders.map(order => (
+            <MerchantOrderCard
+              key={order.id}
+              order={order}
+              onStatusChange={updateOrderStatus}
+            />
+          ))}
         </div>
       )}
-
-      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="bg-slate-900 border-slate-800 max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-slate-100">Order Details</DialogTitle>
-          </DialogHeader>
-          {selectedOrder && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-slate-400 text-sm">Order ID</p>
-                  <p className="text-slate-100 font-mono text-sm">{selectedOrder.id}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm">Payment ID</p>
-                  <p className="text-slate-100 font-mono text-sm break-all">{selectedOrder.payment_id || "—"}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-slate-400 text-sm">Customer</p>
-                  <p className="text-slate-100">{selectedOrder.customer_name || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm">Phone</p>
-                  <p className="text-slate-100">{selectedOrder.phone}</p>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-slate-400 text-sm">Community</p>
-                <p className="text-slate-100">{selectedOrder.community}</p>
-              </div>
-
-              <div>
-                <p className="text-slate-400 text-sm">Full Address</p>
-                <p className="text-slate-100">{selectedOrder.address}</p>
-              </div>
-
-              <div>
-                <p className="text-slate-400 text-sm">Items</p>
-                <div className="space-y-2 mt-2">
-                  {selectedOrder.items?.map((item: any, i: number) => (
-                    <div key={i} className="flex justify-between text-slate-100 bg-slate-800/50 p-2 rounded">
-                      <span>{item.name} ({item.packSize} eggs) x{item.quantity}</span>
-                      <span>₹{item.price * item.quantity}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-700">
-                <div className="flex justify-between text-slate-100 font-bold text-lg">
-                  <span>Total</span>
-                  <span>₹{selectedOrder.total_amount}</span>
-                </div>
-              </div>
-
-              <Button
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-                onClick={() => sendWhatsAppNotification(selectedOrder)}
-              >
-                <MessageCircle className="w-5 h-5 mr-2" />
-                Send to WhatsApp
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </MerchantLayout>
   );
 };

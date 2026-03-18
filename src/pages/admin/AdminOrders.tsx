@@ -35,6 +35,16 @@ export const AdminOrders = () => {
     fetchOrders();
     checkExpiredSubscriptions();
     fetchAdminWhatsapp();
+
+    // Realtime: auto-refresh when merchant updates order status
+    const channel = supabase
+      .channel("admin-orders")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const fetchAdminWhatsapp = async () => {
@@ -131,6 +141,7 @@ ${itemsList}
     switch (status) {
       case "pending": return "bg-yellow-500";
       case "confirmed": return "bg-green-500";
+      case "delivered": return "bg-blue-500";
       case "inactive": return "bg-gray-500";
       case "cancelled": return "bg-red-500";
       default: return "bg-gray-500";
@@ -140,6 +151,7 @@ ${itemsList}
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "confirmed": return "Active";
+      case "delivered": return "Delivered";
       case "inactive": return "Inactive";
       default: return status?.charAt(0).toUpperCase() + status?.slice(1);
     }
@@ -259,6 +271,7 @@ ${itemsList}
                           <SelectContent className="bg-amber-900 border-amber-700">
                             <SelectItem value="pending" className="text-amber-100">Pending</SelectItem>
                             <SelectItem value="confirmed" className="text-amber-100">Active</SelectItem>
+                            <SelectItem value="delivered" className="text-amber-100">Delivered</SelectItem>
                             <SelectItem value="inactive" className="text-amber-100">Inactive</SelectItem>
                             <SelectItem value="cancelled" className="text-amber-100">Cancelled</SelectItem>
                           </SelectContent>
