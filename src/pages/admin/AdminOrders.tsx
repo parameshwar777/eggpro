@@ -131,6 +131,7 @@ ${itemsList}
     switch (status) {
       case "pending": return "bg-yellow-500";
       case "confirmed": return "bg-green-500";
+      case "delivered": return "bg-blue-500";
       case "inactive": return "bg-gray-500";
       case "cancelled": return "bg-red-500";
       default: return "bg-gray-500";
@@ -140,6 +141,7 @@ ${itemsList}
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "confirmed": return "Active";
+      case "delivered": return "Delivered";
       case "inactive": return "Inactive";
       default: return status?.charAt(0).toUpperCase() + status?.slice(1);
     }
