@@ -87,7 +87,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        checkAdminRole(session.user.id).then(setIsAdmin);
+        checkRoles(session.user.id).then(({ isAdmin, isMerchant }) => {
+          setIsAdmin(isAdmin);
+          setIsMerchant(isMerchant);
+        });
       }
       setIsLoading(false);
     });
