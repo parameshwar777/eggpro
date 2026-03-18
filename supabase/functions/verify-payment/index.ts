@@ -139,52 +139,101 @@ serve(async (req: Request) => {
       console.error("In-app notification error:", e);
     }
 
-    // Send WhatsApp notification to ALL admin phone numbers
+    // Send WhatsApp notification via WATI to ALL admin phone numbers
     try {
-      // Fetch all admin user IDs
-      const { data: adminRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
+      const WATI_ACCESS_TOKEN = Deno.env.get("WATI_ACCESS_TOKEN");
+      const WATI_API_ENDPOINT = Deno.env.get("WATI_API_ENDPOINT");
 
-      if (adminRoles && adminRoles.length > 0) {
-        const adminUserIds = adminRoles.map(r => r.user_id);
-        const { data: adminProfiles } = await supabase
-          .from("profiles")
-          .select("phone, full_name")
-          .in("id", adminUserIds);
+      if (WATI_ACCESS_TOKEN && WATI_API_ENDPOINT) {
+        // Fetch all admin user IDs
+        const { data: adminRoles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin");
 
-        // Also get admin_whatsapp from settings as fallback
-        const { data: settingsData } = await supabase
-          .from("admin_settings")
-          .select("value")
-          .eq("key", "admin_whatsapp")
-          .single();
+        if (adminRoles && adminRoles.length > 0) {
+          const adminUserIds = adminRoles.map(r => r.user_id);
+          const { data: adminProfiles } = await supabase
+            .from("profiles")
+            .select("phone, full_name")
+            .in("id", adminUserIds);
 
-        const adminPhones = new Set<string>();
-        if (settingsData?.value) adminPhones.add(settingsData.value);
-        if (adminProfiles) {
-          for (const p of adminProfiles) {
-            if (p.phone) adminPhones.add(p.phone);
+          // Also get admin_whatsapp from settings as fallback
+          const { data: settingsData } = await supabase
+            .from("admin_settings")
+            .select("value")
+            .eq("key", "admin_whatsapp")
+            .single();
+
+          const adminPhones = new Set<string>();
+          if (settingsData?.value) adminPhones.add(settingsData.value);
+          if (adminProfiles) {
+            for (const p of adminProfiles) {
+              if (p.phone) adminPhones.add(p.phone);
+            }
+          }
+
+          console.log("Sending WATI WhatsApp to admin phones:", Array.from(adminPhones));
+
+          const itemsList = items.map((i: any) => `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
+          const message = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
+
+          const baseUrl = WATI_API_ENDPOINT.replace(/\/$/, "");
+
+          for (const adminPhone of adminPhones) {
+            try {
+              // Clean phone number - remove + prefix if present
+              const cleanPhone = adminPhone.replace(/^\+/, "");
+              
+              // Try sending session message via WATI API
+              const response = await fetch(
+                `${baseUrl}/api/v1/sendSessionMessage/${cleanPhone}?messageText=${encodeURIComponent(message)}`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Authorization": WATI_ACCESS_TOKEN,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+
+              const result = await response.json();
+              
+              if (!response.ok || result?.result === false) {
+                console.log("Session message failed, trying template message for:", cleanPhone);
+                // Fallback: try sending as interactive template message
+                const templateResponse = await fetch(
+                  `${baseUrl}/api/v1/sendTemplateMessage/${cleanPhone}`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Authorization": WATI_ACCESS_TOKEN,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      template_name: "order_notification",
+                      broadcast_name: "order_alert",
+                      parameters: [
+                        { name: "order_id", value: orderId.slice(0, 8) },
+                        { name: "customer_name", value: customerName },
+                        { name: "total_amount", value: `₹${totalAmount}` },
+                        { name: "community", value: community },
+                      ],
+                    }),
+                  }
+                );
+                const templateResult = await templateResponse.json();
+                console.log("WATI template response for", cleanPhone, ":", JSON.stringify(templateResult));
+              } else {
+                console.log("WATI session message sent to:", cleanPhone, JSON.stringify(result));
+              }
+            } catch (e) {
+              console.error("WATI WhatsApp send error for", adminPhone, e);
+            }
           }
         }
-
-        console.log("Sending WhatsApp to admin phones:", Array.from(adminPhones));
-
-        const itemsList = items.map((i: any) => `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
-        const message = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
-
-        // Send to each admin phone via WhatsApp API (callmebot or similar)
-        for (const adminPhone of adminPhones) {
-          try {
-            // Using CallMeBot WhatsApp API
-            const apiUrl = `https://api.callmebot.com/whatsapp.php?phone=${adminPhone}&text=${encodeURIComponent(message)}&apikey=123456`;
-            await fetch(apiUrl);
-            console.log("WhatsApp sent to:", adminPhone);
-          } catch (e) {
-            console.error("WhatsApp send error for", adminPhone, e);
-          }
-        }
+      } else {
+        console.log("WATI credentials not configured, skipping WhatsApp notification");
       }
     } catch (e) {
       console.error("WhatsApp notification error:", e);
