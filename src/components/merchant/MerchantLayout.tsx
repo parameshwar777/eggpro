@@ -103,7 +103,10 @@ export const MerchantLayout = ({ children, title, headerActions }: MerchantLayou
             </button>
             <h2 className="text-xl font-semibold text-slate-100">{title}</h2>
           </div>
-          {headerActions}
+          <div className="flex items-center gap-2">
+            <PushNotificationManager />
+            {headerActions}
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6">
