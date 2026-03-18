@@ -41,6 +41,10 @@ import { AdminCommunities } from "./pages/admin/AdminCommunities";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminUsers } from "./pages/admin/AdminUsers";
 
+// Merchant Pages
+import { MerchantLogin } from "./pages/merchant/MerchantLogin";
+import { MerchantOrders } from "./pages/merchant/MerchantOrders";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
