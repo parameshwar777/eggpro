@@ -93,6 +93,10 @@ const App = () => (
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
 
+                {/* Merchant Routes */}
+                <Route path="/merchant/login" element={<MerchantLogin />} />
+                <Route path="/merchant/orders" element={<MerchantOrders />} />
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
