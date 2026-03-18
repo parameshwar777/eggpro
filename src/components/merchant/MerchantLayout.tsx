@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { ShoppingCart, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PushNotificationManager } from "@/components/PushNotificationManager";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface MerchantLayoutProps {
@@ -102,7 +103,10 @@ export const MerchantLayout = ({ children, title, headerActions }: MerchantLayou
             </button>
             <h2 className="text-xl font-semibold text-slate-100">{title}</h2>
           </div>
-          {headerActions}
+          <div className="flex items-center gap-2">
+            <PushNotificationManager />
+            {headerActions}
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6">
