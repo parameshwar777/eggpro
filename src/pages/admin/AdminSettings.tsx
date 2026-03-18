@@ -36,9 +36,11 @@ export const AdminSettings = () => {
         const whatsapp = data.find(d => d.key === "admin_whatsapp");
         const wallpaper = data.find(d => d.key === "splash_wallpaper");
         const version = data.find(d => d.key === "app_current_version");
+        const telegram = data.find(d => d.key === "telegram_chat_ids");
         if (whatsapp) setAdminWhatsapp(whatsapp.value);
         if (wallpaper) setWallpaperUrl(wallpaper.value);
         if (version) setAppVersion(version.value);
+        if (telegram) setTelegramChatIds(telegram.value);
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
