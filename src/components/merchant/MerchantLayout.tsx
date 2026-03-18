@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { ShoppingCart, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PushNotificationManager } from "@/components/PushNotificationManager";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface MerchantLayoutProps {
