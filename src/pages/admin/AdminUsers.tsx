@@ -17,6 +17,7 @@ interface RoleUser {
     full_name: string | null;
     phone: string | null;
   };
+  email?: string | null;
 }
 
 const UserCard = ({ user, onRemove, roleName }: { user: RoleUser; onRemove: (id: string) => void; roleName: string }) => (
@@ -28,12 +29,15 @@ const UserCard = ({ user, onRemove, roleName }: { user: RoleUser; onRemove: (id:
     <div className="flex items-center gap-3">
       <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
         <span className="text-primary-foreground font-bold">
-          {(user.profile?.full_name || "U")[0].toUpperCase()}
+          {(user.profile?.full_name || user.email || "U")[0].toUpperCase()}
         </span>
       </div>
       <div>
         <p className="font-semibold text-foreground">{user.profile?.full_name || "Unknown"}</p>
-        <p className="text-sm text-muted-foreground">{user.profile?.phone || "No phone"}</p>
+        <p className="text-sm text-muted-foreground">{user.email || "No email"}</p>
+        {user.profile?.phone && (
+          <p className="text-xs text-muted-foreground">{user.profile.phone}</p>
+        )}
       </div>
     </div>
     <div className="flex items-center gap-2">
