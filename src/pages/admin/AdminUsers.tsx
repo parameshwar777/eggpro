@@ -161,15 +161,36 @@ export const AdminUsers = () => {
 
     if (!roles) { setIsLoading(false); return; }
 
-    const list: RoleUser[] = [];
+    // Fetch profiles for all role users
+    const userIds = roles.map(r => r.user_id);
+    const profileMap: Record<string, any> = {};
+    
     for (const role of roles) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, phone")
         .eq("id", role.user_id)
         .single();
-      list.push({ user_id: role.user_id, role: role.role, profile: profile || undefined });
+      if (profile) profileMap[role.user_id] = profile;
     }
+
+    // Fetch emails from auth via edge function
+    let emailMap: Record<string, { email: string | null }> = {};
+    try {
+      const { data } = await supabase.functions.invoke("get-users-info", {
+        body: { userIds },
+      });
+      if (data?.users) emailMap = data.users;
+    } catch (e) {
+      console.error("Failed to fetch emails:", e);
+    }
+
+    const list: RoleUser[] = roles.map((role) => ({
+      user_id: role.user_id,
+      role: role.role,
+      profile: profileMap[role.user_id] || undefined,
+      email: emailMap[role.user_id]?.email || null,
+    }));
 
     setAdmins(list.filter((u) => u.role === "admin"));
     setMerchants(list.filter((u) => u.role === "merchant"));
