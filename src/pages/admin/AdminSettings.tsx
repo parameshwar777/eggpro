@@ -15,6 +15,10 @@ export const AdminSettings = () => {
   const [isUploadingWallpaper, setIsUploadingWallpaper] = useState(false);
   const [appVersion, setAppVersion] = useState("1.0.0");
   const [isSavingVersion, setIsSavingVersion] = useState(false);
+  const [telegramChatIds, setTelegramChatIds] = useState("");
+  const [isSavingTelegram, setIsSavingTelegram] = useState(false);
+  const [isFetchingChats, setIsFetchingChats] = useState(false);
+  const [detectedChats, setDetectedChats] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
