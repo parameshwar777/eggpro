@@ -41,6 +41,10 @@ import { AdminCommunities } from "./pages/admin/AdminCommunities";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminUsers } from "./pages/admin/AdminUsers";
 
+// Merchant Pages
+import { MerchantLogin } from "./pages/merchant/MerchantLogin";
+import { MerchantOrders } from "./pages/merchant/MerchantOrders";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -88,6 +92,10 @@ const App = () => (
                 <Route path="/admin/communities" element={<AdminCommunities />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
+
+                {/* Merchant Routes */}
+                <Route path="/merchant/login" element={<MerchantLogin />} />
+                <Route path="/merchant/orders" element={<MerchantOrders />} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>

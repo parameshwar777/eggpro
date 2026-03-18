@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  isMerchant: boolean;
   isLoading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
   signUpWithEmail: (email: string, password: string, fullName: string) => Promise<{ error: any; data: any }>;
@@ -23,6 +24,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMerchant, setIsMerchant] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize Google Auth for native platforms
@@ -38,23 +40,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
 
-  const checkAdminRole = async (userId: string) => {
+  const checkRoles = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .maybeSingle();
+        .eq("user_id", userId);
       
       if (error) {
-        console.error("Error checking admin role:", error);
-        return false;
+        console.error("Error checking roles:", error);
+        return { isAdmin: false, isMerchant: false };
       }
-      return !!data;
+      const roles = data?.map(r => r.role) || [];
+      return {
+        isAdmin: roles.includes("admin"),
+        isMerchant: roles.includes("merchant"),
+      };
     } catch (error) {
-      console.error("Error checking admin role:", error);
-      return false;
+      console.error("Error checking roles:", error);
+      return { isAdmin: false, isMerchant: false };
     }
   };
 
@@ -66,10 +70,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (session?.user) {
           setTimeout(() => {
-            checkAdminRole(session.user.id).then(setIsAdmin);
+            checkRoles(session.user.id).then(({ isAdmin, isMerchant }) => {
+              setIsAdmin(isAdmin);
+              setIsMerchant(isMerchant);
+            });
           }, 0);
         } else {
           setIsAdmin(false);
+          setIsMerchant(false);
         }
       }
     );
@@ -79,7 +87,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        checkAdminRole(session.user.id).then(setIsAdmin);
+        checkRoles(session.user.id).then(({ isAdmin, isMerchant }) => {
+          setIsAdmin(isAdmin);
+          setIsMerchant(isMerchant);
+        });
       }
       setIsLoading(false);
     });
@@ -182,6 +193,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setSession(null);
     setIsAdmin(false);
+    setIsMerchant(false);
     localStorage.removeItem("selectedCommunity");
   };
 
@@ -190,6 +202,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user,
       session,
       isAdmin,
+      isMerchant,
       isLoading,
       signInWithEmail,
       signUpWithEmail,
