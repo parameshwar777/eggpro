@@ -334,6 +334,25 @@ serve(async (req: Request) => {
       }
     }
 
+    // Send browser push notifications
+    try {
+      const itemsSummaryPush = items.map((i: any) => `${i.name} x${i.quantity}`).join(", ");
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push-notification`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: `🥚 New Order #${orderId.slice(0, 8)} - ₹${totalAmount}`,
+          body: `${customerName} from ${community}: ${itemsSummaryPush}`,
+        }),
+      });
+      console.log("Browser push notifications triggered");
+    } catch (e) {
+      console.error("Push notification error:", e);
+    }
+
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
   } catch (error: any) {
     console.error("Error:", error);
