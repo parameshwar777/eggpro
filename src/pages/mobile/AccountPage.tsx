@@ -12,7 +12,7 @@ export const AccountPage = () => {
   const navigate = useNavigate();
   const { user, isAdmin, signOut } = useAuth();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [userNotifCount, setUserNotifCount] = useState(0);
   const [profile, setProfile] = useState<any>(null);
   const [selectedCommunity, setSelectedCommunity] = useState(localStorage.getItem("selectedCommunity") || "");
   const [subscriptionCount, setSubscriptionCount] = useState(0);
