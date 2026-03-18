@@ -25,17 +25,18 @@ export const AccountPage = () => {
   const [communities, setCommunities] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchNotifications();
     fetchCommunities();
     if (user) {
       fetchProfile();
       fetchSubscriptionCount();
+      fetchUserNotifCount();
     }
   }, [user]);
 
-  const fetchNotifications = async () => {
-    const { data } = await supabase.from("notifications").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5);
-    setNotifications(data || []);
+  const fetchUserNotifCount = async () => {
+    if (!user) return;
+    const { count } = await supabase.from("user_notifications").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
+    setUserNotifCount(count || 0);
   };
 
   const fetchCommunities = async () => {
