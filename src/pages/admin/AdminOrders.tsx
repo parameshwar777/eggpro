@@ -35,6 +35,16 @@ export const AdminOrders = () => {
     fetchOrders();
     checkExpiredSubscriptions();
     fetchAdminWhatsapp();
+
+    // Realtime: auto-refresh when merchant updates order status
+    const channel = supabase
+      .channel("admin-orders")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const fetchAdminWhatsapp = async () => {
