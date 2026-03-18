@@ -12,7 +12,7 @@ export const AccountPage = () => {
   const navigate = useNavigate();
   const { user, isAdmin, signOut } = useAuth();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [userNotifCount, setUserNotifCount] = useState(0);
   const [profile, setProfile] = useState<any>(null);
   const [selectedCommunity, setSelectedCommunity] = useState(localStorage.getItem("selectedCommunity") || "");
   const [subscriptionCount, setSubscriptionCount] = useState(0);
@@ -25,17 +25,18 @@ export const AccountPage = () => {
   const [communities, setCommunities] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchNotifications();
     fetchCommunities();
     if (user) {
       fetchProfile();
       fetchSubscriptionCount();
+      fetchUserNotifCount();
     }
   }, [user]);
 
-  const fetchNotifications = async () => {
-    const { data } = await supabase.from("notifications").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5);
-    setNotifications(data || []);
+  const fetchUserNotifCount = async () => {
+    if (!user) return;
+    const { count } = await supabase.from("user_notifications").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
+    setUserNotifCount(count || 0);
   };
 
   const fetchCommunities = async () => {
@@ -89,7 +90,7 @@ export const AccountPage = () => {
     { icon: MapPin, label: "Delivery Addresses", desc: "Add your addresses", to: "/addresses", color: "bg-blue-100 text-blue-600" },
     { icon: Wallet, label: "Wallet", desc: `₹${walletBalance} available`, to: "/wallet", color: "bg-green-100 text-green-600" },
     { icon: RefreshCw, label: "My Subscriptions", desc: `${subscriptionCount} active`, to: "/subscriptions", color: "bg-purple-100 text-purple-600" },
-    { icon: Bell, label: "Notifications", desc: `${notifications.length} new`, to: "/notifications", color: "bg-red-100 text-red-600" },
+    { icon: Bell, label: "Notifications", desc: `${userNotifCount} unread`, to: "/notifications", color: "bg-red-100 text-red-600" },
     { icon: Info, label: "About EggPro", desc: "Learn about us", to: "/about", color: "bg-amber-100 text-amber-600" },
     { icon: Shield, label: "Privacy Policy", desc: "Your data is safe", to: "/privacy", color: "bg-indigo-100 text-indigo-600" },
     { icon: FileText, label: "Terms of Service", desc: "Usage terms", to: "/terms", color: "bg-slate-100 text-slate-600" },
