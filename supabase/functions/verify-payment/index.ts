@@ -139,101 +139,105 @@ serve(async (req: Request) => {
       console.error("In-app notification error:", e);
     }
 
-    // Send WhatsApp notification via WATI to ALL admin phone numbers
+    // Send WhatsApp notifications via WATI
     try {
       const WATI_ACCESS_TOKEN = Deno.env.get("WATI_ACCESS_TOKEN");
       const WATI_API_ENDPOINT = Deno.env.get("WATI_API_ENDPOINT");
 
       if (WATI_ACCESS_TOKEN && WATI_API_ENDPOINT) {
-        // Fetch all admin user IDs
-        const { data: adminRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
+        const baseUrl = WATI_API_ENDPOINT.replace(/\/$/, "");
+        const itemsList = items.map((i: any) => `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
 
-        if (adminRoles && adminRoles.length > 0) {
-          const adminUserIds = adminRoles.map(r => r.user_id);
-          const { data: adminProfiles } = await supabase
-            .from("profiles")
-            .select("phone, full_name")
-            .in("id", adminUserIds);
-
-          // Also get admin_whatsapp from settings as fallback
-          const { data: settingsData } = await supabase
-            .from("admin_settings")
-            .select("value")
-            .eq("key", "admin_whatsapp")
-            .single();
-
-          const adminPhones = new Set<string>();
-          if (settingsData?.value) adminPhones.add(settingsData.value);
-          if (adminProfiles) {
-            for (const p of adminProfiles) {
-              if (p.phone) adminPhones.add(p.phone);
+        // --- 1. Send ORDER CONFIRMATION to CUSTOMER ---
+        try {
+          const cleanCustomerPhone = phone.replace(/^\+/, "");
+          
+          // Try template message first (works outside 24hr window)
+          const custTemplateRes = await fetch(
+            `${baseUrl}/api/v1/sendTemplateMessage/${cleanCustomerPhone}`,
+            {
+              method: "POST",
+              headers: {
+                "Authorization": WATI_ACCESS_TOKEN,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                template_name: "order_notification",
+                broadcast_name: "order_confirmation",
+                parameters: [
+                  { name: "customer_name", value: customerName },
+                  { name: "order_id", value: orderId.slice(0, 8) },
+                  { name: "total_amount", value: `₹${totalAmount}` },
+                  { name: "community", value: community },
+                ],
+              }),
             }
+          );
+          const custResult = await custTemplateRes.json();
+          console.log("Customer WhatsApp template response:", JSON.stringify(custResult));
+          
+          // Fallback: session message
+          if (!custTemplateRes.ok || custResult?.result === false) {
+            const customerItemsSummary = items.map((i: any) => `🛍️ ${i.name} x${i.quantity}`).join("\n");
+            const customerMessage = `Hi ${customerName}! 🥚\n\nThank you for shopping with EggPro! Your order #${orderId.slice(0, 8)} has been confirmed.\n\n${customerItemsSummary}\n\n*Total: ₹${totalAmount}*\n\nYour order will be delivered soon to ${community}.\n\nThanks for choosing EggPro! 🙏`;
+            
+            await fetch(
+              `${baseUrl}/api/v1/sendSessionMessage/${cleanCustomerPhone}?messageText=${encodeURIComponent(customerMessage)}`,
+              { method: "POST", headers: { "Authorization": WATI_ACCESS_TOKEN, "Content-Type": "application/json" } }
+            );
+            console.log("Customer session message fallback sent to:", cleanCustomerPhone);
           }
+        } catch (e) {
+          console.error("Customer WhatsApp error:", e);
+        }
 
-          console.log("Sending WATI WhatsApp to admin phones:", Array.from(adminPhones));
+        // --- 2. Send ORDER ALERT to ALL ADMINS ---
+        try {
+          const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
 
-          const itemsList = items.map((i: any) => `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
-          const message = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
+          if (adminRoles && adminRoles.length > 0) {
+            const adminUserIds = adminRoles.map(r => r.user_id);
+            const { data: adminProfiles } = await supabase.from("profiles").select("phone, full_name").in("id", adminUserIds);
+            const { data: settingsData } = await supabase.from("admin_settings").select("value").eq("key", "admin_whatsapp").single();
 
-          const baseUrl = WATI_API_ENDPOINT.replace(/\/$/, "");
+            const adminPhones = new Set<string>();
+            if (settingsData?.value) adminPhones.add(settingsData.value);
+            if (adminProfiles) { for (const p of adminProfiles) { if (p.phone) adminPhones.add(p.phone); } }
 
-          for (const adminPhone of adminPhones) {
-            try {
-              // Clean phone number - remove + prefix if present
-              const cleanPhone = adminPhone.replace(/^\+/, "");
-              
-              // Try sending session message via WATI API
-              const response = await fetch(
-                `${baseUrl}/api/v1/sendSessionMessage/${cleanPhone}?messageText=${encodeURIComponent(message)}`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Authorization": WATI_ACCESS_TOKEN,
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
+            const adminMessage = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
 
-              const result = await response.json();
-              
-              if (!response.ok || result?.result === false) {
-                console.log("Session message failed, trying template message for:", cleanPhone);
-                // Fallback: try sending as interactive template message
-                const templateResponse = await fetch(
-                  `${baseUrl}/api/v1/sendTemplateMessage/${cleanPhone}`,
-                  {
+            for (const adminPhone of adminPhones) {
+              try {
+                const cleanPhone = adminPhone.replace(/^\+/, "");
+                const res = await fetch(
+                  `${baseUrl}/api/v1/sendSessionMessage/${cleanPhone}?messageText=${encodeURIComponent(adminMessage)}`,
+                  { method: "POST", headers: { "Authorization": WATI_ACCESS_TOKEN, "Content-Type": "application/json" } }
+                );
+                const result = await res.json();
+                if (!res.ok || result?.result === false) {
+                  const tplRes = await fetch(`${baseUrl}/api/v1/sendTemplateMessage/${cleanPhone}`, {
                     method: "POST",
-                    headers: {
-                      "Authorization": WATI_ACCESS_TOKEN,
-                      "Content-Type": "application/json",
-                    },
+                    headers: { "Authorization": WATI_ACCESS_TOKEN, "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      template_name: "order_notification",
-                      broadcast_name: "order_alert",
+                      template_name: "order_notification", broadcast_name: "order_alert",
                       parameters: [
-                        { name: "order_id", value: orderId.slice(0, 8) },
                         { name: "customer_name", value: customerName },
+                        { name: "order_id", value: orderId.slice(0, 8) },
                         { name: "total_amount", value: `₹${totalAmount}` },
                         { name: "community", value: community },
                       ],
                     }),
-                  }
-                );
-                const templateResult = await templateResponse.json();
-                console.log("WATI template response for", cleanPhone, ":", JSON.stringify(templateResult));
-              } else {
-                console.log("WATI session message sent to:", cleanPhone, JSON.stringify(result));
-              }
-            } catch (e) {
-              console.error("WATI WhatsApp send error for", adminPhone, e);
+                  });
+                  console.log("Admin template response:", cleanPhone, JSON.stringify(await tplRes.json()));
+                } else {
+                  console.log("Admin session msg sent to:", cleanPhone);
+                }
+              } catch (e) { console.error("Admin WhatsApp error for", adminPhone, e); }
             }
           }
-        }
+        } catch (e) { console.error("Admin WhatsApp notification error:", e); }
       } else {
-        console.log("WATI credentials not configured, skipping WhatsApp notification");
+        console.log("WATI credentials not configured, skipping WhatsApp");
       }
     } catch (e) {
       console.error("WhatsApp notification error:", e);
