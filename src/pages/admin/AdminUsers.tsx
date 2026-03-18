@@ -1,66 +1,59 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { UserPlus, Shield, Trash2, Search, Users } from "lucide-react";
+import { UserPlus, Shield, Trash2, Search, Users, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface AdminUser {
+interface RoleUser {
   user_id: string;
   role: string;
   profile?: {
     full_name: string | null;
     phone: string | null;
   };
-  email?: string;
 }
 
-export const AdminUsers = () => {
+const UserCard = ({ user, onRemove, roleName }: { user: RoleUser; onRemove: (id: string) => void; roleName: string }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-secondary rounded-xl p-4 border border-border flex items-center justify-between"
+  >
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+        <span className="text-primary-foreground font-bold">
+          {(user.profile?.full_name || "U")[0].toUpperCase()}
+        </span>
+      </div>
+      <div>
+        <p className="font-semibold text-foreground">{user.profile?.full_name || "Unknown"}</p>
+        <p className="text-sm text-muted-foreground">{user.profile?.phone || "No phone"}</p>
+      </div>
+    </div>
+    <div className="flex items-center gap-2">
+      <Badge className={roleName === "admin" ? "bg-primary" : "bg-amber-600"}>
+        {roleName === "admin" ? "Admin" : "Merchant"}
+      </Badge>
+      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => onRemove(user.user_id)}>
+        <Trash2 className="w-4 h-4" />
+      </Button>
+    </div>
+  </motion.div>
+);
+
+const AddUserDialog = ({
+  open, onOpenChange, roleName, onAdded,
+}: { open: boolean; onOpenChange: (v: boolean) => void; roleName: "admin" | "merchant"; onAdded: () => void }) => {
   const { toast } = useToast();
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [searchEmail, setSearchEmail] = useState("");
   const [foundUsers, setFoundUsers] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    fetchAdmins();
-  }, []);
-
-  const fetchAdmins = async () => {
-    const { data: roles, error } = await supabase
-      .from("user_roles")
-      .select("user_id, role")
-      .eq("role", "admin");
-
-    if (error || !roles) {
-      setIsLoading(false);
-      return;
-    }
-
-    const adminList: AdminUser[] = [];
-    for (const role of roles) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, phone")
-        .eq("id", role.user_id)
-        .single();
-      
-      adminList.push({
-        user_id: role.user_id,
-        role: role.role,
-        profile: profile || undefined,
-      });
-    }
-
-    setAdmins(adminList);
-    setIsLoading(false);
-  };
 
   const searchUsers = async () => {
     if (!searchEmail.trim()) {
@@ -68,158 +61,179 @@ export const AdminUsers = () => {
       return;
     }
     setIsSearching(true);
-    
-    // Search via edge function that can look up auth users by email
     const { data, error } = await supabase.functions.invoke("search-user-by-email", {
-      body: { email: searchEmail.trim() }
+      body: { email: searchEmail.trim() },
     });
-
     if (!error && data?.users) {
-      const existingAdminIds = admins.map(a => a.user_id);
-      setFoundUsers(data.users.filter((u: any) => !existingAdminIds.includes(u.id)));
+      setFoundUsers(data.users);
     } else {
       setFoundUsers([]);
     }
     setIsSearching(false);
   };
 
-  const makeAdmin = async (userId: string) => {
+  const assignRole = async (userId: string) => {
     try {
       const { error } = await supabase
         .from("user_roles")
-        .insert({ user_id: userId, role: "admin" });
-      
+        .insert({ user_id: userId, role: roleName });
       if (error) throw error;
-
-      toast({ title: "Admin role assigned!" });
-      setDialogOpen(false);
+      toast({ title: `${roleName === "admin" ? "Admin" : "Merchant"} role assigned!` });
+      onOpenChange(false);
       setSearchEmail("");
       setFoundUsers([]);
-      fetchAdmins();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    }
-  };
-
-  const removeAdmin = async (userId: string) => {
-    if (!confirm("Remove admin access for this user?")) return;
-    
-    try {
-      const { error } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId)
-        .eq("role", "admin");
-
-      if (error) throw error;
-
-      toast({ title: "Admin access removed" });
-      fetchAdmins();
+      onAdded();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
   return (
-    <AdminLayout title="Manage Admins" headerActions={
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button size="sm">
-            <UserPlus className="w-4 h-4 mr-1" /> Add Admin
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Admin</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-muted-foreground">Search by Email</label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  placeholder="Enter user email"
-                  type="email"
-                  value={searchEmail}
-                  onChange={(e) => setSearchEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && searchUsers()}
-                />
-                <Button onClick={searchUsers} disabled={isSearching}>
-                  <Search className="w-4 h-4" />
-                </Button>
-              </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add New {roleName === "admin" ? "Admin" : "Merchant"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-muted-foreground">Search by Email</label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                placeholder="Enter user email"
+                type="email"
+                value={searchEmail}
+                onChange={(e) => setSearchEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchUsers()}
+              />
+              <Button onClick={searchUsers} disabled={isSearching}>
+                <Search className="w-4 h-4" />
+              </Button>
             </div>
-            
-            {foundUsers.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Found Users:</p>
-                {foundUsers.map((u) => (
-                  <div key={u.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                    <div>
-                      <p className="font-medium text-foreground">{u.full_name || "No Name"}</p>
-                      <p className="text-xs text-muted-foreground">{u.email}</p>
-                    </div>
-                    <Button size="sm" onClick={() => makeAdmin(u.id)}>
-                      <Shield className="w-4 h-4 mr-1" /> Make Admin
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {foundUsers.length === 0 && searchEmail && !isSearching && (
-              <p className="text-sm text-muted-foreground text-center py-4">No users found with this email</p>
-            )}
           </div>
-        </DialogContent>
-      </Dialog>
+          {foundUsers.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Found Users:</p>
+              {foundUsers.map((u) => (
+                <div key={u.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
+                  <div>
+                    <p className="font-medium text-foreground">{u.full_name || "No Name"}</p>
+                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                  </div>
+                  <Button size="sm" onClick={() => assignRole(u.id)}>
+                    {roleName === "admin" ? <Shield className="w-4 h-4 mr-1" /> : <Store className="w-4 h-4 mr-1" />}
+                    Make {roleName === "admin" ? "Admin" : "Merchant"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          {foundUsers.length === 0 && searchEmail && !isSearching && (
+            <p className="text-sm text-muted-foreground text-center py-4">No users found with this email</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export const AdminUsers = () => {
+  const { toast } = useToast();
+  const [admins, setAdmins] = useState<RoleUser[]>([]);
+  const [merchants, setMerchants] = useState<RoleUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [merchantDialogOpen, setMerchantDialogOpen] = useState(false);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("user_id, role")
+      .in("role", ["admin", "merchant"]);
+
+    if (!roles) { setIsLoading(false); return; }
+
+    const list: RoleUser[] = [];
+    for (const role of roles) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone")
+        .eq("id", role.user_id)
+        .single();
+      list.push({ user_id: role.user_id, role: role.role, profile: profile || undefined });
+    }
+
+    setAdmins(list.filter((u) => u.role === "admin"));
+    setMerchants(list.filter((u) => u.role === "merchant"));
+    setIsLoading(false);
+  };
+
+  const removeRole = async (userId: string, role: string) => {
+    if (!confirm(`Remove ${role} access for this user?`)) return;
+    try {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId)
+        .eq("role", role);
+      if (error) throw error;
+      toast({ title: `${role} access removed` });
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const UserList = ({ users, role }: { users: RoleUser[]; role: string }) => (
+    users.length === 0 ? (
+      <div className="text-center py-12">
+        <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+        <p className="text-muted-foreground">No {role}s found</p>
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {users.map((u) => (
+          <UserCard key={u.user_id} user={u} onRemove={(id) => removeRole(id, role)} roleName={role} />
+        ))}
+      </div>
+    )
+  );
+
+  return (
+    <AdminLayout title="Manage Users" headerActions={
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => setAdminDialogOpen(true)}>
+          <UserPlus className="w-4 h-4 mr-1" /> Add Admin
+        </Button>
+        <Button size="sm" variant="outline" className="border-amber-600 text-amber-200 hover:bg-amber-800" onClick={() => setMerchantDialogOpen(true)}>
+          <Store className="w-4 h-4 mr-1" /> Add Merchant
+        </Button>
+      </div>
     }>
+      <AddUserDialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen} roleName="admin" onAdded={fetchUsers} />
+      <AddUserDialog open={merchantDialogOpen} onOpenChange={setMerchantDialogOpen} roleName="merchant" onAdded={fetchUsers} />
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
         </div>
       ) : (
-        <div className="space-y-3">
-          {admins.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">No admins found</p>
-            </div>
-          ) : (
-            admins.map((admin) => (
-              <motion.div
-                key={admin.user_id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-secondary rounded-xl p-4 border border-border flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground font-bold">
-                      {(admin.profile?.full_name || "A")[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">
-                      {admin.profile?.full_name || "Unknown"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{admin.profile?.phone || "No phone"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-primary">Admin</Badge>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive"
-                    onClick={() => removeAdmin(admin.user_id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </motion.div>
-            ))
-          )}
-        </div>
+        <Tabs defaultValue="admins" className="w-full">
+          <TabsList className="bg-amber-900 border border-amber-800">
+            <TabsTrigger value="admins" className="data-[state=active]:bg-primary">Admins ({admins.length})</TabsTrigger>
+            <TabsTrigger value="merchants" className="data-[state=active]:bg-amber-600">Merchants ({merchants.length})</TabsTrigger>
+          </TabsList>
+          <TabsContent value="admins" className="mt-4">
+            <UserList users={admins} role="admin" />
+          </TabsContent>
+          <TabsContent value="merchants" className="mt-4">
+            <UserList users={merchants} role="merchant" />
+          </TabsContent>
+        </Tabs>
       )}
     </AdminLayout>
   );
