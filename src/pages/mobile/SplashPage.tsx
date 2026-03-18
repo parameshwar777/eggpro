@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const SplashPage = () => {
   const navigate = useNavigate();
   const [wallpaper, setWallpaper] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [imageReady, setImageReady] = useState(false);
 
   useEffect(() => {
     const fetchWallpaper = async () => {
@@ -15,11 +15,21 @@ export const SplashPage = () => {
           .select("value")
           .eq("key", "splash_wallpaper")
           .single();
-        if (data?.value) setWallpaper(data.value);
+        if (data?.value) {
+          // Preload image before displaying to avoid flash
+          const img = new Image();
+          img.onload = () => {
+            setWallpaper(data.value);
+            setImageReady(true);
+          };
+          img.onerror = () => setImageReady(true);
+          img.src = data.value;
+        } else {
+          setImageReady(true);
+        }
       } catch (e) {
         console.error("Wallpaper fetch error:", e);
-      } finally {
-        setLoading(false);
+        setImageReady(true);
       }
     };
     fetchWallpaper();
@@ -52,7 +62,6 @@ export const SplashPage = () => {
       }
     };
 
-    // Use a timeout but also a max timeout to prevent stuck screen
     const navTimer = setTimeout(checkAuthAndNavigate, 2500);
     const maxTimer = setTimeout(() => navigate("/auth"), 8000);
     
@@ -62,21 +71,16 @@ export const SplashPage = () => {
     };
   }, [navigate]);
 
+  // Show nothing (transparent) until wallpaper image is fully loaded
   return (
     <div 
-      className="min-h-[100dvh] w-full bg-cover bg-center bg-no-repeat flex items-center justify-center"
-      style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : { backgroundColor: '#F59E0B' }}
-    >
-      {!wallpaper && !loading && (
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-white">🥚 EggPro</h1>
-          <div className="mt-4 flex gap-1 justify-center">
-            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-        </div>
-      )}
-    </div>
+      className="min-h-[100dvh] w-full bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundColor: '#000',
+        ...(wallpaper ? { backgroundImage: `url(${wallpaper})` } : {}),
+        opacity: imageReady && wallpaper ? 1 : 0,
+        transition: 'opacity 0.3s ease-in',
+      }}
+    />
   );
 };
