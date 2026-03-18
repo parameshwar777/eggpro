@@ -73,7 +73,7 @@ export const PushNotificationManager = () => {
       const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey,
+        applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
       });
 
       // Save subscription to backend
