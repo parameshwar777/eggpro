@@ -191,24 +191,29 @@ serve(async (req: Request) => {
           console.error("Customer WhatsApp error:", e);
         }
 
-        // --- 2. Send ORDER ALERT to ALL ADMINS ---
+        // --- 2. Send ORDER ALERT to ALL ADMINS & MERCHANTS ---
         try {
+          // Get both admin and merchant roles
           const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+          const { data: merchantRoles } = await supabase.from("user_roles").select("user_id").eq("role", "merchant");
 
-          if (adminRoles && adminRoles.length > 0) {
-            const adminUserIds = adminRoles.map(r => r.user_id);
-            const { data: adminProfiles } = await supabase.from("profiles").select("phone, full_name").in("id", adminUserIds);
+          const allRecipientIds = new Set<string>();
+          if (adminRoles) adminRoles.forEach(r => allRecipientIds.add(r.user_id));
+          if (merchantRoles) merchantRoles.forEach(r => allRecipientIds.add(r.user_id));
+
+          if (allRecipientIds.size > 0) {
+            const { data: recipientProfiles } = await supabase.from("profiles").select("phone, full_name").in("id", Array.from(allRecipientIds));
             const { data: settingsData } = await supabase.from("admin_settings").select("value").eq("key", "admin_whatsapp").single();
 
-            const adminPhones = new Set<string>();
-            if (settingsData?.value) adminPhones.add(settingsData.value);
-            if (adminProfiles) { for (const p of adminProfiles) { if (p.phone) adminPhones.add(p.phone); } }
+            const recipientPhones = new Set<string>();
+            if (settingsData?.value) recipientPhones.add(settingsData.value);
+            if (recipientProfiles) { for (const p of recipientProfiles) { if (p.phone) recipientPhones.add(p.phone); } }
 
             const adminMessage = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
 
-            for (const adminPhone of adminPhones) {
+            for (const recipientPhone of recipientPhones) {
               try {
-                const cleanPhone = adminPhone.replace(/^\+/, "");
+                const cleanPhone = recipientPhone.replace(/^\+/, "");
                 const res = await fetch(
                   `${baseUrl}/api/v1/sendSessionMessage/${cleanPhone}?messageText=${encodeURIComponent(adminMessage)}`,
                   { method: "POST", headers: { "Authorization": WATI_ACCESS_TOKEN, "Content-Type": "application/json" } }
@@ -228,19 +233,71 @@ serve(async (req: Request) => {
                       ],
                     }),
                   });
-                  console.log("Admin template response:", cleanPhone, JSON.stringify(await tplRes.json()));
+                  console.log("Template response:", cleanPhone, JSON.stringify(await tplRes.json()));
                 } else {
-                  console.log("Admin session msg sent to:", cleanPhone);
+                  console.log("Session msg sent to:", cleanPhone);
                 }
-              } catch (e) { console.error("Admin WhatsApp error for", adminPhone, e); }
+              } catch (e) { console.error("WhatsApp error for", recipientPhone, e); }
             }
           }
-        } catch (e) { console.error("Admin WhatsApp notification error:", e); }
+        } catch (e) { console.error("Admin/Merchant WhatsApp notification error:", e); }
       } else {
         console.log("WATI credentials not configured, skipping WhatsApp");
       }
     } catch (e) {
       console.error("WhatsApp notification error:", e);
+    }
+
+    // --- 3. Send Telegram notification ---
+    try {
+      const TELEGRAM_GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
+
+      if (LOVABLE_API_KEY && TELEGRAM_API_KEY) {
+        // Get telegram chat IDs from admin_settings
+        const { data: telegramSettings } = await supabase
+          .from("admin_settings")
+          .select("value")
+          .eq("key", "telegram_chat_ids")
+          .single();
+
+        const chatIds: string[] = telegramSettings?.value
+          ? telegramSettings.value.split(",").map((id: string) => id.trim()).filter(Boolean)
+          : [];
+
+        if (chatIds.length > 0) {
+          const telegramMessage = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
+
+          for (const chatId of chatIds) {
+            try {
+              const res = await fetch(`${TELEGRAM_GATEWAY_URL}/sendMessage`, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+                  "X-Connection-Api-Key": TELEGRAM_API_KEY,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  chat_id: chatId,
+                  text: telegramMessage,
+                  parse_mode: "Markdown",
+                }),
+              });
+              const result = await res.json();
+              console.log("Telegram notification sent to chat:", chatId, result.ok);
+            } catch (e) {
+              console.error("Telegram error for chat:", chatId, e);
+            }
+          }
+        } else {
+          console.log("No Telegram chat IDs configured, skipping");
+        }
+      } else {
+        console.log("Telegram credentials not configured, skipping");
+      }
+    } catch (e) {
+      console.error("Telegram notification error:", e);
     }
 
     // Send admin email via Resend API to all admin emails
