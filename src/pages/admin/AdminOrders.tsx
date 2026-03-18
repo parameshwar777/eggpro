@@ -271,6 +271,7 @@ ${itemsList}
                           <SelectContent className="bg-amber-900 border-amber-700">
                             <SelectItem value="pending" className="text-amber-100">Pending</SelectItem>
                             <SelectItem value="confirmed" className="text-amber-100">Active</SelectItem>
+                            <SelectItem value="delivered" className="text-amber-100">Delivered</SelectItem>
                             <SelectItem value="inactive" className="text-amber-100">Inactive</SelectItem>
                             <SelectItem value="cancelled" className="text-amber-100">Cancelled</SelectItem>
                           </SelectContent>
