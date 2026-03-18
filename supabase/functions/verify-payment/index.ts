@@ -139,6 +139,22 @@ serve(async (req: Request) => {
       console.error("In-app notification error:", e);
     }
 
+    // Insert user-specific notification for the customer
+    if (orderRow?.user_id) {
+      try {
+        const itemsSummary = items.map((i: any) => `${i.name} x${i.quantity}`).join(", ");
+        await supabase.from("user_notifications").insert({
+          user_id: orderRow.user_id,
+          title: "Order Confirmed! 🥚",
+          message: `Your order #${orderId.slice(0, 8)} for ₹${totalAmount} has been confirmed. Items: ${itemsSummary}`,
+          type: "order",
+          reference_id: orderId
+        });
+      } catch (e) {
+        console.error("User notification insert error:", e);
+      }
+    }
+
     // Send WhatsApp notifications via WATI
     try {
       const WATI_ACCESS_TOKEN = Deno.env.get("WATI_ACCESS_TOKEN");
