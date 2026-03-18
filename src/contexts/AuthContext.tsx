@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMerchant, setIsMerchant] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize Google Auth for native platforms
