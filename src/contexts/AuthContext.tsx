@@ -40,23 +40,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
 
-  const checkAdminRole = async (userId: string) => {
+  const checkRoles = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .maybeSingle();
+        .eq("user_id", userId);
       
       if (error) {
-        console.error("Error checking admin role:", error);
-        return false;
+        console.error("Error checking roles:", error);
+        return { isAdmin: false, isMerchant: false };
       }
-      return !!data;
+      const roles = data?.map(r => r.role) || [];
+      return {
+        isAdmin: roles.includes("admin"),
+        isMerchant: roles.includes("merchant"),
+      };
     } catch (error) {
-      console.error("Error checking admin role:", error);
-      return false;
+      console.error("Error checking roles:", error);
+      return { isAdmin: false, isMerchant: false };
     }
   };
 
