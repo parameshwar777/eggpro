@@ -9,7 +9,7 @@ interface MobileLayoutProps {
 
 export const MobileLayout = ({ children, hideNav = false }: MobileLayoutProps) => {
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-background">
+    <div className="min-h-screen min-h-[100dvh] bg-background safe-top">
       <div className="mx-auto min-h-screen min-h-[100dvh] relative">
         <motion.main
           initial={{ opacity: 0 }}

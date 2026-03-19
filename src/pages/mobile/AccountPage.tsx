@@ -54,12 +54,18 @@ export const AccountPage = () => {
 
   const fetchSubscriptionCount = async () => {
     if (!user) return;
-    const { count } = await supabase
+    const { data } = await supabase
       .from("orders")
-      .select("*", { count: "exact", head: true })
+      .select("id, items")
       .eq("user_id", user.id)
-      .eq("order_status", "confirmed");
-    setSubscriptionCount(count || 0);
+      .in("order_status", ["subscription_active", "confirmed"]);
+    
+    // Only count actual subscription orders, not one-time purchases
+    const subCount = (data || []).filter((order: any) => {
+      const items = Array.isArray(order.items) ? order.items : [];
+      return items.some((item: any) => item.frequency && item.frequency !== "one_time" && !item.isOneTime);
+    }).length;
+    setSubscriptionCount(subCount);
   };
 
   const handleLogout = async () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { RefreshCw, Download, Printer, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,26 @@ export interface MerchantOrder {
   user_id: string;
 }
 
+// Play notification sound for new orders (works in Capacitor WebView)
+const playNotificationSound = () => {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    [0, 0.3, 0.6].forEach(delay => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 880;
+      osc.type = "sine";
+      gain.gain.value = 0.3;
+      osc.start(audioCtx.currentTime + delay);
+      osc.stop(audioCtx.currentTime + delay + 0.15);
+    });
+  } catch (e) {
+    console.log("Could not play notification sound:", e);
+  }
+};
+
 export const MerchantOrders = () => {
   const { toast } = useToast();
   const [orders, setOrders] = useState<MerchantOrder[]>([]);
@@ -31,21 +51,7 @@ export const MerchantOrders = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const printRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchOrders();
-
-    // Realtime subscription for order changes
-    const channel = supabase
-      .channel("merchant-orders")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
-        fetchOrders();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("orders")
@@ -53,13 +59,49 @@ export const MerchantOrders = () => {
         .eq("payment_status", "completed")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      setOrders(data || []);
+      return data || [];
     } catch (error) {
       console.error("Error fetching orders:", error);
-    } finally {
-      setIsLoading(false);
+      return [];
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchOrders().then(data => {
+      setOrders(data);
+      setIsLoading(false);
+    });
+
+    // Realtime subscription - listen for new/updated orders with sound alerts
+    const channel = supabase
+      .channel("merchant-orders")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (payload) => {
+        const newOrder = payload.new as any;
+        if (newOrder?.payment_status === "completed") {
+          playNotificationSound();
+          toast({
+            title: "🥚 New Order Received!",
+            description: `₹${newOrder.total_amount} from ${newOrder.customer_name || "Customer"}`,
+          });
+        }
+        fetchOrders().then(setOrders);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (payload) => {
+        const updated = payload.new as any;
+        const old = payload.old as any;
+        if (old?.payment_status !== "completed" && updated?.payment_status === "completed") {
+          playNotificationSound();
+          toast({
+            title: "🥚 New Order Received!",
+            description: `₹${updated.total_amount} from ${updated.customer_name || "Customer"}`,
+          });
+        }
+        fetchOrders().then(setOrders);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchOrders, toast]);
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -69,7 +111,7 @@ export const MerchantOrders = () => {
         .eq("id", orderId);
       if (error) throw error;
       toast({ title: "✅ Status Updated", description: `Order marked as ${status}` });
-      fetchOrders();
+      fetchOrders().then(setOrders);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -181,7 +223,7 @@ export const MerchantOrders = () => {
       <Button size="sm" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800" onClick={handlePrint}>
         <Printer className="w-4 h-4" />
       </Button>
-      <Button size="sm" variant="ghost" className="text-slate-300" onClick={() => { setIsLoading(true); fetchOrders(); }}>
+      <Button size="sm" variant="ghost" className="text-slate-300" onClick={() => { setIsLoading(true); fetchOrders().then(data => { setOrders(data); setIsLoading(false); }); }}>
         <RefreshCw className="w-4 h-4" />
       </Button>
     </div>

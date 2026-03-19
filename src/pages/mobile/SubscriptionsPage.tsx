@@ -53,7 +53,17 @@ export const SubscriptionsPage = () => {
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      setSubscriptions(data as Subscription[]);
+      // Filter out one-time orders - only show actual subscriptions
+      const subscriptionOrders = data.filter((order: any) => {
+        const items = Array.isArray(order.items) ? order.items : [];
+        // A subscription order has items with frequency (daily/alternate/weekly)
+        // One-time orders have isOneTime: true or no frequency
+        const hasSubscriptionItem = items.some((item: any) => 
+          item.frequency && item.frequency !== "one_time" && !item.isOneTime
+        );
+        return hasSubscriptionItem;
+      });
+      setSubscriptions(subscriptionOrders as Subscription[]);
     }
     setIsLoading(false);
   };
