@@ -43,7 +43,7 @@ export const MerchantLayout = ({ children, title, headerActions }: MerchantLayou
   return (
     <div className="min-h-screen bg-slate-950 flex">
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-900 transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-200 overflow-y-auto`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-900 transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-200 overflow-y-auto safe-top`}>
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900 z-10">
             <h1 className="text-xl font-bold text-slate-100">EggPro Merchant</h1>
