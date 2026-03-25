@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MapPin, Wallet, Tag, Info, Plus, Check, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -57,7 +57,6 @@ export const CheckoutPage = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [showSaveAddressDialog, setShowSaveAddressDialog] = useState(false);
   const [addressLabel, setAddressLabel] = useState("Home");
-  const pendingPaymentRef = useRef(false);
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
