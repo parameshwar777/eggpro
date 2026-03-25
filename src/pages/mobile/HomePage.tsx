@@ -108,37 +108,22 @@ export const HomePage = () => {
         className="gradient-warm px-4 pt-5 pb-8 rounded-b-[2rem]"
       >
 
-        {/* Brand - Logo & Name */}
-        <div className="flex items-center gap-3 mb-3">
-          <img
-            src={eggMascot}
-            alt="EggPro"
-            className="w-14 h-14"
-          />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">EggPro</h1>
-            <p className="text-xs text-foreground/70">Nature's Immunity Boosters</p>
-          </div>
-        </div>
-
-        {/* Location & Cart moved below brand */}
+        {/* Brand - Logo & Name + Cart */}
         <div className="flex items-center justify-between mb-3">
-          <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="flex items-center gap-2 flex-1 min-w-0"
-          >
-            <div className="p-2 bg-card/20 rounded-full backdrop-blur-sm flex-shrink-0">
-              <MapPin className="w-4 h-4 text-foreground" />
+          <div className="flex items-center gap-3">
+            <img
+              src={eggMascot}
+              alt="EggPro"
+              className="w-16 h-16"
+              loading="eager"
+              fetchPriority="high"
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">EggPro</h1>
+              <p className="text-xs text-foreground/70">Nature's Immunity Boosters</p>
             </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-foreground/70">Delivering to</p>
-              <p className="font-semibold text-foreground text-sm truncate">{selectedCommunity}</p>
-            </div>
-          </motion.div>
+          </div>
           <motion.button
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate("/cart")}
             className="relative p-2.5 bg-card rounded-xl shadow-soft flex-shrink-0"
@@ -154,6 +139,17 @@ export const HomePage = () => {
               </motion.span>
             )}
           </motion.button>
+        </div>
+
+        {/* Location below brand */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-2 bg-card/20 rounded-full backdrop-blur-sm flex-shrink-0">
+            <MapPin className="w-4 h-4 text-foreground" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] text-foreground/70">Delivering to</p>
+            <p className="font-semibold text-foreground text-sm truncate">{selectedCommunity}</p>
+          </div>
         </div>
 
         {/* Features */}
