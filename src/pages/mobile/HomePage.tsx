@@ -107,40 +107,6 @@ export const HomePage = () => {
         animate={{ opacity: 1 }}
         className="gradient-warm px-4 pt-5 pb-8 rounded-b-[2rem]"
       >
-        {/* Location & Cart */}
-        <div className="flex items-center justify-between mb-4">
-          <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="flex items-center gap-2 flex-1 min-w-0"
-          >
-            <div className="p-2 bg-card/20 rounded-full backdrop-blur-sm flex-shrink-0">
-              <MapPin className="w-4 h-4 text-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-foreground/70">Delivering to</p>
-              <p className="font-semibold text-foreground text-sm truncate">{selectedCommunity}</p>
-            </div>
-          </motion.div>
-          <motion.button
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate("/cart")}
-            className="relative p-2.5 bg-card rounded-xl shadow-soft flex-shrink-0"
-          >
-            <ShoppingCart className="w-5 h-5 text-foreground" />
-            {totalItems > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 w-5 h-5 bg-accent text-accent-foreground text-xs rounded-full flex items-center justify-center font-bold"
-              >
-                {totalItems}
-              </motion.span>
-            )}
-          </motion.button>
-        </div>
 
         {/* Brand - Logo & Name */}
         <div className="flex items-center gap-3 mb-3">
