@@ -546,6 +546,7 @@ export const CheckoutPage = () => {
                 <p className="text-2xl font-bold text-foreground">₹{totalPrice}</p>
               </div>
               <Button
+                id="pay-now-btn"
                 size="lg"
                 className="px-8 h-12 rounded-xl text-base font-semibold"
                 onClick={handlePayment}
