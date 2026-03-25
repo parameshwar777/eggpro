@@ -55,6 +55,9 @@ export const CheckoutPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [useWallet, setUseWallet] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [showSaveAddressDialog, setShowSaveAddressDialog] = useState(false);
+  const [addressLabel, setAddressLabel] = useState("Home");
+  const pendingPaymentRef = useRef(false);
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
