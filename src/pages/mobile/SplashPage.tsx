@@ -73,8 +73,8 @@ export const SplashPage = () => {
       }
     };
 
-    const navTimer = setTimeout(checkAuthAndNavigate, 4500);
-    const maxTimer = setTimeout(() => navigate("/auth"), 10000);
+    const navTimer = setTimeout(checkAuthAndNavigate, 6000);
+    const maxTimer = setTimeout(() => navigate("/auth"), 12000);
     
     return () => {
       clearTimeout(navTimer);
@@ -82,15 +82,15 @@ export const SplashPage = () => {
     };
   }, [navigate]);
 
-  // Show nothing (transparent) until wallpaper image is fully loaded
+  // Show gradient background immediately, then fade in wallpaper when ready
   return (
     <div 
       className="min-h-[100dvh] w-full bg-cover bg-center bg-no-repeat"
       style={{
-        backgroundColor: '#000',
-        ...(wallpaper ? { backgroundImage: `url(${wallpaper})` } : {}),
-        opacity: imageReady && wallpaper ? 1 : 0,
-        transition: 'opacity 0.3s ease-in',
+        background: wallpaper && imageReady 
+          ? `url(${wallpaper}) center/cover no-repeat` 
+          : 'linear-gradient(135deg, hsl(38 92% 55%) 0%, hsl(24 95% 53%) 100%)',
+        transition: 'background 0.3s ease-in',
       }}
     />
   );
