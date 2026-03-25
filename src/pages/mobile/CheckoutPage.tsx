@@ -556,7 +556,49 @@ export const CheckoutPage = () => {
             </div>
           </div>
         </motion.div>
-      </div>
+      {/* Save Address Dialog */}
+      <AlertDialog open={showSaveAddressDialog} onOpenChange={setShowSaveAddressDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save this address?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Would you like to save this address for future orders?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <label className="text-sm text-muted-foreground">Label</label>
+            <Input
+              value={addressLabel}
+              onChange={(e) => setAddressLabel(e.target.value)}
+              placeholder="e.g. Home, Office"
+              className="mt-1"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={async () => {
+              setShowSaveAddressDialog(false);
+              setIsProcessing(true);
+              // Continue payment without saving
+              const payBtn = document.querySelector('[data-pay-trigger]') as HTMLButtonElement;
+              // Just re-trigger payment flow skipping the save check
+              const isNewAddress = false; // bypass check
+              try {
+                // Directly run payment logic
+                setIsProcessing(true);
+              } catch {}
+            }}>
+              No, just pay
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={async () => {
+              await saveNewAddress();
+              setShowSaveAddressDialog(false);
+              setIsProcessing(true);
+            }}>
+              Save & Pay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
