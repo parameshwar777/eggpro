@@ -73,8 +73,8 @@ export const SplashPage = () => {
       }
     };
 
-    const navTimer = setTimeout(checkAuthAndNavigate, 2500);
-    const maxTimer = setTimeout(() => navigate("/auth"), 8000);
+    const navTimer = setTimeout(checkAuthAndNavigate, 4500);
+    const maxTimer = setTimeout(() => navigate("/auth"), 10000);
     
     return () => {
       clearTimeout(navTimer);

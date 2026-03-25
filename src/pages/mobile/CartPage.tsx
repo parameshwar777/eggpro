@@ -33,7 +33,7 @@ export const CartPage = () => {
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
-          <h1 className="text-base sm:text-lg font-semibold text-foreground">
+          <h1 className="text-lg sm:text-xl font-bold text-foreground">
             Cart ({items.length} items)
           </h1>
         </motion.div>
