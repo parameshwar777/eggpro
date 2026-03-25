@@ -9,6 +9,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 declare global {
   interface Window {
@@ -45,6 +55,8 @@ export const CheckoutPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [useWallet, setUseWallet] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [showSaveAddressDialog, setShowSaveAddressDialog] = useState(false);
+  const [addressLabel, setAddressLabel] = useState("Home");
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
@@ -93,18 +105,41 @@ export const CheckoutPage = () => {
     setShowNewAddressForm(false);
   };
 
+  const saveNewAddress = async () => {
+    if (!user) return;
+    try {
+      await supabase.from("user_addresses").insert({
+        user_id: user.id,
+        label: addressLabel,
+        phone,
+        address_line1: address,
+        city,
+        pincode,
+        is_default: savedAddresses.length === 0,
+      });
+      toast({ title: "Address saved!", description: "Your address has been saved for future orders." });
+    } catch (e) {
+      console.error("Save address error:", e);
+    }
+  };
+
   const handlePayment = async () => {
     if (!user) {
       toast({ title: "Please login", description: "You need to login to place order" });
       navigate("/auth");
       return;
     }
-
     if (!phone || !address || !pincode) {
       toast({ title: "Missing details", description: "Please fill all required fields", variant: "destructive" });
       return;
     }
-
+    // If entering a new address, prompt to save first
+    const isNewAddress = showNewAddressForm || savedAddresses.length === 0;
+    const isAlreadySaved = selectedAddressId && !showNewAddressForm;
+    if (isNewAddress && !isAlreadySaved) {
+      setShowSaveAddressDialog(true);
+      return;
+    }
     setIsProcessing(true);
 
     try {
@@ -510,6 +545,7 @@ export const CheckoutPage = () => {
                 <p className="text-2xl font-bold text-foreground">₹{totalPrice}</p>
               </div>
               <Button
+                id="pay-now-btn"
                 size="lg"
                 className="px-8 h-12 rounded-xl text-base font-semibold"
                 onClick={handlePayment}
@@ -521,6 +557,51 @@ export const CheckoutPage = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Save Address Dialog */}
+      <AlertDialog open={showSaveAddressDialog} onOpenChange={setShowSaveAddressDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save this address?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Would you like to save this address for future orders?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <label className="text-sm text-muted-foreground">Label</label>
+            <Input
+              value={addressLabel}
+              onChange={(e) => setAddressLabel(e.target.value)}
+              placeholder="e.g. Home, Office"
+              className="mt-1"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowSaveAddressDialog(false);
+              // Proceed to payment without saving by setting a flag
+              setSelectedAddressId("skip");
+              setTimeout(() => {
+                const btn = document.getElementById("pay-now-btn");
+                btn?.click();
+              }, 100);
+            }}>
+              No, just pay
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={async () => {
+              await saveNewAddress();
+              setShowSaveAddressDialog(false);
+              setSelectedAddressId("saved");
+              setTimeout(() => {
+                const btn = document.getElementById("pay-now-btn");
+                btn?.click();
+              }, 100);
+            }}>
+              Save & Pay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

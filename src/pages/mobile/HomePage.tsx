@@ -107,8 +107,22 @@ export const HomePage = () => {
         animate={{ opacity: 1 }}
         className="gradient-warm px-4 pt-5 pb-8 rounded-b-[2rem]"
       >
-        {/* Location & Cart */}
-        <div className="flex items-center justify-between mb-4">
+
+        {/* Brand - Logo & Name */}
+        <div className="flex items-center gap-3 mb-3">
+          <img
+            src={eggMascot}
+            alt="EggPro"
+            className="w-14 h-14"
+          />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">EggPro</h1>
+            <p className="text-xs text-foreground/70">Nature's Immunity Boosters</p>
+          </div>
+        </div>
+
+        {/* Location & Cart moved below brand */}
+        <div className="flex items-center justify-between mb-3">
           <motion.div
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -140,19 +154,6 @@ export const HomePage = () => {
               </motion.span>
             )}
           </motion.button>
-        </div>
-
-        {/* Brand */}
-        <div className="flex items-center gap-3 mb-4">
-          <img
-            src={eggMascot}
-            alt="Nutri Eggs"
-            className="w-10 h-10"
-          />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Nutri Eggs</h1>
-            <p className="text-xs text-foreground/70">Nature's Immunity Boosters</p>
-          </div>
         </div>
 
         {/* Features */}
