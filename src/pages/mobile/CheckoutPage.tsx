@@ -556,6 +556,8 @@ export const CheckoutPage = () => {
             </div>
           </div>
         </motion.div>
+      </div>
+
       {/* Save Address Dialog */}
       <AlertDialog open={showSaveAddressDialog} onOpenChange={setShowSaveAddressDialog}>
         <AlertDialogContent>
@@ -575,24 +577,25 @@ export const CheckoutPage = () => {
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={async () => {
+            <AlertDialogCancel onClick={() => {
               setShowSaveAddressDialog(false);
-              setIsProcessing(true);
-              // Continue payment without saving
-              const payBtn = document.querySelector('[data-pay-trigger]') as HTMLButtonElement;
-              // Just re-trigger payment flow skipping the save check
-              const isNewAddress = false; // bypass check
-              try {
-                // Directly run payment logic
-                setIsProcessing(true);
-              } catch {}
+              // Proceed to payment without saving by setting a flag
+              setSelectedAddressId("skip");
+              setTimeout(() => {
+                const btn = document.getElementById("pay-now-btn");
+                btn?.click();
+              }, 100);
             }}>
               No, just pay
             </AlertDialogCancel>
             <AlertDialogAction onClick={async () => {
               await saveNewAddress();
               setShowSaveAddressDialog(false);
-              setIsProcessing(true);
+              setSelectedAddressId("saved");
+              setTimeout(() => {
+                const btn = document.getElementById("pay-now-btn");
+                btn?.click();
+              }, 100);
             }}>
               Save & Pay
             </AlertDialogAction>
