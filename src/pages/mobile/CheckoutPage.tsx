@@ -106,18 +106,41 @@ export const CheckoutPage = () => {
     setShowNewAddressForm(false);
   };
 
+  const saveNewAddress = async () => {
+    if (!user) return;
+    try {
+      await supabase.from("user_addresses").insert({
+        user_id: user.id,
+        label: addressLabel,
+        phone,
+        address_line1: address,
+        city,
+        pincode,
+        is_default: savedAddresses.length === 0,
+      });
+      toast({ title: "Address saved!", description: "Your address has been saved for future orders." });
+    } catch (e) {
+      console.error("Save address error:", e);
+    }
+  };
+
   const handlePayment = async () => {
     if (!user) {
       toast({ title: "Please login", description: "You need to login to place order" });
       navigate("/auth");
       return;
     }
-
     if (!phone || !address || !pincode) {
       toast({ title: "Missing details", description: "Please fill all required fields", variant: "destructive" });
       return;
     }
-
+    // If entering a new address, prompt to save first
+    const isNewAddress = showNewAddressForm || savedAddresses.length === 0;
+    const isAlreadySaved = selectedAddressId && !showNewAddressForm;
+    if (isNewAddress && !isAlreadySaved) {
+      setShowSaveAddressDialog(true);
+      return;
+    }
     setIsProcessing(true);
 
     try {
