@@ -405,7 +405,7 @@ export const AuthPage = () => {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <div className="flex justify-center mb-4">
-          <EggLogo size="lg" className="animate-none [&_img]:loading-eager" />
+          <EggLogo size="lg" className="animate-none [&_img]:loading-eager [&_img]:scale-125" />
         </div>
         <h1 className="text-2xl font-bold text-white text-center">
           {mode === "login" ? "Welcome Back" : 
