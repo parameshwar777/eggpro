@@ -7,6 +7,7 @@ import { MerchantLayout } from "@/components/merchant/MerchantLayout";
 import { MerchantOrderCard } from "@/components/merchant/MerchantOrderCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCapacitorOrderNotification } from "@/components/CapacitorNotificationManager";
 
 export interface MerchantOrder {
   id: string;
@@ -46,6 +47,7 @@ const playNotificationSound = () => {
 
 export const MerchantOrders = () => {
   const { toast } = useToast();
+  const { notify } = useCapacitorOrderNotification();
   const [orders, setOrders] = useState<MerchantOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
