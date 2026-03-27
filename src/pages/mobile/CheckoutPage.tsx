@@ -440,24 +440,8 @@ export const CheckoutPage = () => {
               </div>
 
               <div>
-                <label className="text-sm text-muted-foreground">Community *</label>
-                <Select value={selectedCommunityId} onValueChange={(val) => {
-                  setSelectedCommunityId(val);
-                  const comm = communities.find(c => c.id === val);
-                  if (comm) {
-                    setCity(comm.city);
-                    setPincode(comm.pincode || "");
-                  }
-                }}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select community" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {communities.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm text-muted-foreground">Community</label>
+                <Input value={community} disabled className="mt-1 bg-secondary" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

@@ -52,6 +52,7 @@ export const OrdersPage = () => {
       .from("orders")
       .select("*")
       .eq("user_id", user.id)
+      .eq("payment_status", "completed")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
