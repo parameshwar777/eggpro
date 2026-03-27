@@ -9,14 +9,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { EggLogo } from "@/components/EggLogo";
 import { supabase } from "@/integrations/supabase/client";
-import { Capacitor } from "@capacitor/core";
+
 
 type AuthMode = "login" | "signup" | "forgot" | "verify-otp" | "reset-otp";
 
 export const AuthPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signInWithEmail, signInWithGoogle, user } = useAuth();
+  const { signInWithEmail, user } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
@@ -359,29 +359,6 @@ export const AuthPage = () => {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setIsLoading(true);
-    try {
-      const { error } = await signInWithGoogle();
-      if (error) {
-        console.error("Google Sign-In error:", error);
-        throw error;
-      }
-      // On native, the auth state change will handle navigation
-      if (!Capacitor.isNativePlatform()) {
-        // Web will redirect, so don't do anything
-      }
-    } catch (error: any) {
-      console.error("Google auth failed:", error);
-      toast({ 
-        title: "Google Sign-In Failed", 
-        description: error.message || "Something went wrong. Please try again.", 
-        variant: "destructive" 
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col">
