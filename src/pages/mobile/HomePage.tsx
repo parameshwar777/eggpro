@@ -114,7 +114,7 @@ export const HomePage = () => {
             <img
               src={eggMascot}
               alt="EggPro"
-              className="w-16 h-16"
+              className="w-16 h-16 rounded-full object-cover"
               loading="eager"
               fetchPriority="high"
             />

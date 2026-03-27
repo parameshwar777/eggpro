@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Wallet, Tag, Info, Plus, Check, Truck } from "lucide
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -57,10 +58,13 @@ export const CheckoutPage = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [showSaveAddressDialog, setShowSaveAddressDialog] = useState(false);
   const [addressLabel, setAddressLabel] = useState("Home");
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [communities, setCommunities] = useState<{ id: string; name: string; city: string; pincode: string | null }[]>([]);
+  const [selectedCommunityId, setSelectedCommunityId] = useState("");
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
-  // Fetch saved addresses and wallet balance
+  // Fetch saved addresses, wallet balance, and communities
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
@@ -72,6 +76,23 @@ export const CheckoutPage = () => {
         .eq("id", user.id)
         .single();
       setWalletBalance(profile?.wallet_balance || 0);
+
+      // Fetch communities for dropdown
+      const { data: comms } = await supabase
+        .from("communities")
+        .select("id, name, city, pincode")
+        .eq("is_active", true)
+        .order("name");
+      if (comms) {
+        setCommunities(comms);
+        // Auto-select the user's current community
+        const currentComm = comms.find(c => c.name === community);
+        if (currentComm) {
+          setSelectedCommunityId(currentComm.id);
+          setCity(currentComm.city);
+          setPincode(currentComm.pincode || "");
+        }
+      }
 
       // Fetch saved addresses
       const { data: addresses } = await supabase
@@ -106,9 +127,10 @@ export const CheckoutPage = () => {
   };
 
   const saveNewAddress = async () => {
-    if (!user) return;
+    if (!user || isSavingAddress) return;
+    setIsSavingAddress(true);
     try {
-      await supabase.from("user_addresses").insert({
+      const { data: newAddr } = await supabase.from("user_addresses").insert({
         user_id: user.id,
         label: addressLabel,
         phone,
@@ -116,10 +138,18 @@ export const CheckoutPage = () => {
         city,
         pincode,
         is_default: savedAddresses.length === 0,
-      });
+      }).select().single();
+      
+      if (newAddr) {
+        setSavedAddresses(prev => [...prev, newAddr as SavedAddress]);
+        setSelectedAddressId(newAddr.id);
+        setShowNewAddressForm(false);
+      }
       toast({ title: "Address saved!", description: "Your address has been saved for future orders." });
     } catch (e) {
       console.error("Save address error:", e);
+    } finally {
+      setIsSavingAddress(false);
     }
   };
 
@@ -293,7 +323,7 @@ export const CheckoutPage = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-primary px-4 py-4 flex items-center gap-3"
+          className="bg-primary px-4 py-4 flex items-center gap-3 safe-top"
         >
           <motion.button
             whileTap={{ scale: 0.9 }}
@@ -409,20 +439,35 @@ export const CheckoutPage = () => {
                 />
               </div>
 
+              <div>
+                <label className="text-sm text-muted-foreground">Community *</label>
+                <Select value={selectedCommunityId} onValueChange={(val) => {
+                  setSelectedCommunityId(val);
+                  const comm = communities.find(c => c.id === val);
+                  if (comm) {
+                    setCity(comm.city);
+                    setPincode(comm.pincode || "");
+                  }
+                }}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select community" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {communities.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-muted-foreground">City</label>
                   <Input value={city} disabled className="mt-1 bg-secondary" />
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Pincode *</label>
-                  <Input
-                    placeholder="Pincode *"
-                    value={pincode}
-                    onChange={(e) => setPincode(e.target.value)}
-                    className="mt-1"
-                    maxLength={6}
-                  />
+                  <label className="text-sm text-muted-foreground">Pincode</label>
+                  <Input value={pincode} disabled className="mt-1 bg-secondary" />
                 </div>
               </div>
             </motion.div>
@@ -536,7 +581,7 @@ export const CheckoutPage = () => {
         <motion.div
           initial={{ y: 100 }}
           animate={{ y: 0 }}
-          className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-elevated z-50"
+          className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-elevated z-50 safe-bottom"
         >
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex items-center justify-between gap-4">
@@ -579,25 +624,32 @@ export const CheckoutPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setShowSaveAddressDialog(false);
-              // Proceed to payment without saving by setting a flag
               setSelectedAddressId("skip");
-              setTimeout(() => {
-                const btn = document.getElementById("pay-now-btn");
-                btn?.click();
-              }, 100);
+              // Use requestAnimationFrame to ensure dialog fully closes first
+              requestAnimationFrame(() => {
+                setTimeout(() => {
+                  const btn = document.getElementById("pay-now-btn");
+                  btn?.click();
+                }, 200);
+              });
             }}>
               No, just pay
             </AlertDialogCancel>
-            <AlertDialogAction onClick={async () => {
-              await saveNewAddress();
-              setShowSaveAddressDialog(false);
-              setSelectedAddressId("saved");
-              setTimeout(() => {
-                const btn = document.getElementById("pay-now-btn");
-                btn?.click();
-              }, 100);
-            }}>
-              Save & Pay
+            <AlertDialogAction
+              disabled={isSavingAddress}
+              onClick={async (e) => {
+                e.preventDefault();
+                await saveNewAddress();
+                setShowSaveAddressDialog(false);
+                requestAnimationFrame(() => {
+                  setTimeout(() => {
+                    const btn = document.getElementById("pay-now-btn");
+                    btn?.click();
+                  }, 200);
+                });
+              }}
+            >
+              {isSavingAddress ? "Saving..." : "Save & Pay"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

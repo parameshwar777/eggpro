@@ -386,7 +386,7 @@ export const AuthPage = () => {
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col">
       {/* Header */}
-      <div className="gradient-hero p-4 pt-12 pb-8 rounded-b-3xl">
+      <div className="gradient-hero p-4 pt-12 pb-8 rounded-b-3xl safe-top">
         <button 
           onClick={() => {
             if (mode === "verify-otp") {
