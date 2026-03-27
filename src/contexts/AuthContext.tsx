@@ -1,8 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { Capacitor } from "@capacitor/core";
-import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 
 interface AuthContextType {
   user: User | null;
@@ -12,7 +10,6 @@ interface AuthContextType {
   isLoading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
   signUpWithEmail: (email: string, password: string, fullName: string) => Promise<{ error: any; data: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
   signInWithPhone: (phone: string) => Promise<{ error: any }>;
   verifyOtp: (phone: string, token: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -27,17 +24,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isMerchant, setIsMerchant] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize Google Auth for native platforms
-  useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        // Uses GoogleAuth config from capacitor.config.ts (serverClientId, scopes, etc.)
-        GoogleAuth.initialize();
-      } catch (e) {
-        console.error("GoogleAuth initialize error:", e);
-      }
-    }
-  }, []);
 
 
   const checkRoles = async (userId: string) => {
@@ -181,14 +167,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    // Sign out from Google if on native platform
-    if (Capacitor.isNativePlatform()) {
-      try {
-        await GoogleAuth.signOut();
-      } catch (e) {
-        console.log('Google sign out error:', e);
-      }
-    }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -206,7 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isLoading,
       signInWithEmail,
       signUpWithEmail,
-      signInWithGoogle,
+      
       signInWithPhone,
       verifyOtp,
       signOut
