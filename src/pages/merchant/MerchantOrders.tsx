@@ -81,6 +81,7 @@ export const MerchantOrders = () => {
         const newOrder = payload.new as any;
         if (newOrder?.payment_status === "completed") {
           playNotificationSound();
+          notify("🥚 New Order Received!", `₹${newOrder.total_amount} from ${newOrder.customer_name || "Customer"}`);
           toast({
             title: "🥚 New Order Received!",
             description: `₹${newOrder.total_amount} from ${newOrder.customer_name || "Customer"}`,
@@ -93,6 +94,7 @@ export const MerchantOrders = () => {
         const old = payload.old as any;
         if (old?.payment_status !== "completed" && updated?.payment_status === "completed") {
           playNotificationSound();
+          notify("🥚 New Order Received!", `₹${updated.total_amount} from ${updated.customer_name || "Customer"}`);
           toast({
             title: "🥚 New Order Received!",
             description: `₹${updated.total_amount} from ${updated.customer_name || "Customer"}`,
