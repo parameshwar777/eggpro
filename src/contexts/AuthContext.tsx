@@ -102,58 +102,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error, data };
   };
 
-  const signInWithGoogle = async () => {
-    try {
-      if (Capacitor.isNativePlatform()) {
-        const googleUser = await GoogleAuth.signIn();
-
-        const idToken =
-          (googleUser as any)?.authentication?.idToken ??
-          (googleUser as any)?.idToken ??
-          (googleUser as any)?.result?.idToken ??
-          null;
-
-        if (!idToken) {
-          return {
-            error: new Error(
-              "Google sign-in did not return an ID token. Please verify: (1) Android OAuth SHA-1 is added in Google Cloud, and (2) serverClientId is your Web Client ID."
-            ),
-          };
-        }
-
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: "google",
-          token: idToken,
-        });
-
-        return { error };
-      }
-
-      const redirectUrl = `${window.location.origin}/auth`;
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: false,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
-        },
-      });
-
-      return { error };
-    } catch (error: any) {
-      // Native errors often include numeric codes (e.g., 10 = SHA-1 / OAuth config issue)
-      const message =
-        typeof error?.message === "string"
-          ? error.message
-          : JSON.stringify(error);
-      console.error("Google sign in error:", error);
-      return { error: new Error(message) };
-    }
-  };
 
 
   const signInWithPhone = async (phone: string) => {
