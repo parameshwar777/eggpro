@@ -7,6 +7,7 @@ import { MerchantLayout } from "@/components/merchant/MerchantLayout";
 import { MerchantOrderCard } from "@/components/merchant/MerchantOrderCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCapacitorOrderNotification } from "@/components/CapacitorNotificationManager";
 
 export interface MerchantOrder {
   id: string;
@@ -46,6 +47,7 @@ const playNotificationSound = () => {
 
 export const MerchantOrders = () => {
   const { toast } = useToast();
+  const { notify } = useCapacitorOrderNotification();
   const [orders, setOrders] = useState<MerchantOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -79,6 +81,7 @@ export const MerchantOrders = () => {
         const newOrder = payload.new as any;
         if (newOrder?.payment_status === "completed") {
           playNotificationSound();
+          notify("🥚 New Order Received!", `₹${newOrder.total_amount} from ${newOrder.customer_name || "Customer"}`);
           toast({
             title: "🥚 New Order Received!",
             description: `₹${newOrder.total_amount} from ${newOrder.customer_name || "Customer"}`,
@@ -91,6 +94,7 @@ export const MerchantOrders = () => {
         const old = payload.old as any;
         if (old?.payment_status !== "completed" && updated?.payment_status === "completed") {
           playNotificationSound();
+          notify("🥚 New Order Received!", `₹${updated.total_amount} from ${updated.customer_name || "Customer"}`);
           toast({
             title: "🥚 New Order Received!",
             description: `₹${updated.total_amount} from ${updated.customer_name || "Customer"}`,
