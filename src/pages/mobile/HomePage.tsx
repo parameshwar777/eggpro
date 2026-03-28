@@ -47,12 +47,8 @@ export const HomePage = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const { data, error } = await supabase
-          .from("products")
-          .select("*")
-          .eq("in_stock", true)
-          .order("name");
-        
+        const { data, error } = await supabase.from("products").select("*").eq("in_stock", true).order("name");
+
         if (error) throw error;
         setDbProducts(data || []);
       } catch (error) {
@@ -61,14 +57,14 @@ export const HomePage = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchProducts();
   }, []);
 
   // Group products by name and extract pack sizes
   const products = useMemo<GroupedProduct[]>(() => {
     const grouped = new Map<string, DBProduct[]>();
-    
+
     dbProducts.forEach((product) => {
       const existing = grouped.get(product.name) || [];
       existing.push(product);
@@ -78,19 +74,19 @@ export const HomePage = () => {
     return Array.from(grouped.entries()).map(([name, variants]) => {
       // Sort variants by pack size (extracted from unit)
       const sortedVariants = variants.sort((a, b) => {
-        const aSize = parseInt(a.unit?.replace(/\D/g, '') || '0');
-        const bSize = parseInt(b.unit?.replace(/\D/g, '') || '0');
+        const aSize = parseInt(a.unit?.replace(/\D/g, "") || "0");
+        const bSize = parseInt(b.unit?.replace(/\D/g, "") || "0");
         return aSize - bSize;
       });
 
       const baseVariant = sortedVariants[0]; // 6 eggs variant (smallest)
-      const packSizes = sortedVariants.map(v => parseInt(v.unit?.replace(/\D/g, '') || '6'));
+      const packSizes = sortedVariants.map((v) => parseInt(v.unit?.replace(/\D/g, "") || "6"));
 
       return {
         id: baseVariant.id,
         name: name,
-        description: baseVariant.description || '',
-        image: baseVariant.image_url || 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=600',
+        description: baseVariant.description || "",
+        image: baseVariant.image_url || "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=600",
         price: baseVariant.price,
         originalPrice: baseVariant.original_price || baseVariant.price,
         rating: 4.8,
@@ -107,17 +103,10 @@ export const HomePage = () => {
         animate={{ opacity: 1 }}
         className="gradient-warm px-4 pt-5 pb-8 rounded-b-[2rem]"
       >
-
         {/* Brand - Logo & Name + Cart */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <img
-              src={eggMascot}
-              alt="EggPro"
-              className="w-16 h-16 rounded-full object-cover"
-              loading="eager"
-              fetchPriority="high"
-            />
+            <EggLogo size="sm" />
             <div>
               <h1 className="text-2xl font-bold text-foreground">EggPro</h1>
               <p className="text-xs text-foreground/70">Nature's Immunity Boosters</p>
@@ -173,8 +162,6 @@ export const HomePage = () => {
           ))}
         </motion.div>
       </motion.div>
-
-
 
       {/* Products Section */}
       <div className="px-4 py-5">
