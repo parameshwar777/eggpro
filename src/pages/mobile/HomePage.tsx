@@ -7,7 +7,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import eggMascot from "@/assets/egg-mascot.png";
+import { EggLogo } from "@/components/EggLogo"; // adjust path as needed
 
 const features = [
   { icon: Leaf, label: "Farm Fresh" },
