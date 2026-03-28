@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { RefreshCw, Download, Printer, Filter } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { RefreshCw, Download, Printer, Search, Calendar, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { MerchantLayout } from "@/components/merchant/MerchantLayout";
 import { MerchantOrderCard } from "@/components/merchant/MerchantOrderCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +24,6 @@ export interface MerchantOrder {
   user_id: string;
 }
 
-// Play notification sound for new orders (works in Capacitor WebView)
 const playNotificationSound = () => {
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -45,13 +43,21 @@ const playNotificationSound = () => {
   }
 };
 
+const isToday = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+};
+
 export const MerchantOrders = () => {
   const { toast } = useToast();
   const { notify } = useCapacitorOrderNotification();
   const [orders, setOrders] = useState<MerchantOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const printRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showTodayOnly, setShowTodayOnly] = useState(false);
+  const [communityFilter, setCommunityFilter] = useState<string>("all");
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -74,7 +80,6 @@ export const MerchantOrders = () => {
       setIsLoading(false);
     });
 
-    // Realtime subscription - listen for new/updated orders with sound alerts
     const channel = supabase
       .channel("merchant-orders")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (payload) => {
@@ -82,10 +87,7 @@ export const MerchantOrders = () => {
         if (newOrder?.payment_status === "completed") {
           playNotificationSound();
           notify("🥚 New Order Received!", `₹${newOrder.total_amount} from ${newOrder.customer_name || "Customer"}`);
-          toast({
-            title: "🥚 New Order Received!",
-            description: `₹${newOrder.total_amount} from ${newOrder.customer_name || "Customer"}`,
-          });
+          toast({ title: "🥚 New Order Received!", description: `₹${newOrder.total_amount} from ${newOrder.customer_name || "Customer"}` });
         }
         fetchOrders().then(setOrders);
       })
@@ -95,17 +97,14 @@ export const MerchantOrders = () => {
         if (old?.payment_status !== "completed" && updated?.payment_status === "completed") {
           playNotificationSound();
           notify("🥚 New Order Received!", `₹${updated.total_amount} from ${updated.customer_name || "Customer"}`);
-          toast({
-            title: "🥚 New Order Received!",
-            description: `₹${updated.total_amount} from ${updated.customer_name || "Customer"}`,
-          });
+          toast({ title: "🥚 New Order Received!", description: `₹${updated.total_amount} from ${updated.customer_name || "Customer"}` });
         }
         fetchOrders().then(setOrders);
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [fetchOrders, toast]);
+  }, [fetchOrders, toast, notify]);
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -121,9 +120,26 @@ export const MerchantOrders = () => {
     }
   };
 
-  const filteredOrders = statusFilter === "all"
-    ? orders
-    : orders.filter(o => o.order_status === statusFilter);
+  // Get unique communities
+  const communities = [...new Set(orders.map(o => o.community))].sort();
+
+  // Apply all filters
+  const filteredOrders = orders.filter(o => {
+    if (statusFilter !== "all" && o.order_status !== statusFilter) return false;
+    if (showTodayOnly && !isToday(o.created_at)) return false;
+    if (communityFilter !== "all" && o.community !== communityFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (
+        (o.customer_name || "").toLowerCase().includes(q) ||
+        o.phone.includes(q) ||
+        o.address.toLowerCase().includes(q) ||
+        o.community.toLowerCase().includes(q) ||
+        o.id.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   const statusCounts = {
     all: orders.length,
@@ -132,6 +148,8 @@ export const MerchantOrders = () => {
     delivered: orders.filter(o => o.order_status === "delivered").length,
     cancelled: orders.filter(o => o.order_status === "cancelled").length,
   };
+
+  const todayCount = orders.filter(o => isToday(o.created_at)).length;
 
   const handleDownloadCSV = () => {
     const headers = ["Order ID", "Customer", "Phone", "Community", "Address", "Items", "Amount", "Status", "Date"];
@@ -158,66 +176,37 @@ export const MerchantOrders = () => {
   };
 
   const handlePrint = () => {
-    const printContent = document.getElementById("print-orders");
-    if (!printContent) return;
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`
-      <html>
-        <head>
-          <title>EggPro Orders - ${new Date().toLocaleDateString()}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #1a1a1a; }
-            h1 { font-size: 22px; margin-bottom: 4px; }
-            .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
-            table { width: 100%; border-collapse: collapse; font-size: 13px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background: #f5f5f5; font-weight: 600; }
-            .status { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-            .pending { background: #fef3c7; color: #92400e; }
-            .confirmed { background: #d1fae5; color: #065f46; }
-            .delivered { background: #dbeafe; color: #1e40af; }
-            .cancelled { background: #fee2e2; color: #991b1b; }
-            @media print { body { padding: 0; } }
-          </style>
-        </head>
-        <body>
-          <h1>🥚 EggPro - Delivery Orders</h1>
-          <div class="subtitle">${new Date().toLocaleDateString()} · ${filteredOrders.length} orders</div>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Customer</th>
-                <th>Phone</th>
-                <th>Door/Address</th>
-                <th>Community</th>
-                <th>Items</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredOrders.map((o, i) => `
-                <tr>
-                  <td>${i + 1}</td>
-                  <td>${o.customer_name || "N/A"}</td>
-                  <td>${o.phone}</td>
-                  <td>${o.address}</td>
-                  <td>${o.community}</td>
-                  <td>${o.items?.map((it: any) => `${it.name} (${it.packSize}) x${it.quantity}`).join(", ") || ""}</td>
-                  <td>₹${o.total_amount}</td>
-                  <td><span class="status ${o.order_status || "pending"}">${o.order_status || "pending"}</span></td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </body>
-      </html>
+      <html><head><title>EggPro Orders - ${new Date().toLocaleDateString()}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #1a1a1a; }
+        h1 { font-size: 22px; margin-bottom: 4px; }
+        .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .status { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        @media print { body { padding: 0; } }
+      </style></head><body>
+      <h1>🥚 EggPro - Delivery Orders</h1>
+      <div class="subtitle">${new Date().toLocaleDateString()} · ${filteredOrders.length} orders</div>
+      <table><thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Door/Address</th><th>Community</th><th>Items</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>${filteredOrders.map((o, i) => `<tr><td>${i + 1}</td><td>${o.customer_name || "N/A"}</td><td>${o.phone}</td><td>${o.address}</td><td>${o.community}</td><td>${o.items?.map((it: any) => `${it.name} (${it.packSize}) x${it.quantity}`).join(", ") || ""}</td><td>₹${o.total_amount}</td><td>${o.order_status || "pending"}</td></tr>`).join("")}</tbody></table></body></html>
     `);
     win.document.close();
     win.print();
   };
+
+  const clearAllFilters = () => {
+    setStatusFilter("all");
+    setSearchQuery("");
+    setShowTodayOnly(false);
+    setCommunityFilter("all");
+  };
+
+  const hasActiveFilters = statusFilter !== "all" || searchQuery || showTodayOnly || communityFilter !== "all";
 
   const headerActions = (
     <div className="flex items-center gap-2">
@@ -235,8 +224,58 @@ export const MerchantOrders = () => {
 
   return (
     <MerchantLayout title="Orders" headerActions={headerActions}>
+      {/* Search Bar */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+        <Input
+          placeholder="Search by name, phone, community..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="pl-10 bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Quick Filters Row */}
+      <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
+        <button
+          onClick={() => setShowTodayOnly(!showTodayOnly)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+            showTodayOnly ? "bg-amber-500 text-amber-950" : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+          }`}
+        >
+          <Calendar className="w-3 h-3" />
+          Today ({todayCount})
+        </button>
+
+        {communities.length > 1 && communities.map(c => (
+          <button
+            key={c}
+            onClick={() => setCommunityFilter(communityFilter === c ? "all" : c)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+              communityFilter === c ? "bg-purple-500 text-purple-950" : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+            }`}
+          >
+            {c}
+          </button>
+        ))}
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-red-500/20 text-red-400 hover:bg-red-500/30"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
+
       {/* Status Filter Chips */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
         {(["all", "pending", "confirmed", "delivered", "cancelled"] as const).map(status => (
           <button
             key={status}
@@ -252,14 +291,19 @@ export const MerchantOrders = () => {
             }`}
           >
             {status === "all" ? "All" : status === "confirmed" ? "Active" : status.charAt(0).toUpperCase() + status.slice(1)}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              statusFilter === status ? "bg-white/20" : "bg-slate-700"
-            }`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === status ? "bg-white/20" : "bg-slate-700"}`}>
               {statusCounts[status]}
             </span>
           </button>
         ))}
       </div>
+
+      {/* Results Summary */}
+      {hasActiveFilters && (
+        <p className="text-xs text-slate-500 mb-3">
+          Showing {filteredOrders.length} of {orders.length} orders
+        </p>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -268,18 +312,17 @@ export const MerchantOrders = () => {
       ) : filteredOrders.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-20 h-20 mx-auto mb-4 bg-slate-800 rounded-full flex items-center justify-center">
-            <Filter className="w-10 h-10 text-slate-600" />
+            <Search className="w-10 h-10 text-slate-600" />
           </div>
-          <p className="text-slate-400 text-lg">No {statusFilter !== "all" ? statusFilter : ""} orders found</p>
+          <p className="text-slate-400 text-lg">No orders found</p>
+          {hasActiveFilters && (
+            <button onClick={clearAllFilters} className="text-primary text-sm mt-2">Clear filters</button>
+          )}
         </div>
       ) : (
-        <div id="print-orders" className="space-y-4">
+        <div className="space-y-4 pb-8">
           {filteredOrders.map(order => (
-            <MerchantOrderCard
-              key={order.id}
-              order={order}
-              onStatusChange={updateOrderStatus}
-            />
+            <MerchantOrderCard key={order.id} order={order} onStatusChange={updateOrderStatus} />
           ))}
         </div>
       )}
