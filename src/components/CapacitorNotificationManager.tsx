@@ -25,17 +25,46 @@ export const CapacitorNotificationManager = () => {
     setIsNative(native);
 
     if (native) {
-      checkCapacitorPermission();
+      // Auto-request permissions and create channel on mount
+      autoSetup();
     }
   }, []);
 
-  const checkCapacitorPermission = async () => {
+  const autoSetup = async () => {
     try {
       const { LocalNotifications } = await import("@capacitor/local-notifications");
       const result = await LocalNotifications.checkPermissions();
-      setIsEnabled(result.display === "granted");
+      
+      if (result.display === "granted") {
+        setIsEnabled(true);
+        await createNotificationChannel();
+      } else if (result.display === "prompt") {
+        // Auto-request on first load
+        const perm = await LocalNotifications.requestPermissions();
+        if (perm.display === "granted") {
+          setIsEnabled(true);
+          await createNotificationChannel();
+        }
+      }
     } catch (e) {
-      console.error("Error checking local notification permission:", e);
+      console.error("Auto notification setup error:", e);
+    }
+  };
+
+  const createNotificationChannel = async () => {
+    try {
+      const { LocalNotifications } = await import("@capacitor/local-notifications");
+      await LocalNotifications.createChannel({
+        id: "orders",
+        name: "Order Alerts",
+        description: "Notifications for new orders",
+        importance: 5,
+        visibility: 1,
+        vibration: true,
+        sound: "beep.wav",
+      });
+    } catch (e) {
+      console.log("Channel creation:", e);
     }
   };
 
@@ -54,21 +83,7 @@ export const CapacitorNotificationManager = () => {
         return;
       }
 
-      // Create a notification channel for order alerts (Android)
-      try {
-        await LocalNotifications.createChannel({
-          id: "orders",
-          name: "Order Alerts",
-          description: "Notifications for new orders",
-          importance: 5,
-          visibility: 1,
-          vibration: true,
-          sound: "beep.wav",
-        });
-      } catch (e) {
-        // Channel creation may fail on iOS, that's ok
-        console.log("Channel creation:", e);
-      }
+      await createNotificationChannel();
 
       setIsEnabled(true);
       toast({
