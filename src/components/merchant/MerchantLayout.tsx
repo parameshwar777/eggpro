@@ -96,7 +96,7 @@ export const MerchantLayout = ({ children, title, headerActions }: MerchantLayou
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <header className="bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between sticky top-0 z-30">
+        <header className="bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between sticky top-0 z-30 safe-top">
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-300">
               <Menu className="w-6 h-6" />
@@ -109,7 +109,7 @@ export const MerchantLayout = ({ children, title, headerActions }: MerchantLayou
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6 safe-bottom">
           {children}
         </div>
       </main>
