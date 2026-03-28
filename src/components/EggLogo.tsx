@@ -13,11 +13,11 @@ export const EggLogo = ({ size = "md", className = "" }: EggLogoProps) => {
   };
 
   return (
-    <div className={`${sizeClasses[size]} ${className}`}>
+    <div className={`${sizeClasses[size]} rounded-full overflow-hidden bg-gradient-to-b from-amber-400 to-orange-500 drop-shadow-lg ${className}`}>
       <img
         src={eggMascot}
         alt="EggPro Mascot"
-        className="w-full h-full object-contain drop-shadow-lg rounded-[50%_50%_50%_50%/40%_40%_60%_60%]"
+        className="w-[130%] h-[130%] object-cover object-[center_25%] -ml-[15%] -mt-[5%]"
         loading="eager"
         fetchPriority="high"
       />
