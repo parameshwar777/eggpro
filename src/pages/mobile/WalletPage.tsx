@@ -149,28 +149,10 @@ export const WalletPage = () => {
         prefill: {
           email: user.email
         },
-        config: {
-          display: {
-            blocks: {
-              utib: {
-                name: "Pay using UPI",
-                instruments: [
-                  { method: "upi", flows: ["qr", "collect", "intent"] }
-                ]
-              },
-              other: {
-                name: "Other Payment Methods",
-                instruments: [
-                  { method: "card" },
-                  { method: "netbanking" },
-                  { method: "wallet" }
-                ]
-              }
-            },
-            sequence: ["block.utib", "block.other"],
-            preferences: {
-              show_default_blocks: true
-            }
+        modal: {
+          escape: false,
+          ondismiss: () => {
+            toast({ title: "Payment Cancelled", description: "You cancelled the payment", variant: "destructive" });
           }
         },
         theme: {
