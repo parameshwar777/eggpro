@@ -19,7 +19,7 @@ export const EggLogo = ({ size = "md", className = "" }: EggLogoProps) => {
       <img
         src={eggMascot}
         alt="EggPro Mascot"
-        className="w-[100%] h-[100%] object-cover"
+        className="w-[140%] h-[140%] object-cover"
         style={{ objectPosition: "center 40%" }}
         loading="eager"
         fetchPriority="high"
