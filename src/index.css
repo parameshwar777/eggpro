@@ -272,9 +272,24 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Ensure html/body respect safe areas on all devices */
-html {
-  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+/* Ensure html/body fill the viewport and lock overflow */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: hsl(var(--background));
+}
+
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* App shell: scrollable content area that respects safe areas */
+.app-shell {
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Fixed elements must account for safe areas */

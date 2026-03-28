@@ -18,13 +18,13 @@ export const CartPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background w-full">
+    <div className="app-shell bg-background w-full">
       <div className="max-w-lg mx-auto pb-44">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-card px-4 py-3 flex items-center gap-3 border-b border-border sticky top-0 z-10"
+          className="bg-card px-4 py-3 flex items-center gap-3 border-b border-border sticky top-0 z-10 safe-top"
         >
           <motion.button
             whileTap={{ scale: 0.9 }}
@@ -147,7 +147,7 @@ export const CartPage = () => {
             <motion.div
               initial={{ y: 100 }}
               animate={{ y: 0 }}
-              className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-20"
+              className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-20"
             >
               <div className="max-w-lg mx-auto">
                 <div className="flex items-center justify-between mb-3">
