@@ -138,8 +138,8 @@ export const CartPage = () => {
                   <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-green-800 text-sm sm:text-base">Free Delivery</p>
-                  <p className="text-xs sm:text-sm text-green-600">Delivered between 6 AM - 9 AM</p>
+                  <p className="font-bold text-green-800 text-sm sm:text-base">Free Delivery</p>
+                  <p className="text-xs sm:text-sm text-green-600 font-medium">Estimated Delivery: {getDeliverySlot()}</p>
                 </div>
               </motion.div>
             </div>
