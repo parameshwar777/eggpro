@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Download, Printer, Search, Calendar, X, Clock, MessageCircle } from "lucide-react";
+import { RefreshCw, Download, Printer, Search, Calendar, X, Clock, MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MerchantLayout } from "@/components/merchant/MerchantLayout";
@@ -7,6 +7,12 @@ import { MerchantOrderCard } from "@/components/merchant/MerchantOrderCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCapacitorOrderNotification } from "@/components/CapacitorNotificationManager";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export interface MerchantOrder {
   id: string;
@@ -50,10 +56,75 @@ const isToday = (dateStr: string) => {
 };
 
 const TIME_SLOTS = [
-  { label: "6 PM - 9 AM", value: "slot1", check: (h: number) => h >= 18 || h < 9 },
-  { label: "9 AM - 2 PM", value: "slot2", check: (h: number) => h >= 9 && h < 14 },
-  { label: "2 PM - 6 PM", value: "slot3", check: (h: number) => h >= 14 && h < 18 },
+  { label: "6 PM - 9 AM", value: "slot1" },
+  { label: "9 AM - 2 PM", value: "slot2" },
+  { label: "2 PM - 6 PM", value: "slot3" },
 ];
+
+/**
+ * Check if an order falls into a time slot relative to "today".
+ * - slot1 (6 PM - 9 AM): yesterday 6 PM to today 9 AM
+ * - slot2 (9 AM - 2 PM): today 9 AM to today 2 PM
+ * - slot3 (2 PM - 6 PM): today 2 PM to today 6 PM
+ */
+const isInTimeSlotToday = (orderDateStr: string, slotValue: string): boolean => {
+  const orderDate = new Date(orderDateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (slotValue === "slot1") {
+    // Yesterday 6 PM to today 9 AM
+    const start = new Date(today);
+    start.setDate(start.getDate() - 1);
+    start.setHours(18, 0, 0, 0);
+    const end = new Date(today);
+    end.setHours(9, 0, 0, 0);
+    return orderDate >= start && orderDate < end;
+  } else if (slotValue === "slot2") {
+    // Today 9 AM to today 2 PM
+    const start = new Date(today);
+    start.setHours(9, 0, 0, 0);
+    const end = new Date(today);
+    end.setHours(14, 0, 0, 0);
+    return orderDate >= start && orderDate < end;
+  } else if (slotValue === "slot3") {
+    // Today 2 PM to today 6 PM
+    const start = new Date(today);
+    start.setHours(14, 0, 0, 0);
+    const end = new Date(today);
+    end.setHours(18, 0, 0, 0);
+    return orderDate >= start && orderDate < end;
+  }
+  return true;
+};
+
+/** For a specific chosen date */
+const isInTimeSlotForDate = (orderDateStr: string, slotValue: string, chosenDate: Date): boolean => {
+  const orderDate = new Date(orderDateStr);
+  const dayStart = new Date(chosenDate.getFullYear(), chosenDate.getMonth(), chosenDate.getDate());
+
+  if (slotValue === "slot1") {
+    const start = new Date(dayStart);
+    start.setDate(start.getDate() - 1);
+    start.setHours(18, 0, 0, 0);
+    const end = new Date(dayStart);
+    end.setHours(9, 0, 0, 0);
+    return orderDate >= start && orderDate < end;
+  } else if (slotValue === "slot2") {
+    const start = new Date(dayStart);
+    start.setHours(9, 0, 0, 0);
+    const end = new Date(dayStart);
+    end.setHours(14, 0, 0, 0);
+    return orderDate >= start && orderDate < end;
+  } else if (slotValue === "slot3") {
+    const start = new Date(dayStart);
+    start.setHours(14, 0, 0, 0);
+    const end = new Date(dayStart);
+    end.setHours(18, 0, 0, 0);
+    return orderDate >= start && orderDate < end;
+  }
+  return true;
+};
 
 export const MerchantOrders = () => {
   const { toast } = useToast();
@@ -65,6 +136,11 @@ export const MerchantOrders = () => {
   const [showTodayOnly, setShowTodayOnly] = useState(false);
   const [communityFilter, setCommunityFilter] = useState<string>("all");
   const [timeSlotFilter, setTimeSlotFilter] = useState<string>("all");
+
+  // WhatsApp dialog state
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+  const [waSlot, setWaSlot] = useState<string>("all");
+  const [waDate, setWaDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -129,17 +205,12 @@ export const MerchantOrders = () => {
 
   const communities = [...new Set(orders.map(o => o.community))].sort();
 
-  // Apply all filters including time slot
   const filteredOrders = orders.filter(o => {
     if (statusFilter !== "all" && o.order_status !== statusFilter) return false;
     if (showTodayOnly && !isToday(o.created_at)) return false;
     if (communityFilter !== "all" && o.community !== communityFilter) return false;
     if (timeSlotFilter !== "all") {
-      const slot = TIME_SLOTS.find(s => s.value === timeSlotFilter);
-      if (slot) {
-        const hour = new Date(o.created_at).getHours();
-        if (!slot.check(hour)) return false;
-      }
+      if (!isInTimeSlotToday(o.created_at, timeSlotFilter)) return false;
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -173,7 +244,7 @@ export const MerchantOrders = () => {
       o.community,
       `"${o.address}"`,
       `"${o.items?.map((i: any) => `${i.name} (${i.packSize}eggs) x${i.quantity}`).join(", ") || ""}"`,
-      `₹${o.total_amount}`,
+      `Rs.${o.total_amount}`,
       o.order_status || "pending",
       new Date(o.created_at).toLocaleDateString(),
     ]);
@@ -192,50 +263,75 @@ export const MerchantOrders = () => {
     toast({ title: "📥 Downloaded", description: "Orders CSV file downloaded" });
   };
 
-  const handleWhatsAppShare = () => {
-    const totalAmount = filteredOrders.reduce((sum, o) => sum + o.total_amount, 0);
-    let message = `🥚 *EggPro Orders Report*\n📅 ${new Date().toLocaleDateString()}\n📊 ${filteredOrders.length} orders | ₹${totalAmount}\n\n`;
+  /** Get orders for WhatsApp based on dialog selections */
+  const getWhatsAppOrders = () => {
+    const chosenDate = new Date(waDate + "T00:00:00");
 
-    filteredOrders.forEach((o, i) => {
+    if (waSlot === "all") {
+      // All orders for the chosen date
+      return orders.filter(o => {
+        const d = new Date(o.created_at);
+        return d.getDate() === chosenDate.getDate() &&
+          d.getMonth() === chosenDate.getMonth() &&
+          d.getFullYear() === chosenDate.getFullYear();
+      });
+    }
+
+    return orders.filter(o => isInTimeSlotForDate(o.created_at, waSlot, chosenDate));
+  };
+
+  const handleWhatsAppSend = () => {
+    const waOrders = getWhatsAppOrders();
+    const totalAmount = waOrders.reduce((sum, o) => sum + o.total_amount, 0);
+    const slotLabel = waSlot === "all" ? "Full Day" : TIME_SLOTS.find(s => s.value === waSlot)?.label || "";
+    const dateLabel = new Date(waDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+    let message = `🥚 *EggPro Orders Report*\n📅 ${dateLabel} | ⏰ ${slotLabel}\n📊 ${waOrders.length} orders | Rs.${totalAmount}\n\n`;
+
+    waOrders.forEach((o, i) => {
       const items = o.items?.map((it: any) => `${it.name}(${it.packSize}) x${it.quantity}`).join(", ") || "";
-      message += `${i + 1}. *${o.customer_name || "N/A"}* | ${o.phone}\n   📍 ${o.community} - ${o.address.split(",")[0]}\n   📦 ${items} | ₹${o.total_amount} | ${o.order_status}\n\n`;
+      message += `${i + 1}. *${o.customer_name || "N/A"}* | ${o.phone}\n   📍 ${o.community} - ${o.address.split(",")[0]}\n   📦 ${items} | Rs.${o.total_amount} | ${o.order_status}\n\n`;
     });
+
+    if (waOrders.length === 0) {
+      message += "_No orders found for this selection._\n";
+    }
 
     const adminPhone = "919858597999";
     window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, "_blank");
+    setShowWhatsAppDialog(false);
     toast({ title: "📤 WhatsApp", description: "Opening WhatsApp with orders summary" });
   };
 
   const handlePrint = () => {
-    const printContent = `
-      <html><head><title>EggPro Orders - ${new Date().toLocaleDateString()}</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 20px; color: #1a1a1a; }
-        h1 { font-size: 22px; margin-bottom: 4px; }
-        .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #f5f5f5; font-weight: 600; }
-        @media print { body { padding: 0; } }
-      </style></head><body>
-      <h1>🥚 EggPro - Delivery Orders</h1>
-      <div class="subtitle">${new Date().toLocaleDateString()} · ${filteredOrders.length} orders</div>
-      <table><thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Door/Address</th><th>Community</th><th>Items</th><th>Amount</th><th>Status</th></tr></thead>
-      <tbody>${filteredOrders.map((o, i) => `<tr><td>${i + 1}</td><td>${o.customer_name || "N/A"}</td><td>${o.phone}</td><td>${o.address}</td><td>${o.community}</td><td>${o.items?.map((it: any) => `${it.name} (${it.packSize}) x${it.quantity}`).join(", ") || ""}</td><td>₹${o.total_amount}</td><td>${o.order_status || "pending"}</td></tr>`).join("")}</tbody></table>
-      <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; }</script>
-      </body></html>
-    `;
-    const blob = new Blob([printContent], { type: "text/html" });
+    const printContent = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>EggPro Orders - ${new Date().toLocaleDateString()}</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; color: #1a1a1a; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background: #f5f5f5; font-weight: 600; }
+  @media print { body { padding: 0; } }
+</style></head><body>
+<h1>🥚 EggPro - Delivery Orders</h1>
+<div class="subtitle">${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })} · ${filteredOrders.length} orders</div>
+<table><thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Door/Address</th><th>Community</th><th>Items</th><th>Amount</th><th>Status</th></tr></thead>
+<tbody>${filteredOrders.map((o, i) => `<tr><td>${i + 1}</td><td>${o.customer_name || "N/A"}</td><td>${o.phone}</td><td>${o.address}</td><td>${o.community}</td><td>${o.items?.map((it: any) => `${it.name} (${it.packSize}) x${it.quantity}`).join(", ") || ""}</td><td>Rs.${o.total_amount}</td><td>${o.order_status || "pending"}</td></tr>`).join("")}</tbody></table>
+<script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; }<\/script>
+</body></html>`;
+
+    const blob = new Blob([printContent], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, "_blank");
     if (!win) {
-      // Fallback: download as HTML
       const a = document.createElement("a");
       a.href = url;
       a.download = `orders-${new Date().toISOString().slice(0, 10)}.html`;
       a.click();
     }
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
 
   const clearAllFilters = () => {
@@ -250,7 +346,7 @@ export const MerchantOrders = () => {
 
   const headerActions = (
     <div className="flex items-center gap-2">
-      <Button size="sm" variant="outline" className="border-green-700 text-green-400 hover:bg-green-900/30" onClick={handleWhatsAppShare}>
+      <Button size="sm" variant="outline" className="border-green-700 text-green-400 hover:bg-green-900/30" onClick={() => setShowWhatsAppDialog(true)}>
         <MessageCircle className="w-4 h-4" />
       </Button>
       <Button size="sm" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800" onClick={handleDownloadCSV}>
@@ -383,6 +479,71 @@ export const MerchantOrders = () => {
           ))}
         </div>
       )}
+
+      {/* WhatsApp Share Dialog */}
+      <Dialog open={showWhatsAppDialog} onOpenChange={setShowWhatsAppDialog}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-green-400" />
+              Share via WhatsApp
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            {/* Date Picker */}
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">Select Date</label>
+              <input
+                type="date"
+                value={waDate}
+                onChange={e => setWaDate(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm"
+              />
+            </div>
+
+            {/* Time Slot Selection */}
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">Select Time Slot</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setWaSlot("all")}
+                  className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    waSlot === "all" ? "bg-green-500 text-green-950" : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                  }`}
+                >
+                  Full Day
+                </button>
+                {TIME_SLOTS.map(slot => (
+                  <button
+                    key={slot.value}
+                    onClick={() => setWaSlot(slot.value)}
+                    className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      waSlot === slot.value ? "bg-green-500 text-green-950" : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                    }`}
+                  >
+                    {slot.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Preview count */}
+            <p className="text-xs text-slate-500 text-center">
+              {getWhatsAppOrders().length} orders will be shared
+            </p>
+
+            {/* Send Button */}
+            <Button
+              onClick={handleWhatsAppSend}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Send to WhatsApp
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MerchantLayout>
   );
 };
