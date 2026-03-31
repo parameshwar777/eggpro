@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Package, RefreshCw, MapPin, Phone, Calendar, Truck, CheckCircle, Clock } from "lucide-react";
+import { getDeliverySlot } from "@/lib/deliveryTime";
 import { useNavigate } from "react-router-dom";
 
 interface Order {
