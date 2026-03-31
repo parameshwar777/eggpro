@@ -110,7 +110,7 @@ export const CartPage = () => {
                           >
                             <Minus className="w-3 h-3 text-foreground" />
                           </motion.button>
-                          <span className="font-medium text-foreground w-5 text-center text-sm">
+                          <span className="font-bold text-foreground w-5 text-center text-sm">
                             {item.quantity}
                           </span>
                           <motion.button
