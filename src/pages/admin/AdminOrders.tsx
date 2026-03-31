@@ -65,6 +65,7 @@ export const AdminOrders = () => {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
+        .eq("payment_status", "completed")
         .order("created_at", { ascending: false });
       if (error) throw error;
       setOrders(data || []);
