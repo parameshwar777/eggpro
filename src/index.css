@@ -272,11 +272,10 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Ensure html/body fill the viewport and lock overflow */
+/* Ensure html/body fill the viewport */
 html, body, #root {
   height: 100%;
   margin: 0;
-  overflow: hidden;
   background: hsl(var(--background));
 }
 
@@ -285,9 +284,17 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* App shell: scrollable content area that respects safe areas */
+/* App shell: fixed viewport with internal scroll for pages with bottom nav */
 .app-shell {
   height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollable page: full-height scrollable container for standalone pages */
+.page-scroll {
+  min-height: 100dvh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
