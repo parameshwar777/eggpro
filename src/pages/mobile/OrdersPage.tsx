@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Package, RefreshCw, MapPin, Phone, Calendar, Truck, CheckCircle, Clock } from "lucide-react";
+import { getDeliverySlot } from "@/lib/deliveryTime";
 import { useNavigate } from "react-router-dom";
 
 interface Order {
@@ -234,11 +235,9 @@ export const OrdersPage = () => {
                                           <p className="text-sm text-muted-foreground font-semibold">
                                             Ordered: {new Date(order.created_at).toLocaleDateString()}
                                           </p>
-                                          {order.items?.[0]?.isOneTime && (
-                                            <p className="text-sm text-green-600 font-semibold">
-                                              🚚 Delivery in 1-3 days (6 AM - 9 AM)
-                                            </p>
-                                          )}
+                                          <p className="text-sm text-green-600 font-semibold">
+                                            🚚 Delivery: {getDeliverySlot(order.created_at)}
+                                          </p>
                                         </div>
 
                         <div className="pt-3 border-t border-border flex items-center justify-between">

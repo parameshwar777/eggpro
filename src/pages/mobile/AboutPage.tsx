@@ -23,8 +23,7 @@ export const AboutPage = () => {
           {/* Logo Section */}
           <div className="flex flex-col items-center py-6">
             <EggLogo size="lg" />
-            <h2 className="text-2xl font-bold text-foreground mt-4">NutriEggs</h2>
-            <p className="text-muted-foreground">by EggPro</p>
+            <h2 className="text-2xl font-bold text-foreground mt-4">EggPro</h2>
             <p className="text-sm text-muted-foreground mt-2">Version 1.2.0</p>
           </div>
 
@@ -54,15 +53,6 @@ export const AboutPage = () => {
                 <div>
                   <p className="font-medium text-foreground">Flexible Subscriptions</p>
                   <p className="text-sm text-muted-foreground">Daily, alternate, or weekly delivery options</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="p-2 bg-primary/10 rounded-full">
-                  <Egg className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Early Morning Delivery</p>
-                  <p className="text-sm text-muted-foreground">Fresh eggs at your door between 6-9 AM</p>
                 </div>
               </li>
             </ul>

@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2, Minus, Plus, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { getDeliverySlot } from "@/lib/deliveryTime";
 
 export const CartPage = () => {
   const navigate = useNavigate();
@@ -77,9 +78,9 @@ export const CartPage = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h3 className="font-medium text-foreground text-sm sm:text-base truncate">{item.name}</h3>
+                          <h3 className="font-bold text-foreground text-sm sm:text-base truncate">{item.name}</h3>
                           <div className="flex gap-1.5 mt-1 flex-wrap">
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-semibold">
                               {item.packSize} eggs
                             </span>
                             {item.isSubscription && (
@@ -98,7 +99,7 @@ export const CartPage = () => {
                         </motion.button>
                       </div>
                       <div className="flex items-center justify-between mt-2.5">
-                        <p className="text-base sm:text-lg font-bold text-primary">
+                        <p className="text-base sm:text-lg font-extrabold text-primary">
                           ₹{item.price * item.quantity}
                         </p>
                         <div className="flex items-center gap-2 bg-secondary rounded-full p-0.5">
@@ -109,7 +110,7 @@ export const CartPage = () => {
                           >
                             <Minus className="w-3 h-3 text-foreground" />
                           </motion.button>
-                          <span className="font-medium text-foreground w-5 text-center text-sm">
+                          <span className="font-bold text-foreground w-5 text-center text-sm">
                             {item.quantity}
                           </span>
                           <motion.button
@@ -137,8 +138,8 @@ export const CartPage = () => {
                   <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-green-800 text-sm sm:text-base">Free Delivery</p>
-                  <p className="text-xs sm:text-sm text-green-600">Delivered between 6 AM - 9 AM</p>
+                  <p className="font-bold text-green-800 text-sm sm:text-base">Free Delivery</p>
+                  <p className="text-xs sm:text-sm text-green-600 font-medium">Estimated Delivery: {getDeliverySlot()}</p>
                 </div>
               </motion.div>
             </div>
@@ -152,12 +153,12 @@ export const CartPage = () => {
               <div className="max-w-lg mx-auto">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Total Amount</p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground">₹{totalPrice}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-semibold">Total Amount</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-foreground">₹{totalPrice}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs sm:text-sm text-muted-foreground">Delivery</p>
-                    <p className="text-base sm:text-lg font-bold text-green-600">FREE</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-semibold">Delivery</p>
+                    <p className="text-base sm:text-lg font-extrabold text-green-600">FREE</p>
                   </div>
                 </div>
                 <Button 

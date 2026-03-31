@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { getDeliverySlot } from "@/lib/deliveryTime";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -286,7 +287,7 @@ export const CheckoutPage = () => {
 
             // Referral rewards are now handled server-side in verify-payment
 
-            toast({ title: "Order Placed!", description: "Your order has been confirmed. Delivery in 1-3 days." });
+            toast({ title: "Order Placed!", description: `Your order has been confirmed. Delivery: ${getDeliverySlot()}` });
             clearCart();
             navigate("/orders");
           } catch (error: any) {
@@ -474,8 +475,8 @@ export const CheckoutPage = () => {
               <Truck className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="font-semibold text-green-800">Delivery in 1-3 Days</p>
-              <p className="text-sm text-green-600">Your order will be delivered between 6 AM - 9 AM</p>
+              <p className="font-semibold text-green-800">Estimated Delivery Today</p>
+              <p className="text-sm text-green-600">Your order will be delivered between {getDeliverySlot()}</p>
             </div>
           </motion.div>
 

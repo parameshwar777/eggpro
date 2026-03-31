@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Download, Printer, Search, Calendar, X } from "lucide-react";
+import { RefreshCw, Download, Printer, Search, Calendar, X, Clock, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MerchantLayout } from "@/components/merchant/MerchantLayout";
@@ -49,6 +49,12 @@ const isToday = (dateStr: string) => {
   return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 };
 
+const TIME_SLOTS = [
+  { label: "6 PM - 9 AM", value: "slot1", check: (h: number) => h >= 18 || h < 9 },
+  { label: "9 AM - 2 PM", value: "slot2", check: (h: number) => h >= 9 && h < 14 },
+  { label: "2 PM - 6 PM", value: "slot3", check: (h: number) => h >= 14 && h < 18 },
+];
+
 export const MerchantOrders = () => {
   const { toast } = useToast();
   const { notify } = useCapacitorOrderNotification();
@@ -58,6 +64,7 @@ export const MerchantOrders = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showTodayOnly, setShowTodayOnly] = useState(false);
   const [communityFilter, setCommunityFilter] = useState<string>("all");
+  const [timeSlotFilter, setTimeSlotFilter] = useState<string>("all");
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -120,14 +127,20 @@ export const MerchantOrders = () => {
     }
   };
 
-  // Get unique communities
   const communities = [...new Set(orders.map(o => o.community))].sort();
 
-  // Apply all filters
+  // Apply all filters including time slot
   const filteredOrders = orders.filter(o => {
     if (statusFilter !== "all" && o.order_status !== statusFilter) return false;
     if (showTodayOnly && !isToday(o.created_at)) return false;
     if (communityFilter !== "all" && o.community !== communityFilter) return false;
+    if (timeSlotFilter !== "all") {
+      const slot = TIME_SLOTS.find(s => s.value === timeSlotFilter);
+      if (slot) {
+        const hour = new Date(o.created_at).getHours();
+        if (!slot.check(hour)) return false;
+      }
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
@@ -151,7 +164,7 @@ export const MerchantOrders = () => {
 
   const todayCount = orders.filter(o => isToday(o.created_at)).length;
 
-  const handleDownloadCSV = () => {
+  const generateCSVContent = () => {
     const headers = ["Order ID", "Customer", "Phone", "Community", "Address", "Items", "Amount", "Status", "Date"];
     const rows = filteredOrders.map(o => [
       o.id.slice(0, 8).toUpperCase(),
@@ -164,7 +177,11 @@ export const MerchantOrders = () => {
       o.order_status || "pending",
       new Date(o.created_at).toLocaleDateString(),
     ]);
-    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    return [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+  };
+
+  const handleDownloadCSV = () => {
+    const csv = generateCSVContent();
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -175,10 +192,22 @@ export const MerchantOrders = () => {
     toast({ title: "📥 Downloaded", description: "Orders CSV file downloaded" });
   };
 
+  const handleWhatsAppShare = () => {
+    const totalAmount = filteredOrders.reduce((sum, o) => sum + o.total_amount, 0);
+    let message = `🥚 *EggPro Orders Report*\n📅 ${new Date().toLocaleDateString()}\n📊 ${filteredOrders.length} orders | ₹${totalAmount}\n\n`;
+
+    filteredOrders.forEach((o, i) => {
+      const items = o.items?.map((it: any) => `${it.name}(${it.packSize}) x${it.quantity}`).join(", ") || "";
+      message += `${i + 1}. *${o.customer_name || "N/A"}* | ${o.phone}\n   📍 ${o.community} - ${o.address.split(",")[0]}\n   📦 ${items} | ₹${o.total_amount} | ${o.order_status}\n\n`;
+    });
+
+    const adminPhone = "919858597999";
+    window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, "_blank");
+    toast({ title: "📤 WhatsApp", description: "Opening WhatsApp with orders summary" });
+  };
+
   const handlePrint = () => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(`
+    const printContent = `
       <html><head><title>EggPro Orders - ${new Date().toLocaleDateString()}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 20px; color: #1a1a1a; }
@@ -187,16 +216,26 @@ export const MerchantOrders = () => {
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background: #f5f5f5; font-weight: 600; }
-        .status { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
         @media print { body { padding: 0; } }
       </style></head><body>
       <h1>🥚 EggPro - Delivery Orders</h1>
       <div class="subtitle">${new Date().toLocaleDateString()} · ${filteredOrders.length} orders</div>
       <table><thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Door/Address</th><th>Community</th><th>Items</th><th>Amount</th><th>Status</th></tr></thead>
-      <tbody>${filteredOrders.map((o, i) => `<tr><td>${i + 1}</td><td>${o.customer_name || "N/A"}</td><td>${o.phone}</td><td>${o.address}</td><td>${o.community}</td><td>${o.items?.map((it: any) => `${it.name} (${it.packSize}) x${it.quantity}`).join(", ") || ""}</td><td>₹${o.total_amount}</td><td>${o.order_status || "pending"}</td></tr>`).join("")}</tbody></table></body></html>
-    `);
-    win.document.close();
-    win.print();
+      <tbody>${filteredOrders.map((o, i) => `<tr><td>${i + 1}</td><td>${o.customer_name || "N/A"}</td><td>${o.phone}</td><td>${o.address}</td><td>${o.community}</td><td>${o.items?.map((it: any) => `${it.name} (${it.packSize}) x${it.quantity}`).join(", ") || ""}</td><td>₹${o.total_amount}</td><td>${o.order_status || "pending"}</td></tr>`).join("")}</tbody></table>
+      <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; }</script>
+      </body></html>
+    `;
+    const blob = new Blob([printContent], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank");
+    if (!win) {
+      // Fallback: download as HTML
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `orders-${new Date().toISOString().slice(0, 10)}.html`;
+      a.click();
+    }
+    URL.revokeObjectURL(url);
   };
 
   const clearAllFilters = () => {
@@ -204,12 +243,16 @@ export const MerchantOrders = () => {
     setSearchQuery("");
     setShowTodayOnly(false);
     setCommunityFilter("all");
+    setTimeSlotFilter("all");
   };
 
-  const hasActiveFilters = statusFilter !== "all" || searchQuery || showTodayOnly || communityFilter !== "all";
+  const hasActiveFilters = statusFilter !== "all" || searchQuery || showTodayOnly || communityFilter !== "all" || timeSlotFilter !== "all";
 
   const headerActions = (
     <div className="flex items-center gap-2">
+      <Button size="sm" variant="outline" className="border-green-700 text-green-400 hover:bg-green-900/30" onClick={handleWhatsAppShare}>
+        <MessageCircle className="w-4 h-4" />
+      </Button>
       <Button size="sm" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800" onClick={handleDownloadCSV}>
         <Download className="w-4 h-4" />
       </Button>
@@ -251,6 +294,20 @@ export const MerchantOrders = () => {
           <Calendar className="w-3 h-3" />
           Today ({todayCount})
         </button>
+
+        {/* Time Slot Filters */}
+        {TIME_SLOTS.map(slot => (
+          <button
+            key={slot.value}
+            onClick={() => setTimeSlotFilter(timeSlotFilter === slot.value ? "all" : slot.value)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+              timeSlotFilter === slot.value ? "bg-cyan-500 text-cyan-950" : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+            }`}
+          >
+            <Clock className="w-3 h-3" />
+            {slot.label}
+          </button>
+        ))}
 
         {communities.length > 1 && communities.map(c => (
           <button
