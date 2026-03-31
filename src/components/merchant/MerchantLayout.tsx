@@ -41,7 +41,7 @@ export const MerchantLayout = ({ children, title, headerActions }: MerchantLayou
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
+    <div className="page-scroll bg-slate-950 flex">
       {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-900 transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-200 overflow-y-auto safe-top`}>
         <div className="flex flex-col h-full">

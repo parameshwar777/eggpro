@@ -361,7 +361,7 @@ export const AuthPage = () => {
 
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col">
+    <div className="page-scroll bg-background flex flex-col">
       {/* Header */}
       <div className="gradient-hero p-4 pt-12 pb-8 rounded-b-3xl safe-top">
         <button 
