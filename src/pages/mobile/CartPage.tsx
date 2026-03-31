@@ -157,8 +157,8 @@ export const CartPage = () => {
                     <p className="text-xl sm:text-2xl font-extrabold text-foreground">₹{totalPrice}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs sm:text-sm text-muted-foreground">Delivery</p>
-                    <p className="text-base sm:text-lg font-bold text-green-600">FREE</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-semibold">Delivery</p>
+                    <p className="text-base sm:text-lg font-extrabold text-green-600">FREE</p>
                   </div>
                 </div>
                 <Button 
