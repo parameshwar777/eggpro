@@ -99,7 +99,7 @@ export const CartPage = () => {
                         </motion.button>
                       </div>
                       <div className="flex items-center justify-between mt-2.5">
-                        <p className="text-base sm:text-lg font-bold text-primary">
+                        <p className="text-base sm:text-lg font-extrabold text-primary">
                           ₹{item.price * item.quantity}
                         </p>
                         <div className="flex items-center gap-2 bg-secondary rounded-full p-0.5">
