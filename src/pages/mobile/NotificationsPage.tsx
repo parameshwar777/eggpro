@@ -48,7 +48,7 @@ export const NotificationsPage = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background max-w-lg mx-auto">
+    <div className="page-scroll bg-background max-w-lg mx-auto">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="gradient-warm px-4 pt-6 pb-12 rounded-b-3xl">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 rounded-full bg-white/20"><ArrowLeft className="w-5 h-5 text-foreground" /></button>

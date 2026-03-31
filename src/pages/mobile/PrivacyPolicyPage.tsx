@@ -5,7 +5,7 @@ export const PrivacyPolicyPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="page-scroll bg-background">
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <div className="bg-card px-4 py-3 flex items-center gap-3 border-b border-border sticky top-0 z-10">

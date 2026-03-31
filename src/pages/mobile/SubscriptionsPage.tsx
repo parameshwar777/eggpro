@@ -130,7 +130,7 @@ export const SubscriptionsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background w-full">
+    <div className="page-scroll bg-background w-full">
       <div className="max-w-lg mx-auto pb-20">
         {/* Header */}
         <motion.div

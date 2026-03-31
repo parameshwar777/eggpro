@@ -10,17 +10,17 @@ interface MobileLayoutProps {
 export const MobileLayout = ({ children, hideNav = false }: MobileLayoutProps) => {
   return (
     <div className="app-shell bg-background">
-      <div className="mx-auto min-h-full relative">
-        <motion.main
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className={hideNav ? "" : "pb-24"}
-        >
+      <motion.main
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="flex-1 overflow-y-auto overscroll-contain"
+      >
+        <div className={hideNav ? "" : "pb-24"}>
           {children}
-        </motion.main>
-        {!hideNav && <BottomNav />}
-      </div>
+        </div>
+      </motion.main>
+      {!hideNav && <BottomNav />}
     </div>
   );
 };

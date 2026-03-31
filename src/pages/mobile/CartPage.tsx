@@ -18,7 +18,7 @@ export const CartPage = () => {
   }, []);
 
   return (
-    <div className="app-shell bg-background w-full">
+    <div className="page-scroll bg-background w-full">
       <div className="max-w-lg mx-auto pb-44">
         {/* Header */}
         <motion.div

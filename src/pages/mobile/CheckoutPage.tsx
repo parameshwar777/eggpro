@@ -323,7 +323,7 @@ export const CheckoutPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF8E7] w-full">
+    <div className="page-scroll bg-[#FFF8E7] w-full">
       <div className="max-w-lg mx-auto pb-32">
         {/* Header */}
         <motion.div

@@ -172,7 +172,7 @@ export const ProductDetailPage = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background w-full flex flex-col">
+    <div className="page-scroll bg-background w-full flex flex-col">
       <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
         {/* Header with gradient */}
         <motion.div
