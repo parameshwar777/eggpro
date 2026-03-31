@@ -59,6 +59,39 @@ export const AboutPage = () => {
           </section>
 
           <section>
+            <h2 className="text-lg font-semibold text-foreground mb-2">Delivery Timings</h2>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 bg-primary/5 p-3 rounded-lg">
+                <div className="p-2 bg-primary/10 rounded-full mt-0.5">
+                  <Egg className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Morning Delivery</p>
+                  <p className="text-sm text-muted-foreground">Orders placed 6 PM – 9 AM → Delivered 10 AM – 12 PM</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-primary/5 p-3 rounded-lg">
+                <div className="p-2 bg-primary/10 rounded-full mt-0.5">
+                  <Egg className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Afternoon Delivery</p>
+                  <p className="text-sm text-muted-foreground">Orders placed 9 AM – 2 PM → Delivered 3 PM – 5 PM</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-primary/5 p-3 rounded-lg">
+                <div className="p-2 bg-primary/10 rounded-full mt-0.5">
+                  <Egg className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Evening Delivery</p>
+                  <p className="text-sm text-muted-foreground">Orders placed 2 PM – 6 PM → Delivered 7 PM – 8:30 PM</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
             <h2 className="text-lg font-semibold text-foreground mb-2">Contact Us</h2>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
