@@ -287,7 +287,7 @@ export const CheckoutPage = () => {
 
             // Referral rewards are now handled server-side in verify-payment
 
-            toast({ title: "Order Placed!", description: "Your order has been confirmed. Delivery in 1-3 days." });
+            toast({ title: "Order Placed!", description: `Your order has been confirmed. Delivery: ${getDeliverySlot()}` });
             clearCart();
             navigate("/orders");
           } catch (error: any) {
