@@ -94,9 +94,10 @@ export const AboutPage = () => {
                 <div className="p-2 bg-secondary rounded-full">
                   <MapPin className="w-4 h-4 text-foreground" />
                 </div>
-                <div>
+              <div>
                   <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="text-foreground">Hyderabad, Telangana, India</p>
+                  <p className="text-foreground font-medium">EGG PRO INDIA PRIVATE LIMITED</p>
+                  <p className="text-foreground text-sm">Ground Floor, Plot No 40 & 41, Radha Nagar, Near Fish Shop, Suncity, Hyderabad, Rangareddy, Telangana - 500091</p>
                 </div>
               </div>
             </div>
@@ -107,7 +108,7 @@ export const AboutPage = () => {
               Made with ❤️ in Hyderabad
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              © 2025 EggPro. All rights reserved.
+              © 2025 EGG PRO INDIA PRIVATE LIMITED. All rights reserved.
             </p>
           </section>
         </div>

@@ -24,7 +24,7 @@ export const CartPage = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-card px-4 py-3 flex items-center gap-3 border-b border-border sticky top-0 z-10 safe-top"
+          className="bg-card px-4 py-2 flex items-center gap-3 border-b border-border sticky top-0 z-10 safe-top"
         >
           <motion.button
             whileTap={{ scale: 0.9 }}
