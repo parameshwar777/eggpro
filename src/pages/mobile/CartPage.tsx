@@ -153,8 +153,8 @@ export const CartPage = () => {
               <div className="max-w-lg mx-auto">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Total Amount</p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground">₹{totalPrice}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-semibold">Total Amount</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-foreground">₹{totalPrice}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs sm:text-sm text-muted-foreground">Delivery</p>
