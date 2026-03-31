@@ -55,15 +55,6 @@ export const AboutPage = () => {
                   <p className="text-sm text-muted-foreground">Daily, alternate, or weekly delivery options</p>
                 </div>
               </li>
-              <li className="flex items-start gap-3">
-                <div className="p-2 bg-primary/10 rounded-full">
-                  <Egg className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Early Morning Delivery</p>
-                  <p className="text-sm text-muted-foreground">Fresh eggs at your door between 6-9 AM</p>
-                </div>
-              </li>
             </ul>
           </section>
 

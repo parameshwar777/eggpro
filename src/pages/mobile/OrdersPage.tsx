@@ -235,11 +235,9 @@ export const OrdersPage = () => {
                                           <p className="text-sm text-muted-foreground font-semibold">
                                             Ordered: {new Date(order.created_at).toLocaleDateString()}
                                           </p>
-                                          {order.items?.[0]?.isOneTime && (
-                                            <p className="text-sm text-green-600 font-semibold">
-                                              🚚 Delivery in 1-3 days (6 AM - 9 AM)
-                                            </p>
-                                          )}
+                                          <p className="text-sm text-green-600 font-semibold">
+                                            🚚 Delivery: {getDeliverySlot(order.created_at)}
+                                          </p>
                                         </div>
 
                         <div className="pt-3 border-t border-border flex items-center justify-between">

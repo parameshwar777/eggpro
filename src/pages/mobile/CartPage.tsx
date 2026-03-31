@@ -80,7 +80,7 @@ export const CartPage = () => {
                         <div className="min-w-0">
                           <h3 className="font-bold text-foreground text-sm sm:text-base truncate">{item.name}</h3>
                           <div className="flex gap-1.5 mt-1 flex-wrap">
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-semibold">
                               {item.packSize} eggs
                             </span>
                             {item.isSubscription && (
