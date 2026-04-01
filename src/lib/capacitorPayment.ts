@@ -33,7 +33,7 @@ export async function openRazorpayCheckout(options: RazorpayPaymentOptions): Pro
   if (isCapacitorNative()) {
     // Use native Razorpay SDK via capacitor-razorpay plugin
     const { Checkout } = await import("capacitor-razorpay");
-    const result = await Checkout.open(options);
+    const result = await Checkout.open({ ...options, amount: String(options.amount) } as any);
     // The native plugin returns response inside `response` property as JSON string
     const response = typeof result.response === "string" ? JSON.parse(result.response) : result.response;
     return {
