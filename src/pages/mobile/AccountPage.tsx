@@ -236,9 +236,44 @@ export const AccountPage = () => {
         </div>
       </motion.div>
 
-      <div className="px-4 py-4 space-y-2">
+      <div className="px-4 py-4 space-y-2 pb-8">
+        {/* Community editing modal */}
+        {isEditingCommunity && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="bg-card rounded-2xl p-4 shadow-card border border-primary/20 mb-2"
+          >
+            <p className="text-sm font-semibold text-foreground mb-3">Select your community:</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {communities.map((c) => (
+                <motion.button 
+                  key={c.id} 
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleChangeCommunity(c.name)} 
+                  className={`w-full text-left text-sm px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                    selectedCommunity === c.name 
+                      ? 'bg-primary text-primary-foreground shadow-md' 
+                      : 'bg-secondary hover:bg-primary/10 text-foreground'
+                  }`}
+                >
+                  <MapPin className="w-4 h-4" />
+                  {c.name}
+                </motion.button>
+              ))}
+            </div>
+            <motion.button 
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsEditingCommunity(false)} 
+              className="w-full mt-3 text-center text-sm px-3 py-2.5 rounded-xl bg-destructive/10 text-destructive font-medium"
+            >
+              Cancel
+            </motion.button>
+          </motion.div>
+        )}
+
         {menuItems.map((item, i) => (
-          <motion.button key={item.label} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 + i * 0.05 }} whileTap={{ scale: 0.98 }} onClick={() => navigate(item.to)} className="w-full bg-card rounded-xl p-4 shadow-card flex items-center gap-3">
+          <motion.button key={item.label} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 + i * 0.05 }} whileTap={{ scale: 0.98 }} onClick={() => item.to ? navigate(item.to) : item.action?.()} className="w-full bg-card rounded-xl p-4 shadow-card flex items-center gap-3">
             <div className={`p-3 rounded-xl ${item.color} flex-shrink-0`}><item.icon className="w-5 h-5" /></div>
             <div className="flex-1 text-left min-w-0"><p className="font-medium text-foreground">{item.label}</p><p className="text-xs text-muted-foreground truncate">{item.desc}</p></div>
             <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
@@ -255,6 +290,8 @@ export const AccountPage = () => {
             <div className="flex-1 text-left"><p className="font-medium text-primary">Login / Sign Up</p></div>
           </motion.button>
         )}
+        {/* Extra bottom spacing to ensure logout is visible above bottom nav */}
+        <div className="h-4" />
       </div>
     </MobileLayout>
   );
