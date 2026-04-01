@@ -13,6 +13,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { isCapacitorNative, openInSystemBrowser, buildPaymentPageUrl } from "@/lib/capacitorPayment";
 
 declare global {
   interface Window {
@@ -251,12 +252,56 @@ export const SubscriptionPage = () => {
 
       if (razorpayError) throw razorpayError;
 
+      const fullAddress = `${address}, ${city} - ${pincode}`;
+      const customerName = profile?.full_name || user.email?.split("@")[0] || "Customer";
+      const mappedItems = items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }));
+      const descText = `${frequency.charAt(0).toUpperCase() + frequency.slice(1)} Subscription (1 Month)`;
+
+      // If running inside Capacitor native app, open payment in system browser
+      if (isCapacitorNative()) {
+        const paymentUrl = buildPaymentPageUrl({
+          keyId: razorpayData.keyId,
+          razorpayOrderId: razorpayData.orderId,
+          amount: razorpayData.amount,
+          dbOrderId: orderData.id,
+          email: user.email || "",
+          phone,
+          description: descText,
+          extraData: {
+            community,
+            address: fullAddress,
+            phone,
+            customerName,
+            items: mappedItems,
+            totalAmount: monthlyAmount,
+            subscriptionEndDate: subscriptionEndDate.toISOString()
+          }
+        });
+
+        openInSystemBrowser(paymentUrl);
+
+        const { App } = await import("@capacitor/app");
+        const listener = await App.addListener("resume", async () => {
+          const { data } = await supabase.from("orders").select("payment_status").eq("id", orderData.id).single();
+          if (data?.payment_status === "completed") {
+            toast({ title: "Subscription Created!", description: "Your order has been confirmed." });
+            clearCart();
+            navigate("/orders");
+          }
+          listener.remove();
+        });
+
+        setIsProcessing(false);
+        return;
+      }
+
+      // Web: use inline Razorpay checkout
       const options = {
         key: razorpayData.keyId,
         amount: razorpayData.amount,
         currency: razorpayData.currency,
         name: "EggPro",
-        description: `${frequency.charAt(0).toUpperCase() + frequency.slice(1)} Subscription (1 Month)`,
+        description: descText,
         order_id: razorpayData.orderId,
         handler: async (response: any) => {
           try {
@@ -267,18 +312,16 @@ export const SubscriptionPage = () => {
                 razorpay_signature: response.razorpay_signature,
                 orderId: orderData.id,
                 community,
-                address: `${address}, ${city} - ${pincode}`,
+                address: fullAddress,
                 phone,
-                customerName: profile?.full_name || user.email || "Customer",
-                items: items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
+                customerName,
+                items: mappedItems,
                 totalAmount: monthlyAmount,
                 subscriptionEndDate: subscriptionEndDate.toISOString()
               }
             });
 
             if (verifyError) throw verifyError;
-
-            // Referral rewards are now handled server-side in verify-payment
 
             toast({ title: "Subscription Created!", description: "Your order has been confirmed." });
             clearCart();
