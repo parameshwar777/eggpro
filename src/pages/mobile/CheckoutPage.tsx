@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getDeliverySlot } from "@/lib/deliveryTime";
-import { isCapacitorNative, openInSystemBrowser, buildPaymentPageUrl } from "@/lib/capacitorPayment";
 import {
   AlertDialog,
   AlertDialogAction,
