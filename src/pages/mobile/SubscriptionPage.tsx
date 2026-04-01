@@ -13,6 +13,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { isCapacitorNative, openInSystemBrowser, buildPaymentPageUrl } from "@/lib/capacitorPayment";
 
 declare global {
   interface Window {
