@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { isCapacitorNative, openRazorpayCheckout } from "@/lib/capacitorPayment";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MapPin, Calendar, Wallet, Tag, Info, Plus, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
