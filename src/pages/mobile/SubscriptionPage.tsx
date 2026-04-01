@@ -257,45 +257,7 @@ export const SubscriptionPage = () => {
       const mappedItems = items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }));
       const descText = `${frequency.charAt(0).toUpperCase() + frequency.slice(1)} Subscription (1 Month)`;
 
-      // If running inside Capacitor native app, open payment in system browser
-      if (isCapacitorNative()) {
-        const paymentUrl = buildPaymentPageUrl({
-          keyId: razorpayData.keyId,
-          razorpayOrderId: razorpayData.orderId,
-          amount: razorpayData.amount,
-          dbOrderId: orderData.id,
-          email: user.email || "",
-          phone,
-          description: descText,
-          extraData: {
-            community,
-            address: fullAddress,
-            phone,
-            customerName,
-            items: mappedItems,
-            totalAmount: monthlyAmount,
-            subscriptionEndDate: subscriptionEndDate.toISOString()
-          }
-        });
-
-        openInSystemBrowser(paymentUrl);
-
-        const { App } = await import("@capacitor/app");
-        const listener = await App.addListener("resume", async () => {
-          const { data } = await supabase.from("orders").select("payment_status").eq("id", orderData.id).single();
-          if (data?.payment_status === "completed") {
-            toast({ title: "Subscription Created!", description: "Your order has been confirmed." });
-            clearCart();
-            navigate("/orders");
-          }
-          listener.remove();
-        });
-
-        setIsProcessing(false);
-        return;
-      }
-
-      // Web: use inline Razorpay checkout
+      // Use inline Razorpay checkout for all platforms
       const options = {
         key: razorpayData.keyId,
         amount: razorpayData.amount,

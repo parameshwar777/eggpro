@@ -263,46 +263,7 @@ export const CheckoutPage = () => {
       const customerName = profile?.full_name || user.email?.split("@")[0] || "Customer";
       const mappedItems = items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }));
 
-      // If running inside Capacitor native app, open payment in system browser
-      // so UPI apps (GPay, PhonePe, etc.) work properly
-      if (isCapacitorNative()) {
-        const paymentUrl = buildPaymentPageUrl({
-          keyId: razorpayData.keyId,
-          razorpayOrderId: razorpayData.orderId,
-          amount: razorpayData.amount,
-          dbOrderId: orderData.id,
-          email: user.email || "",
-          phone,
-          description: "One-time Order",
-          extraData: {
-            community,
-            address: fullAddress,
-            phone,
-            customerName,
-            items: mappedItems,
-            totalAmount: totalPrice
-          }
-        });
-
-        openInSystemBrowser(paymentUrl);
-
-        // Listen for app resume to check if payment completed
-        const { App } = await import("@capacitor/app");
-        const listener = await App.addListener("resume", async () => {
-          const { data } = await supabase.from("orders").select("payment_status").eq("id", orderData.id).single();
-          if (data?.payment_status === "completed") {
-            toast({ title: "Order Placed!", description: `Your order has been confirmed. Delivery: ${getDeliverySlot()}` });
-            clearCart();
-            navigate("/orders");
-          }
-          listener.remove();
-        });
-
-        setIsProcessing(false);
-        return;
-      }
-
-      // Web: use inline Razorpay checkout
+      // Use inline Razorpay checkout for all platforms
       const options = {
         key: razorpayData.keyId,
         amount: razorpayData.amount,
