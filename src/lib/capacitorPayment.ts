@@ -1,47 +1,58 @@
 /**
- * Opens Razorpay payment in system browser for Capacitor native apps.
- * Falls back to inline checkout for web.
+ * Razorpay payment helper.
+ * On Capacitor native → uses native Razorpay SDK (capacitor-razorpay) for full UPI app support.
+ * On web → uses inline checkout.js.
  */
+
 export function isCapacitorNative(): boolean {
   return !!(window as any).Capacitor?.isNativePlatform?.();
 }
 
-export function openInSystemBrowser(url: string) {
-  // In Capacitor, creating an anchor with target="_blank" opens in system browser
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-interface PaymentPageParams {
-  keyId: string;
-  razorpayOrderId: string;
+interface RazorpayPaymentOptions {
+  key: string;
   amount: number;
-  dbOrderId: string;
-  email: string;
-  phone: string;
+  currency: string;
+  name: string;
   description: string;
-  extraData: Record<string, any>;
+  order_id: string;
+  prefill: { email?: string; contact?: string };
+  theme?: { color: string };
 }
 
-export function buildPaymentPageUrl(params: PaymentPageParams): string {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const extraB64 = btoa(JSON.stringify(params.extraData));
+interface RazorpayResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
 
-  const searchParams = new URLSearchParams({
-    key: params.keyId,
-    orderId: params.razorpayOrderId,
-    amount: String(params.amount),
-    dbOrderId: params.dbOrderId,
-    email: params.email,
-    phone: params.phone,
-    desc: params.description,
-    extra: extraB64,
+/**
+ * Opens Razorpay checkout using native SDK on Capacitor or inline on web.
+ * Returns the payment response on success, throws on failure/cancel.
+ */
+export async function openRazorpayCheckout(options: RazorpayPaymentOptions): Promise<RazorpayResponse> {
+  if (isCapacitorNative()) {
+    // Use native Razorpay SDK via capacitor-razorpay plugin
+    const { Checkout } = await import("capacitor-razorpay");
+    const result = await Checkout.open({ ...options, amount: String(options.amount) } as any);
+    // The native plugin returns response inside `response` property as JSON string
+    const response = typeof result.response === "string" ? JSON.parse(result.response) : result.response;
+    return {
+      razorpay_order_id: response.razorpay_order_id,
+      razorpay_payment_id: response.razorpay_payment_id,
+      razorpay_signature: response.razorpay_signature,
+    };
+  }
+
+  // Web: use inline Razorpay checkout
+  return new Promise<RazorpayResponse>((resolve, reject) => {
+    const razorpay = new (window as any).Razorpay({
+      ...options,
+      handler: (response: RazorpayResponse) => resolve(response),
+      modal: {
+        escape: false,
+        ondismiss: () => reject(new Error("Payment cancelled")),
+      },
+    });
+    razorpay.open();
   });
-
-  return `${supabaseUrl}/functions/v1/razorpay-checkout-page?${searchParams.toString()}`;
 }

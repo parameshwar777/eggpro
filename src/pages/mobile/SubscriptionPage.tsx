@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { isCapacitorNative, openRazorpayCheckout } from "@/lib/capacitorPayment";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MapPin, Calendar, Wallet, Tag, Info, Plus, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -257,58 +258,47 @@ export const SubscriptionPage = () => {
       const mappedItems = items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }));
       const descText = `${frequency.charAt(0).toUpperCase() + frequency.slice(1)} Subscription (1 Month)`;
 
-      // Use inline Razorpay checkout for all platforms
-      const options = {
-        key: razorpayData.keyId,
-        amount: razorpayData.amount,
-        currency: razorpayData.currency,
-        name: "EggPro",
-        description: descText,
-        order_id: razorpayData.orderId,
-        handler: async (response: any) => {
-          try {
-            const { error: verifyError } = await supabase.functions.invoke("verify-payment", {
-              body: {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                orderId: orderData.id,
-                community,
-                address: fullAddress,
-                phone,
-                customerName,
-                items: mappedItems,
-                totalAmount: monthlyAmount,
-                subscriptionEndDate: subscriptionEndDate.toISOString()
-              }
-            });
+      // Open Razorpay checkout (native SDK on Capacitor, inline on web)
+      try {
+        const response = await openRazorpayCheckout({
+          key: razorpayData.keyId,
+          amount: razorpayData.amount,
+          currency: razorpayData.currency,
+          name: "EggPro",
+          description: descText,
+          order_id: razorpayData.orderId,
+          prefill: { email: user.email || "", contact: phone },
+          theme: { color: "#F59E0B" }
+        });
 
-            if (verifyError) throw verifyError;
+        const { error: verifyError } = await supabase.functions.invoke("verify-payment", {
+          body: {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            orderId: orderData.id,
+            community,
+            address: fullAddress,
+            phone,
+            customerName,
+            items: mappedItems,
+            totalAmount: monthlyAmount,
+            subscriptionEndDate: subscriptionEndDate.toISOString()
+          }
+        });
 
-            toast({ title: "Subscription Created!", description: "Your order has been confirmed." });
-            clearCart();
-            navigate("/orders");
-          } catch (error: any) {
-            toast({ title: "Payment verification failed", description: error.message, variant: "destructive" });
-          }
-        },
-        prefill: {
-          email: user.email,
-          contact: phone
-        },
-        modal: {
-          escape: false,
-          ondismiss: () => {
-            toast({ title: "Payment Cancelled", description: "You cancelled the payment", variant: "destructive" });
-          }
-        },
-        theme: {
-          color: "#F59E0B"
+        if (verifyError) throw verifyError;
+
+        toast({ title: "Subscription Created!", description: "Your order has been confirmed." });
+        clearCart();
+        navigate("/orders");
+      } catch (payError: any) {
+        if (payError.message === "Payment cancelled") {
+          toast({ title: "Payment Cancelled", description: "You cancelled the payment", variant: "destructive" });
+        } else {
+          toast({ title: "Payment failed", description: payError.message, variant: "destructive" });
         }
-      };
-
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+      }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {

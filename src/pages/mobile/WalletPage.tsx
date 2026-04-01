@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { isCapacitorNative, openRazorpayCheckout } from "@/lib/capacitorPayment";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Wallet, Plus, DollarSign, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -45,8 +46,9 @@ export const WalletPage = () => {
     }
   }, [user]);
 
-  // Load Razorpay script
+  // Load Razorpay script (only for web)
   useEffect(() => {
+    if (isCapacitorNative()) return;
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
@@ -103,65 +105,54 @@ export const WalletPage = () => {
 
       if (razorpayError) throw razorpayError;
 
-      const options = {
-        key: razorpayData.keyId,
-        amount: razorpayData.amount,
-        currency: razorpayData.currency,
-        name: "EggPro",
-        description: "Wallet Recharge",
-        order_id: razorpayData.orderId,
-        handler: async (response: any) => {
-          try {
-            // Add money to wallet
-            const newBalance = balance + amount;
-            
-            // Update balance
-            const { error: updateError } = await supabase
-              .from("profiles")
-              .update({ wallet_balance: newBalance })
-              .eq("id", user.id);
+      // Open Razorpay checkout (native SDK on Capacitor, inline on web)
+      try {
+        const response = await openRazorpayCheckout({
+          key: razorpayData.keyId,
+          amount: razorpayData.amount,
+          currency: razorpayData.currency,
+          name: "EggPro",
+          description: "Wallet Recharge",
+          order_id: razorpayData.orderId,
+          prefill: { email: user.email || "" },
+          theme: { color: "#F59E0B" }
+        });
 
-            if (updateError) throw updateError;
+        // Add money to wallet
+        const newBalance = balance + amount;
+        
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ wallet_balance: newBalance })
+          .eq("id", user.id);
 
-            // Add transaction record
-            const { error: txnError } = await supabase
-              .from("wallet_transactions")
-              .insert({
-                user_id: user.id,
-                amount: amount,
-                type: "credit",
-                description: "Wallet Recharge",
-                reference_id: response.razorpay_payment_id
-              });
+        if (updateError) throw updateError;
 
-            if (txnError) throw txnError;
+        const { error: txnError } = await supabase
+          .from("wallet_transactions")
+          .insert({
+            user_id: user.id,
+            amount: amount,
+            type: "credit",
+            description: "Wallet Recharge",
+            reference_id: response.razorpay_payment_id
+          });
 
-            setBalance(newBalance);
-            toast({ title: "Success!", description: `₹${amount} added to wallet` });
-            setShowAddMoney(false);
-            setSelectedAmount(null);
-            setCustomAmount("");
-            fetchWalletData();
-          } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
-          }
-        },
-        prefill: {
-          email: user.email
-        },
-        modal: {
-          escape: false,
-          ondismiss: () => {
-            toast({ title: "Payment Cancelled", description: "You cancelled the payment", variant: "destructive" });
-          }
-        },
-        theme: {
-          color: "#F59E0B"
+        if (txnError) throw txnError;
+
+        setBalance(newBalance);
+        toast({ title: "Success!", description: `₹${amount} added to wallet` });
+        setShowAddMoney(false);
+        setSelectedAmount(null);
+        setCustomAmount("");
+        fetchWalletData();
+      } catch (payError: any) {
+        if (payError.message === "Payment cancelled") {
+          toast({ title: "Payment Cancelled", description: "You cancelled the payment", variant: "destructive" });
+        } else {
+          toast({ title: "Error", description: payError.message, variant: "destructive" });
         }
-      };
-
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+      }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
