@@ -46,8 +46,9 @@ export const WalletPage = () => {
     }
   }, [user]);
 
-  // Load Razorpay script
+  // Load Razorpay script (only for web)
   useEffect(() => {
+    if (isCapacitorNative()) return;
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
