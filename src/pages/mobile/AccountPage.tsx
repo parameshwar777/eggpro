@@ -93,7 +93,8 @@ export const AccountPage = () => {
   };
 
   const menuItems = [
-    { icon: MapPin, label: "Delivery Addresses", desc: "Add your addresses", to: "/addresses", color: "bg-blue-100 text-blue-600" },
+    { icon: HomeIcon, label: "Change Community", desc: selectedCommunity || "Select community", to: null, action: () => user && setIsEditingCommunity(true), color: "bg-orange-100 text-orange-600" },
+    { icon: MapPin, label: "Delivery Addresses", desc: "Manage your addresses", to: "/addresses", color: "bg-blue-100 text-blue-600" },
     { icon: Wallet, label: "Wallet", desc: `₹${walletBalance} available`, to: "/wallet", color: "bg-green-100 text-green-600" },
     { icon: RefreshCw, label: "My Subscriptions", desc: `${subscriptionCount} active`, to: "/subscriptions", color: "bg-purple-100 text-purple-600" },
     { icon: Bell, label: "Notifications", desc: `${userNotifCount} unread`, to: "/notifications", color: "bg-red-100 text-red-600" },
