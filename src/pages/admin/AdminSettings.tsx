@@ -20,6 +20,8 @@ export const AdminSettings = () => {
   const [isSavingTelegram, setIsSavingTelegram] = useState(false);
   const [isFetchingChats, setIsFetchingChats] = useState(false);
   const [detectedChats, setDetectedChats] = useState<any[]>([]);
+  const [showSubscriptions, setShowSubscriptions] = useState(true);
+  const [isSavingSubscription, setIsSavingSubscription] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
