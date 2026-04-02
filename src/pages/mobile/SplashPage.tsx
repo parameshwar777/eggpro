@@ -70,9 +70,7 @@ export const SplashPage = () => {
         }
       } catch (error) {
         console.error("Auth check error:", error);
-        navigate("/map-intro");
-      }
-    };
+        navigate("/map-intro", { replace: true });
 
     const navTimer = setTimeout(checkAuthAndNavigate, 6000);
     const maxTimer = setTimeout(() => navigate("/map-intro"), 12000);
