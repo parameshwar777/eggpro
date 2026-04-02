@@ -38,6 +38,7 @@ interface SavedAddress {
   city: string;
   pincode: string;
   is_default: boolean;
+  community: string | null;
 }
 
 export const CheckoutPage = () => {
