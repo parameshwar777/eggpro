@@ -1,13 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { MapPin, ShoppingCart, Leaf, Shield, Truck, ChevronRight, Zap } from "lucide-react";
+import { MapPin, ShoppingCart, Leaf, Shield, Truck, ChevronRight, Zap, ChevronDown } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
 import { ProductCard } from "@/components/mobile/ProductCard";
 import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { EggLogo } from "@/components/EggLogo"; // adjust path as needed
+import { EggLogo } from "@/components/EggLogo";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const features = [
   { icon: Leaf, label: "Farm Fresh" },
@@ -40,15 +48,43 @@ interface GroupedProduct {
 export const HomePage = () => {
   const { totalItems } = useCart();
   const navigate = useNavigate();
-  const selectedCommunity = localStorage.getItem("selectedCommunity") || "Select Community";
+  const { user } = useAuth();
+  const [selectedCommunity, setSelectedCommunity] = useState(
+    localStorage.getItem("selectedCommunity") || "Select Community"
+  );
+  const [communities, setCommunities] = useState<{ id: string; name: string }[]>([]);
   const [dbProducts, setDbProducts] = useState<DBProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch communities
+  useEffect(() => {
+    const fetchCommunities = async () => {
+      const { data } = await supabase
+        .from("communities")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      if (data) setCommunities(data);
+    };
+    fetchCommunities();
+  }, []);
+
+  const handleCommunityChange = async (communityName: string) => {
+    setSelectedCommunity(communityName);
+    localStorage.setItem("selectedCommunity", communityName);
+    // Update profile
+    if (user) {
+      await supabase
+        .from("profiles")
+        .update({ community: communityName })
+        .eq("id", user.id);
+    }
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const { data, error } = await supabase.from("products").select("*").eq("in_stock", true).order("name");
-
         if (error) throw error;
         setDbProducts(data || []);
       } catch (error) {
@@ -57,7 +93,6 @@ export const HomePage = () => {
         setIsLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
