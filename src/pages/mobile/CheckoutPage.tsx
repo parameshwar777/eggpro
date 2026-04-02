@@ -167,6 +167,26 @@ export const CheckoutPage = () => {
       toast({ title: "Missing details", description: "Please fill all required fields", variant: "destructive" });
       return;
     }
+    if (!selectedSlotId) {
+      toast({ title: "Select delivery slot", description: "Please choose a delivery time slot", variant: "destructive" });
+      return;
+    }
+    // Check if selected address community matches
+    if (selectedAddressId && selectedAddressId !== "skip") {
+      const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
+      if (selectedAddr) {
+        // Check if the address city/pincode matches the selected community
+        const matchedComm = communities.find(c => c.name === community);
+        if (matchedComm && matchedComm.pincode && selectedAddr.pincode !== matchedComm.pincode) {
+          toast({
+            title: "Address mismatch",
+            description: `You selected "${community}" but your address has a different pincode. Please add an address for this community.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
     // If entering a new address, prompt to save first
     const isNewAddress = showNewAddressForm || savedAddresses.length === 0;
     const isAlreadySaved = selectedAddressId && !showNewAddressForm;
