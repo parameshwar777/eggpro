@@ -165,14 +165,25 @@ export const HomePage = () => {
           </motion.button>
         </div>
 
-        {/* Location below brand */}
+        {/* Location dropdown */}
         <div className="flex items-center gap-2 mb-3">
           <div className="p-2 bg-card/20 rounded-full backdrop-blur-sm flex-shrink-0">
             <MapPin className="w-4 h-4 text-foreground" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] text-foreground/70">Delivering to</p>
-            <p className="font-semibold text-foreground text-sm truncate">{selectedCommunity}</p>
+            <Select value={selectedCommunity} onValueChange={handleCommunityChange}>
+              <SelectTrigger className="h-7 border-0 bg-transparent p-0 text-foreground font-semibold text-sm shadow-none focus:ring-0 [&>svg]:text-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {communities.map((c) => (
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
