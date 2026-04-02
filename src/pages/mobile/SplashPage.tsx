@@ -36,46 +36,11 @@ export const SplashPage = () => {
   }, []);
 
   useEffect(() => {
-    const checkAuthAndNavigate = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          // Check if user is a merchant — redirect to merchant portal
-          const { data: roles } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", session.user.id);
-          const userRoles = roles?.map(r => r.role) || [];
-          if (userRoles.includes("merchant") && !userRoles.includes("admin")) {
-            navigate("/merchant/orders");
-            return;
-          }
-
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("community")
-            .eq("id", session.user.id)
-            .single();
-          
-          if (profile?.community) {
-            localStorage.setItem("selectedCommunity", profile.community);
-            navigate("/home");
-          } else {
-            navigate("/community");
-          }
-        } else {
-          // Not logged in — show map animation then auth
-          navigate("/map-intro", { replace: true });
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
-        navigate("/map-intro", { replace: true });
-      }
-    };
-
-    const navTimer = setTimeout(checkAuthAndNavigate, 6000);
-    const maxTimer = setTimeout(() => navigate("/map-intro", { replace: true }), 12000);
+    // Always show map intro animation, then it handles auth redirect
+    const navTimer = setTimeout(() => {
+      navigate("/map-intro", { replace: true });
+    }, 3000);
+    const maxTimer = setTimeout(() => navigate("/map-intro", { replace: true }), 8000);
     
     return () => {
       clearTimeout(navTimer);
