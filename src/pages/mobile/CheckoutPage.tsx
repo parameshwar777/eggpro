@@ -63,6 +63,8 @@ export const CheckoutPage = () => {
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [communities, setCommunities] = useState<{ id: string; name: string; city: string; pincode: string | null }[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState("");
+  const [deliverySlots] = useState<DeliverySlot[]>(getAvailableDeliverySlots());
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
