@@ -65,15 +65,17 @@ export const SplashPage = () => {
             navigate("/community");
           }
         } else {
-        // Not logged in — show map animation then auth
+          // Not logged in — show map animation then auth
           navigate("/map-intro", { replace: true });
         }
       } catch (error) {
         console.error("Auth check error:", error);
         navigate("/map-intro", { replace: true });
+      }
+    };
 
     const navTimer = setTimeout(checkAuthAndNavigate, 6000);
-    const maxTimer = setTimeout(() => navigate("/map-intro"), 12000);
+    const maxTimer = setTimeout(() => navigate("/map-intro", { replace: true }), 12000);
     
     return () => {
       clearTimeout(navTimer);
