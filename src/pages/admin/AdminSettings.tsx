@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Phone, Image, Upload, Smartphone, Send } from "lucide-react";
+import { Save, Phone, Image, Upload, Smartphone, Send, Eye } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -19,6 +20,8 @@ export const AdminSettings = () => {
   const [isSavingTelegram, setIsSavingTelegram] = useState(false);
   const [isFetchingChats, setIsFetchingChats] = useState(false);
   const [detectedChats, setDetectedChats] = useState<any[]>([]);
+  const [showSubscriptions, setShowSubscriptions] = useState(true);
+  const [isSavingSubscription, setIsSavingSubscription] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -30,17 +33,19 @@ export const AdminSettings = () => {
       const { data, error } = await supabase
         .from("admin_settings")
         .select("*")
-        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "telegram_chat_ids"]);
+        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "telegram_chat_ids", "show_subscriptions"]);
 
       if (!error && data) {
         const whatsapp = data.find(d => d.key === "admin_whatsapp");
         const wallpaper = data.find(d => d.key === "splash_wallpaper");
         const version = data.find(d => d.key === "app_current_version");
         const telegram = data.find(d => d.key === "telegram_chat_ids");
+        const subs = data.find(d => d.key === "show_subscriptions");
         if (whatsapp) setAdminWhatsapp(whatsapp.value);
         if (wallpaper) setWallpaperUrl(wallpaper.value);
         if (version) setAppVersion(version.value);
         if (telegram) setTelegramChatIds(telegram.value);
+        if (subs) setShowSubscriptions(subs.value === "true");
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -307,6 +312,43 @@ export const AdminSettings = () => {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Subscription Toggle */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              Subscription Visibility
+            </h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-amber-100 font-medium">Show Subscriptions</p>
+                <p className="text-xs text-amber-400 mt-1">
+                  When enabled, users can see subscription options. When disabled, only "Buy Once" is shown.
+                </p>
+              </div>
+              <Switch
+                checked={showSubscriptions}
+                onCheckedChange={async (checked) => {
+                  setShowSubscriptions(checked);
+                  setIsSavingSubscription(true);
+                  try {
+                    const { error } = await supabase.from("admin_settings").upsert({
+                      key: "show_subscriptions",
+                      value: String(checked),
+                      updated_at: new Date().toISOString()
+                    }, { onConflict: "key" });
+                    if (error) throw error;
+                    toast({ title: checked ? "Subscriptions enabled" : "Subscriptions hidden" });
+                  } catch (e: any) {
+                    toast({ title: "Error", description: e.message, variant: "destructive" });
+                    setShowSubscriptions(!checked);
+                  } finally {
+                    setIsSavingSubscription(false);
+                  }
+                }}
+              />
             </div>
           </div>
         </div>

@@ -42,8 +42,9 @@ export const ProductDetailPage = () => {
   const [variants, setVariants] = useState<DBProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPack, setSelectedPack] = useState<number>(6);
-  const [isSubscription, setIsSubscription] = useState(true);
+  const [isSubscription, setIsSubscription] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [showSubscriptions, setShowSubscriptions] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -90,6 +91,20 @@ export const ProductDetailPage = () => {
     
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    const fetchSubSetting = async () => {
+      const { data } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "show_subscriptions")
+        .maybeSingle();
+      const enabled = data?.value === "true";
+      setShowSubscriptions(enabled);
+      if (enabled) setIsSubscription(true);
+    };
+    fetchSubSetting();
+  }, []);
 
   // Build prices object from variants
   const prices = useMemo(() => {
@@ -285,6 +300,7 @@ export const ProductDetailPage = () => {
             </motion.div>
 
             {/* Purchase Option */}
+            {showSubscriptions && (
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -330,6 +346,7 @@ export const ProductDetailPage = () => {
                 </motion.button>
               </div>
             </motion.div>
+            )}
 
             {/* Quantity */}
             <motion.div
