@@ -42,8 +42,9 @@ export const ProductDetailPage = () => {
   const [variants, setVariants] = useState<DBProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPack, setSelectedPack] = useState<number>(6);
-  const [isSubscription, setIsSubscription] = useState(true);
+  const [isSubscription, setIsSubscription] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [showSubscriptions, setShowSubscriptions] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
