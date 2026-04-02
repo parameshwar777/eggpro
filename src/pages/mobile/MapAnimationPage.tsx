@@ -269,7 +269,19 @@ export const MapAnimationPage = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        onClick={() => navigate("/auth")}
+        onClick={async () => {
+          try {
+            const { supabase } = await import("@/integrations/supabase/client");
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              navigate("/home", { replace: true });
+            } else {
+              navigate("/auth", { replace: true });
+            }
+          } catch {
+            navigate("/auth", { replace: true });
+          }
+        }}
       >
         Skip →
       </motion.button>
