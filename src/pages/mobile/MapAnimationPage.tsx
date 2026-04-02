@@ -79,6 +79,19 @@ export const MapAnimationPage = () => {
 
       {/* Pins SVG */}
       <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${w} ${h}`}>
+        <defs>
+          <radialGradient id="pinGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FBBF24" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id="pinGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#FBBF24" />
+            <stop offset="100%" stopColor="#F97316" />
+          </linearGradient>
+          <filter id="pinShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#000" floodOpacity="0.3" />
+          </filter>
+        </defs>
         {communities.map((c, i) => {
           const pos = toScreen(c.lat, c.lng, w, h);
           if (i >= visiblePins) return null;
@@ -87,33 +100,35 @@ export const MapAnimationPage = () => {
             <g key={c.name}>
               {/* Glow ring */}
               <motion.circle
-                cx={pos.x} cy={pos.y} r="28"
-                fill="none" stroke="hsl(24 95% 53%)" strokeWidth="3"
-                initial={{ scale: 0, opacity: 0.9 }}
-                animate={{ scale: [0, 1.5, 2.5], opacity: [0.9, 0.4, 0] }}
-                transition={{ duration: 1.2, ease: "easeOut" }}
+                cx={pos.x} cy={pos.y} r="35"
+                fill="url(#pinGlow)"
+                initial={{ scale: 0, opacity: 1 }}
+                animate={{ scale: [0, 2, 3], opacity: [1, 0.5, 0] }}
+                transition={{ duration: 1.4, ease: "easeOut" }}
               />
               {/* Pin marker */}
               <motion.g
-                initial={{ scale: 0, y: -50 }}
+                initial={{ scale: 0, y: -60 }}
                 animate={{ scale: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 250, damping: 12 }}
+                transition={{ type: "spring", stiffness: 220, damping: 10 }}
+                filter="url(#pinShadow)"
               >
                 {/* Pin body - teardrop */}
                 <path
-                  d={`M ${pos.x} ${pos.y - 22} 
-                      C ${pos.x - 14} ${pos.y - 22} ${pos.x - 14} ${pos.y - 6} ${pos.x} ${pos.y + 2} 
-                      C ${pos.x + 14} ${pos.y - 6} ${pos.x + 14} ${pos.y - 22} ${pos.x} ${pos.y - 22} Z`}
-                  fill="hsl(24 95% 53%)"
+                  d={`M ${pos.x} ${pos.y - 28} 
+                      C ${pos.x - 18} ${pos.y - 28} ${pos.x - 18} ${pos.y - 8} ${pos.x} ${pos.y + 4} 
+                      C ${pos.x + 18} ${pos.y - 8} ${pos.x + 18} ${pos.y - 28} ${pos.x} ${pos.y - 28} Z`}
+                  fill="url(#pinGrad)"
                   stroke="white"
-                  strokeWidth="2.5"
+                  strokeWidth="3"
                 />
-                <circle cx={pos.x} cy={pos.y - 13} r="5" fill="white" />
+                <circle cx={pos.x} cy={pos.y - 16} r="6.5" fill="white" />
+                <circle cx={pos.x} cy={pos.y - 16} r="3" fill="#F97316" />
               </motion.g>
               {/* Shadow */}
               <motion.ellipse
-                cx={pos.x} cy={pos.y + 6} rx="8" ry="3"
-                fill="rgba(0,0,0,0.2)"
+                cx={pos.x} cy={pos.y + 8} rx="10" ry="4"
+                fill="rgba(0,0,0,0.18)"
                 initial={{ scale: 0 }} animate={{ scale: 1 }}
                 transition={{ delay: 0.1 }}
               />
@@ -135,21 +150,23 @@ export const MapAnimationPage = () => {
               className="absolute pointer-events-none"
               style={{
                 left: `${(pos.x / w) * 100}%`,
-                top: `${((pos.y - 38) / h) * 100}%`,
+                top: `${((pos.y - 46) / h) * 100}%`,
                 transform: "translateX(-50%)",
               }}
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: i === showLabel ? 1 : 0.75, y: 0 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, y: -10, scale: 0.8 }}
+              animate={{ opacity: i === showLabel ? 1 : 0.8, y: 0, scale: 1 }}
+              transition={{ duration: 0.35, type: "spring", stiffness: 200 }}
             >
               <span
-                className="text-xs font-extrabold whitespace-nowrap px-2.5 py-1 rounded-lg shadow-lg border border-border/60"
+                className="whitespace-nowrap px-3 py-1.5 rounded-xl shadow-xl border-2"
                 style={{
-                  background: "rgba(255,255,255,0.92)",
-                  color: "#1a1a1a",
-                  fontSize: "12px",
-                  letterSpacing: "-0.2px",
+                  background: "linear-gradient(135deg, #FFFBEB, #FEF3C7)",
+                  color: "#92400E",
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  letterSpacing: "-0.3px",
                   lineHeight: 1.3,
+                  borderColor: "#F59E0B",
                 }}
               >
                 📍 {c.name}
