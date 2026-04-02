@@ -300,6 +300,7 @@ export const ProductDetailPage = () => {
             </motion.div>
 
             {/* Purchase Option */}
+            {showSubscriptions && (
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -345,6 +346,7 @@ export const ProductDetailPage = () => {
                 </motion.button>
               </div>
             </motion.div>
+            )}
 
             {/* Quantity */}
             <motion.div
