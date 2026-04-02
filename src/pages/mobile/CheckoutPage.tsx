@@ -86,6 +86,7 @@ export const CheckoutPage = () => {
         .from("communities")
         .select("id, name, city, pincode")
         .eq("is_active", true)
+        .eq("is_visible_production", true)
         .order("name");
       if (comms) {
         setCommunities(comms);
