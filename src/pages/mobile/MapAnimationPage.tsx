@@ -50,8 +50,28 @@ export const MapAnimationPage = () => {
       setShowBranding(true);
     }, 300 + communities.length * 250 + 400);
 
-    const navTimer = setTimeout(() => {
-      navigate("/auth");
+    const navTimer = setTimeout(async () => {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("community")
+            .eq("id", session.user.id)
+            .single();
+          if (profile?.community) {
+            localStorage.setItem("selectedCommunity", profile.community);
+            navigate("/home", { replace: true });
+          } else {
+            navigate("/community", { replace: true });
+          }
+        } else {
+          navigate("/auth", { replace: true });
+        }
+      } catch {
+        navigate("/auth", { replace: true });
+      }
     }, 300 + communities.length * 250 + 4500);
 
     return () => {
@@ -249,7 +269,19 @@ export const MapAnimationPage = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        onClick={() => navigate("/auth")}
+        onClick={async () => {
+          try {
+            const { supabase } = await import("@/integrations/supabase/client");
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              navigate("/home", { replace: true });
+            } else {
+              navigate("/auth", { replace: true });
+            }
+          } catch {
+            navigate("/auth", { replace: true });
+          }
+        }}
       >
         Skip →
       </motion.button>
