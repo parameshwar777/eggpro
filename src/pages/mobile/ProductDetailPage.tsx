@@ -92,6 +92,20 @@ export const ProductDetailPage = () => {
     fetchProduct();
   }, [id]);
 
+  useEffect(() => {
+    const fetchSubSetting = async () => {
+      const { data } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "show_subscriptions")
+        .maybeSingle();
+      const enabled = data?.value === "true";
+      setShowSubscriptions(enabled);
+      if (enabled) setIsSubscription(true);
+    };
+    fetchSubSetting();
+  }, []);
+
   // Build prices object from variants
   const prices = useMemo(() => {
     const priceMap: Record<number, { buy: number; subscribe: number }> = {};
