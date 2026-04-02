@@ -64,6 +64,7 @@ const App = () => (
               <Routes>
                 {/* Mobile User Routes */}
                 <Route path="/" element={<SplashPage />} />
+                <Route path="/map-intro" element={<MapAnimationPage />} />
                 <Route path="/community" element={<CommunitySelectPage />} />
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/orders" element={<OrdersPage />} />
