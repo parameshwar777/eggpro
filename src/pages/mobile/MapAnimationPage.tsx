@@ -37,7 +37,7 @@ export const MapAnimationPage = () => {
 
   useEffect(() => {
     // Drop pins one by one
-    const pinTimers: NodeJS.Timeout[] = [];
+    const pinTimers: ReturnType<typeof setTimeout>[] = [];
     communities.forEach((_, i) => {
       pinTimers.push(
         setTimeout(() => {
