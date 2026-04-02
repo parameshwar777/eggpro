@@ -11,6 +11,7 @@ import { AppUpdateChecker } from "@/components/AppUpdateChecker";
 
 // Mobile Pages
 import { SplashPage } from "./pages/mobile/SplashPage";
+import { MapAnimationPage } from "./pages/mobile/MapAnimationPage";
 import { CommunitySelectPage } from "./pages/mobile/CommunitySelectPage";
 import { HomePage } from "./pages/mobile/HomePage";
 import { OrdersPage } from "./pages/mobile/OrdersPage";
