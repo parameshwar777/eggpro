@@ -143,6 +143,7 @@ export const CheckoutPage = () => {
         address_line1: address,
         city,
         pincode,
+        community: community || null,
         is_default: savedAddresses.length === 0,
       }).select().single();
       
