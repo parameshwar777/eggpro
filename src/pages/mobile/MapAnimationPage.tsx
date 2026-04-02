@@ -52,7 +52,7 @@ export const MapAnimationPage = () => {
 
     const navTimer = setTimeout(() => {
       navigate("/auth");
-    }, 300 + communities.length * 250 + 2500);
+    }, 300 + communities.length * 250 + 4500);
 
     return () => {
       pinTimers.forEach(clearTimeout);
