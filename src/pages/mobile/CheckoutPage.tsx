@@ -38,6 +38,7 @@ interface SavedAddress {
   city: string;
   pincode: string;
   is_default: boolean;
+  community: string | null;
 }
 
 export const CheckoutPage = () => {
@@ -86,6 +87,7 @@ export const CheckoutPage = () => {
         .from("communities")
         .select("id, name, city, pincode")
         .eq("is_active", true)
+        .eq("is_visible_production", true)
         .order("name");
       if (comms) {
         setCommunities(comms);
@@ -141,6 +143,7 @@ export const CheckoutPage = () => {
         address_line1: address,
         city,
         pincode,
+        community: community || null,
         is_default: savedAddresses.length === 0,
       }).select().single();
       
@@ -171,16 +174,14 @@ export const CheckoutPage = () => {
       toast({ title: "Select delivery slot", description: "Please choose a delivery time slot", variant: "destructive" });
       return;
     }
-    // Check if selected address community matches
+    // Check if selected address community matches the global community
     if (selectedAddressId && selectedAddressId !== "skip") {
       const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
-      if (selectedAddr) {
-        // Check if the address city/pincode matches the selected community
-        const matchedComm = communities.find(c => c.name === community);
-        if (matchedComm && matchedComm.pincode && selectedAddr.pincode !== matchedComm.pincode) {
+      if (selectedAddr && selectedAddr.community && community) {
+        if (selectedAddr.community.toLowerCase() !== community.toLowerCase()) {
           toast({
             title: "Address mismatch",
-            description: `You selected "${community}" but your address has a different pincode. Please add an address for this community.`,
+            description: `You selected "${community}" community but this address belongs to "${selectedAddr.community}". Please add an address for "${community}" or switch your community.`,
             variant: "destructive",
           });
           return;

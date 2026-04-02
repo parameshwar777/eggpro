@@ -63,6 +63,7 @@ export const HomePage = () => {
         .from("communities")
         .select("id, name")
         .eq("is_active", true)
+        .eq("is_visible_production", true)
         .order("name");
       if (data) setCommunities(data);
     };

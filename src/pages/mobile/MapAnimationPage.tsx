@@ -17,15 +17,14 @@ const communities = [
   { name: "Harmony County", lat: 17.3505513, lng: 78.3893224 },
 ];
 
-// Convert lat/lng to screen coordinates
-const latMin = 17.33;
-const latMax = 17.38;
-const lngMin = 78.365;
-const lngMax = 78.41;
+const latMin = 17.325;
+const latMax = 17.385;
+const lngMin = 78.36;
+const lngMax = 78.415;
 
 function toScreen(lat: number, lng: number, width: number, height: number) {
-  const x = ((lng - lngMin) / (lngMax - lngMin)) * width * 0.8 + width * 0.1;
-  const y = ((latMax - lat) / (latMax - latMin)) * height * 0.6 + height * 0.15;
+  const x = ((lng - lngMin) / (lngMax - lngMin)) * width * 0.85 + width * 0.075;
+  const y = ((latMax - lat) / (latMax - latMin)) * height * 0.55 + height * 0.18;
   return { x, y };
 }
 
@@ -36,7 +35,6 @@ export const MapAnimationPage = () => {
   const [showLabel, setShowLabel] = useState(-1);
 
   useEffect(() => {
-    // Drop pins one by one
     const pinTimers: ReturnType<typeof setTimeout>[] = [];
     communities.forEach((_, i) => {
       pinTimers.push(
@@ -47,12 +45,10 @@ export const MapAnimationPage = () => {
       );
     });
 
-    // Show branding after all pins
     const brandTimer = setTimeout(() => {
       setShowBranding(true);
     }, 300 + communities.length * 250 + 400);
 
-    // Navigate after animation
     const navTimer = setTimeout(() => {
       navigate("/auth");
     }, 300 + communities.length * 250 + 2500);
@@ -68,49 +64,82 @@ export const MapAnimationPage = () => {
   const h = 754;
 
   return (
-    <div className="min-h-[100dvh] w-full bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 relative overflow-hidden">
-      {/* Subtle grid lines for map feel */}
-      <svg className="absolute inset-0 w-full h-full opacity-10" viewBox={`0 0 ${w} ${h}`}>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <line key={`h${i}`} x1="0" y1={h * 0.1 + i * (h * 0.1)} x2={w} y2={h * 0.1 + i * (h * 0.1)} stroke="hsl(38 92% 50%)" strokeWidth="0.5" />
+    <div className="min-h-[100dvh] w-full relative overflow-hidden" style={{ background: "#e8e4d8" }}>
+      {/* Hyderabad-style map background */}
+      <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid slice">
+        {/* Water bodies */}
+        <ellipse cx={w * 0.15} cy={h * 0.45} rx={35} ry={20} fill="#b8d4e3" opacity={0.5} />
+        <ellipse cx={w * 0.75} cy={h * 0.3} rx={25} ry={12} fill="#b8d4e3" opacity={0.4} />
+        <ellipse cx={w * 0.5} cy={h * 0.7} rx={40} ry={15} fill="#b8d4e3" opacity={0.35} />
+
+        {/* Green patches */}
+        <circle cx={w * 0.1} cy={h * 0.25} r={18} fill="#c5ddb8" opacity={0.4} />
+        <circle cx={w * 0.85} cy={h * 0.5} r={22} fill="#c5ddb8" opacity={0.35} />
+        <circle cx={w * 0.3} cy={h * 0.75} r={15} fill="#c5ddb8" opacity={0.3} />
+        <circle cx={w * 0.65} cy={h * 0.15} r={12} fill="#c5ddb8" opacity={0.3} />
+
+        {/* Major roads */}
+        <motion.path
+          d={`M 0 ${h * 0.35} Q ${w * 0.3} ${h * 0.32} ${w * 0.5} ${h * 0.38} T ${w} ${h * 0.4}`}
+          fill="none" stroke="#c8c0a8" strokeWidth="5" opacity={0.7}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
+        />
+        <motion.path
+          d={`M 0 ${h * 0.55} Q ${w * 0.4} ${h * 0.5} ${w * 0.7} ${h * 0.52} T ${w} ${h * 0.58}`}
+          fill="none" stroke="#c8c0a8" strokeWidth="4" opacity={0.6}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+          transition={{ duration: 1.2, ease: "easeInOut", delay: 0.2 }}
+        />
+        <motion.path
+          d={`M ${w * 0.35} 0 Q ${w * 0.38} ${h * 0.3} ${w * 0.32} ${h * 0.6} T ${w * 0.4} ${h}`}
+          fill="none" stroke="#c8c0a8" strokeWidth="4" opacity={0.6}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+          transition={{ duration: 1, ease: "easeInOut", delay: 0.4 }}
+        />
+        <motion.path
+          d={`M ${w * 0.65} 0 Q ${w * 0.6} ${h * 0.25} ${w * 0.7} ${h * 0.5} T ${w * 0.6} ${h}`}
+          fill="none" stroke="#c8c0a8" strokeWidth="3.5" opacity={0.5}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+          transition={{ duration: 1, ease: "easeInOut", delay: 0.5 }}
+        />
+
+        {/* Secondary roads */}
+        {[0.2, 0.45, 0.65, 0.8].map((yFrac, i) => (
+          <motion.line key={`hr${i}`} x1={0} y1={h * yFrac} x2={w} y2={h * (yFrac + 0.02)}
+            stroke="#d4cdb8" strokeWidth="1.5" opacity={0.4}
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }}
+          />
         ))}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <line key={`v${i}`} x1={w * 0.1 + i * (w * 0.15)} y1="0" x2={w * 0.1 + i * (w * 0.15)} y2={h} stroke="hsl(38 92% 50%)" strokeWidth="0.5" />
+        {[0.15, 0.5, 0.8].map((xFrac, i) => (
+          <motion.line key={`vr${i}`} x1={w * xFrac} y1={0} x2={w * (xFrac + 0.02)} y2={h}
+            stroke="#d4cdb8" strokeWidth="1.5" opacity={0.4}
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 + i * 0.1 }}
+          />
         ))}
+
+        {/* ORR ring road */}
+        <motion.ellipse
+          cx={w * 0.48} cy={h * 0.44} rx={w * 0.38} ry={h * 0.22}
+          fill="none" stroke="#a8b8c8" strokeWidth="3" strokeDasharray="8 4" opacity={0.5}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+          transition={{ duration: 2, ease: "easeInOut" }}
+        />
+
+        {/* "Hyderabad" label */}
+        <motion.text
+          x={w * 0.5} y={h * 0.14} textAnchor="middle" fontSize="14" fontWeight="700"
+          fill="#8a7e6a" letterSpacing="3" opacity={0.6}
+          initial={{ opacity: 0 }} animate={{ opacity: 0.6 }}
+          transition={{ delay: 0.5 }}
+        >
+          HYDERABAD
+        </motion.text>
       </svg>
 
-      {/* Road-like curved paths */}
-      <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${w} ${h}`}>
-        <motion.path
-          d={`M ${w * 0.1} ${h * 0.3} Q ${w * 0.5} ${h * 0.2} ${w * 0.9} ${h * 0.4}`}
-          fill="none"
-          stroke="hsl(38 50% 75%)"
-          strokeWidth="2"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1.5, ease: "easeInOut" }}
-        />
-        <motion.path
-          d={`M ${w * 0.15} ${h * 0.6} Q ${w * 0.4} ${h * 0.5} ${w * 0.85} ${h * 0.55}`}
-          fill="none"
-          stroke="hsl(38 50% 75%)"
-          strokeWidth="2"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1.5, ease: "easeInOut", delay: 0.3 }}
-        />
-        <motion.path
-          d={`M ${w * 0.3} ${h * 0.15} Q ${w * 0.35} ${h * 0.45} ${w * 0.25} ${h * 0.7}`}
-          fill="none"
-          stroke="hsl(38 50% 75%)"
-          strokeWidth="1.5"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1.2, ease: "easeInOut", delay: 0.5 }}
-        />
-      </svg>
-
-      {/* Pins */}
+      {/* Pins SVG */}
       <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${w} ${h}`}>
         {communities.map((c, i) => {
           const pos = toScreen(c.lat, c.lng, w, h);
@@ -120,42 +149,26 @@ export const MapAnimationPage = () => {
             <g key={c.name}>
               {/* Glow ring */}
               <motion.circle
-                cx={pos.x}
-                cy={pos.y}
-                r="18"
-                fill="none"
-                stroke="hsl(38 92% 50%)"
-                strokeWidth="2"
+                cx={pos.x} cy={pos.y} r="24"
+                fill="none" stroke="hsl(24 95% 53%)" strokeWidth="2.5"
                 initial={{ scale: 0, opacity: 0.8 }}
-                animate={{ scale: [0, 1.5, 2], opacity: [0.8, 0.3, 0] }}
-                transition={{ duration: 1, ease: "easeOut" }}
+                animate={{ scale: [0, 1.5, 2.2], opacity: [0.8, 0.3, 0] }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
               />
-              {/* Pin dot */}
-              <motion.circle
-                cx={pos.x}
-                cy={pos.y}
-                r="6"
-                fill="hsl(24 95% 53%)"
-                stroke="white"
-                strokeWidth="2"
-                initial={{ scale: 0, y: -30 }}
+              {/* Pin marker - teardrop shape */}
+              <motion.g
+                initial={{ scale: 0, y: -40 }}
                 animate={{ scale: 1, y: 0 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 12,
-                  delay: 0,
-                }}
-              />
-              {/* Pin shadow */}
+                transition={{ type: "spring", stiffness: 250, damping: 12 }}
+              >
+                <circle cx={pos.x} cy={pos.y} r="10" fill="hsl(24 95% 53%)" stroke="white" strokeWidth="3" />
+                <circle cx={pos.x} cy={pos.y} r="4" fill="white" />
+              </motion.g>
+              {/* Shadow */}
               <motion.ellipse
-                cx={pos.x}
-                cy={pos.y + 10}
-                rx="4"
-                ry="1.5"
+                cx={pos.x} cy={pos.y + 14} rx="6" ry="2"
                 fill="rgba(0,0,0,0.15)"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
                 transition={{ delay: 0.1 }}
               />
             </g>
@@ -168,7 +181,6 @@ export const MapAnimationPage = () => {
         {communities.map((c, i) => {
           const pos = toScreen(c.lat, c.lng, w, h);
           if (i >= visiblePins) return null;
-          // Only show recent label to avoid clutter
           const isRecent = i === showLabel || i >= visiblePins - 3;
 
           return isRecent ? (
@@ -176,15 +188,15 @@ export const MapAnimationPage = () => {
               key={`label-${c.name}`}
               className="absolute pointer-events-none"
               style={{
-                left: pos.x,
-                top: pos.y - 24,
+                left: `${(pos.x / w) * 100}%`,
+                top: `${((pos.y - 28) / h) * 100}%`,
                 transform: "translateX(-50%)",
               }}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: i === showLabel ? 1 : 0.6, y: 0 }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: i === showLabel ? 1 : 0.7, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <span className="text-[8px] font-semibold text-foreground bg-card/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full shadow-sm whitespace-nowrap border border-border/50">
+              <span className="text-[11px] font-bold text-foreground bg-card/95 backdrop-blur-sm px-2 py-1 rounded-lg shadow-md whitespace-nowrap border border-border/60" style={{ lineHeight: 1.2 }}>
                 {c.name}
               </span>
             </motion.div>
@@ -194,13 +206,13 @@ export const MapAnimationPage = () => {
 
       {/* Title at top */}
       <motion.div
-        className="absolute top-12 left-0 right-0 text-center"
+        className="absolute top-10 left-0 right-0 text-center z-10"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.5 }}
       >
         <p className="text-sm font-medium text-muted-foreground">Delivering to</p>
-        <p className="text-lg font-bold text-foreground">Hyderabad Communities</p>
+        <p className="text-xl font-extrabold text-foreground tracking-tight">Hyderabad Communities</p>
       </motion.div>
 
       {/* Branding overlay */}
@@ -258,9 +270,9 @@ export const MapAnimationPage = () => {
 
       {/* Skip button */}
       <motion.button
-        className="absolute bottom-8 right-6 text-sm text-muted-foreground underline z-20"
+        className="absolute bottom-8 right-6 text-sm text-muted-foreground font-semibold underline z-20"
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.7 }}
+        animate={{ opacity: 0.8 }}
         transition={{ delay: 1 }}
         onClick={() => navigate("/auth")}
       >
