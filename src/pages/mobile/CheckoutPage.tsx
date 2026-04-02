@@ -316,7 +316,8 @@ export const CheckoutPage = () => {
 
         if (verifyError) throw verifyError;
 
-        toast({ title: "Order Placed!", description: `Your order has been confirmed. Delivery: ${getDeliverySlot()}` });
+        const slotLabel = deliverySlots.find(s => s.id === selectedSlotId)?.fullLabel || "";
+        toast({ title: "Order Placed!", description: `Your order has been confirmed. Delivery: ${slotLabel}` });
         clearCart();
         navigate("/orders");
       } catch (payError: any) {
