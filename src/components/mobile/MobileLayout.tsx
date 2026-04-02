@@ -16,7 +16,7 @@ export const MobileLayout = ({ children, hideNav = false }: MobileLayoutProps) =
         exit={{ opacity: 0 }}
         className="flex-1 overflow-y-auto overscroll-contain"
       >
-        <div className={hideNav ? "" : "pb-24"}>
+        <div className={hideNav ? "" : "pb-28"}>
           {children}
         </div>
       </motion.main>
