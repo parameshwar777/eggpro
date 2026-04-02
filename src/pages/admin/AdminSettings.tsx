@@ -314,6 +314,43 @@ export const AdminSettings = () => {
               )}
             </div>
           </div>
+
+          {/* Subscription Toggle */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              Subscription Visibility
+            </h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-amber-100 font-medium">Show Subscriptions</p>
+                <p className="text-xs text-amber-400 mt-1">
+                  When enabled, users can see subscription options. When disabled, only "Buy Once" is shown.
+                </p>
+              </div>
+              <Switch
+                checked={showSubscriptions}
+                onCheckedChange={async (checked) => {
+                  setShowSubscriptions(checked);
+                  setIsSavingSubscription(true);
+                  try {
+                    const { error } = await supabase.from("admin_settings").upsert({
+                      key: "show_subscriptions",
+                      value: String(checked),
+                      updated_at: new Date().toISOString()
+                    }, { onConflict: "key" });
+                    if (error) throw error;
+                    toast({ title: checked ? "Subscriptions enabled" : "Subscriptions hidden" });
+                  } catch (e: any) {
+                    toast({ title: "Error", description: e.message, variant: "destructive" });
+                    setShowSubscriptions(!checked);
+                  } finally {
+                    setIsSavingSubscription(false);
+                  }
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </AdminLayout>
