@@ -65,8 +65,8 @@ export const SplashPage = () => {
             navigate("/community");
           }
         } else {
-          // Not logged in — show map animation then auth
-          navigate("/map-intro");
+        // Not logged in — show map animation then auth
+          navigate("/map-intro", { replace: true });
         }
       } catch (error) {
         console.error("Auth check error:", error);
