@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { isCapacitorNative, openRazorpayCheckout } from "@/lib/capacitorPayment";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Wallet, Tag, Info, Plus, Check, Truck } from "lucide-react";
+import { ArrowLeft, MapPin, Wallet, Tag, Info, Plus, Check, Truck, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { getDeliverySlot } from "@/lib/deliveryTime";
+import { getAvailableDeliverySlots, type DeliverySlot } from "@/lib/deliverySlots";
 import {
   AlertDialog,
   AlertDialogAction,
