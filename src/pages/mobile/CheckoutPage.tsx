@@ -480,19 +480,57 @@ export const CheckoutPage = () => {
             </motion.div>
           )}
 
-          {/* Delivery Info */}
+          {/* Delivery Slot Selection */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="bg-green-50 rounded-2xl p-4 flex items-center gap-3 border border-green-200"
+            className="bg-card rounded-2xl p-4 shadow-card"
           >
-            <div className="p-2.5 bg-green-100 rounded-xl flex-shrink-0">
-              <Truck className="w-5 h-5 text-green-600" />
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-green-100 rounded-full">
+                <Clock className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Select Delivery Slot</h3>
+                <p className="text-xs text-muted-foreground">Choose your preferred delivery time</p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-green-800">Estimated Delivery Today</p>
-              <p className="text-sm text-green-600">Your order will be delivered between {getDeliverySlot()}</p>
+            <div className="space-y-2">
+              {deliverySlots.map((slot) => (
+                <motion.button
+                  key={slot.id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedSlotId(slot.id)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all",
+                    selectedSlotId === slot.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-secondary/30"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Truck className={cn(
+                      "w-4 h-4",
+                      selectedSlotId === slot.id ? "text-primary" : "text-muted-foreground"
+                    )} />
+                    <div className="text-left">
+                      <p className={cn(
+                        "text-sm font-medium",
+                        selectedSlotId === slot.id ? "text-primary" : "text-foreground"
+                      )}>
+                        {slot.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{slot.date}</p>
+                    </div>
+                  </div>
+                  {selectedSlotId === slot.id && (
+                    <div className="p-1 bg-primary rounded-full">
+                      <Check className="w-3 h-3 text-primary-foreground" />
+                    </div>
+                  )}
+                </motion.button>
+              ))}
             </div>
           </motion.div>
 
