@@ -27,6 +27,7 @@ interface Address {
   city: string;
   pincode: string;
   is_default: boolean;
+  community: string | null;
 }
 
 const PRESET_LABELS = [
@@ -62,7 +63,7 @@ export const AddressPage = () => {
     if (user) fetchAddresses();
     else setIsLoading(false);
     fetchCommunities();
-  }, [user]);
+  }, [user, userCommunity]);
 
   const fetchCommunities = async () => {
     const { data } = await supabase
@@ -82,9 +83,18 @@ export const AddressPage = () => {
 
   const fetchAddresses = async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from("user_addresses").select("*").eq("user_id", user.id)
+    let query = supabase
+      .from("user_addresses")
+      .select("*")
+      .eq("user_id", user.id)
       .order("is_default", { ascending: false });
+
+    if (userCommunity) {
+      query = query.eq("community", userCommunity);
+    }
+
+    const { data, error } = await query;
+
     if (!error && data) setAddresses(data);
     setIsLoading(false);
   };
@@ -240,7 +250,9 @@ export const AddressPage = () => {
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
             className="bg-card rounded-2xl p-6 sm:p-8 shadow-card flex flex-col items-center">
             <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 2 }} className="text-4xl sm:text-5xl mb-3">📍</motion.div>
-            <p className="text-muted-foreground mb-4 text-sm">No addresses added yet</p>
+            <p className="text-muted-foreground mb-4 text-sm text-center">
+              {userCommunity ? `No addresses added for ${userCommunity} yet` : "No addresses added yet"}
+            </p>
             <Button onClick={openAddForm}><Plus className="w-4 h-4 mr-2" />Add Address</Button>
           </motion.div>
         ) : (
@@ -325,7 +337,7 @@ export const AddressPage = () => {
             {/* Community (auto-filled, disabled) */}
             <div>
               <label className="text-xs sm:text-sm font-medium text-foreground">Community</label>
-              <Input className="mt-1 text-sm bg-secondary" value={userCommunity} disabled />
+              <Input className="mt-1 text-sm bg-secondary" value={editingAddress?.community || userCommunity} disabled />
             </div>
 
             {/* Phone */}
