@@ -100,12 +100,18 @@ export const CheckoutPage = () => {
         }
       }
 
-      // Fetch saved addresses
-      const { data: addresses } = await supabase
+      // Fetch saved addresses filtered by current community
+      let addressQuery = supabase
         .from("user_addresses")
         .select("*")
         .eq("user_id", user.id)
         .order("is_default", { ascending: false });
+      
+      if (community) {
+        addressQuery = addressQuery.eq("community", community);
+      }
+      
+      const { data: addresses } = await addressQuery;
       
       if (addresses && addresses.length > 0) {
         setSavedAddresses(addresses);
