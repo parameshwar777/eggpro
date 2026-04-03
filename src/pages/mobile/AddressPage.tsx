@@ -153,7 +153,7 @@ export const AddressPage = () => {
       } else {
         // Insert new
         const { error } = await supabase.from("user_addresses")
-          .insert({ user_id: user.id, label, phone, address_line1: addressLine1, address_line2: addressLine2 || null, city, pincode, is_default: isDefault });
+          .insert({ user_id: user.id, label, phone, address_line1: addressLine1, address_line2: addressLine2 || null, city, pincode, is_default: isDefault, community: userCommunity || null });
         if (error) throw error;
         toast({ title: "Address saved!" });
       }
