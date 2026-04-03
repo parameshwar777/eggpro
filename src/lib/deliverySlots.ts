@@ -47,12 +47,13 @@ export function getAvailableDeliverySlots(): DeliverySlot[] {
     );
   } else if (hour >= 9 && hour < 14) {
     // Morning: current window is slot 2 (delivery 3-5)
-    // Show slot 3 today + all 3 tomorrow
+    // Show slot 3 today + slot 1 & slot 2 tomorrow
     const todayLabel = formatDate(today);
     const tomorrowLabel = formatDate(tomorrow);
     slots.push(
       { id: "slot3", label: "7 PM - 8:30 PM", date: todayLabel, fullLabel: `${todayLabel}, 7 PM - 8:30 PM` },
       { id: "slot1_tmr", label: "10 AM - 12 PM", date: tomorrowLabel, fullLabel: `${tomorrowLabel}, 10 AM - 12 PM` },
+      { id: "slot2_tmr", label: "3 PM - 5 PM", date: tomorrowLabel, fullLabel: `${tomorrowLabel}, 3 PM - 5 PM` },
     );
   } else {
     // Afternoon (2-6 PM): current window is slot 3 (delivery 7-8:30)
