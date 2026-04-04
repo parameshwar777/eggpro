@@ -143,7 +143,8 @@ export const AddressPage = () => {
 
   const handleSaveAddress = async () => {
     if (!user) { toast({ title: "Please login", variant: "destructive" }); return; }
-    if (!phone || !addressLine1 || !pincode) { toast({ title: "Fill required fields", variant: "destructive" }); return; }
+    if (!phone || phone.length !== 10 || !/^\d{10}$/.test(phone)) { toast({ title: "Enter a valid 10-digit phone number", variant: "destructive" }); return; }
+    if (!addressLine1 || !pincode) { toast({ title: "Fill required fields", variant: "destructive" }); return; }
 
     const label = useCustomLabel ? customLabel.trim() : selectedLabel;
     if (!label) { toast({ title: "Please select or enter a label", variant: "destructive" }); return; }
@@ -344,7 +345,7 @@ export const AddressPage = () => {
             <div>
               <label className="text-xs sm:text-sm font-medium text-foreground">Phone Number <span className="text-destructive">*</span></label>
               <Input placeholder="10-digit mobile number" className="mt-1 text-sm" value={phone}
-                onChange={(e) => setPhone(e.target.value)} maxLength={10} />
+                onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setPhone(v); }} maxLength={10} type="tel" inputMode="numeric" pattern="[0-9]*" />
             </div>
 
             {/* Address Line 1 */}
