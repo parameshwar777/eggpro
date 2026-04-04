@@ -16,6 +16,7 @@ interface ProductCardProps {
   originalPrice: number;
   rating: number;
   packSizes: number[];
+  variantPrices?: Record<number, { price: number; originalPrice: number }>;
   delay?: number;
 }
 
