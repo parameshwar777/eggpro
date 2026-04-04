@@ -55,8 +55,8 @@ export const ProductCard = ({
       id: cartItemId,
       name,
       image,
-      price: price * (selectedPack / packSizes[0]),
-      originalPrice: originalPrice * (selectedPack / packSizes[0]),
+      price: currentPrice,
+      originalPrice: currentOriginalPrice,
       packSize: selectedPack,
       isSubscription: false
     });
