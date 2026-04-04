@@ -154,7 +154,11 @@ export const SubscriptionPage = () => {
       return;
     }
 
-    if (!phone || !address || !pincode) {
+    if (!phone || phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+      toast({ title: "Invalid phone", description: "Enter a valid 10-digit phone number", variant: "destructive" });
+      return;
+    }
+    if (!address || !pincode) {
       toast({ title: "Missing details", description: "Please fill all required fields", variant: "destructive" });
       return;
     }
