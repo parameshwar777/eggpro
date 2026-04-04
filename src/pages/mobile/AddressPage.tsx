@@ -143,7 +143,8 @@ export const AddressPage = () => {
 
   const handleSaveAddress = async () => {
     if (!user) { toast({ title: "Please login", variant: "destructive" }); return; }
-    if (!phone || !addressLine1 || !pincode) { toast({ title: "Fill required fields", variant: "destructive" }); return; }
+    if (!phone || phone.length !== 10 || !/^\d{10}$/.test(phone)) { toast({ title: "Enter a valid 10-digit phone number", variant: "destructive" }); return; }
+    if (!addressLine1 || !pincode) { toast({ title: "Fill required fields", variant: "destructive" }); return; }
 
     const label = useCustomLabel ? customLabel.trim() : selectedLabel;
     if (!label) { toast({ title: "Please select or enter a label", variant: "destructive" }); return; }
