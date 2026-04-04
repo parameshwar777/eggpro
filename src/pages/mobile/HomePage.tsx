@@ -248,6 +248,7 @@ export const HomePage = () => {
               originalPrice={product.originalPrice}
               rating={product.rating}
               packSizes={product.packSizes}
+              variantPrices={product.variantPrices}
               delay={0.5 + i * 0.1}
             />
           ))}
