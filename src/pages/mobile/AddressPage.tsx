@@ -344,7 +344,7 @@ export const AddressPage = () => {
             <div>
               <label className="text-xs sm:text-sm font-medium text-foreground">Phone Number <span className="text-destructive">*</span></label>
               <Input placeholder="10-digit mobile number" className="mt-1 text-sm" value={phone}
-                onChange={(e) => setPhone(e.target.value)} maxLength={10} />
+                onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setPhone(v); }} maxLength={10} type="tel" inputMode="numeric" pattern="[0-9]*" />
             </div>
 
             {/* Address Line 1 */}
