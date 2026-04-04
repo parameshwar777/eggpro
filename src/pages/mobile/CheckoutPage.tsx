@@ -453,9 +453,12 @@ export const CheckoutPage = () => {
                 <Input
                   placeholder="10-digit mobile number"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setPhone(v); }}
                   className="mt-1"
                   maxLength={10}
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
               </div>
 
