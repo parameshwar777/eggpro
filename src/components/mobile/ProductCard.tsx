@@ -136,10 +136,10 @@ export const ProductCard = ({
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-baseline gap-1.5">
               <span className="text-base sm:text-lg font-bold text-primary">
-                ₹{Math.round(price * (selectedPack / packSizes[0]))}
+                ₹{Math.round(currentPrice)}
               </span>
               <span className="text-xs text-muted-foreground line-through">
-                ₹{Math.round(originalPrice * (selectedPack / packSizes[0]))}
+                ₹{Math.round(currentOriginalPrice)}
               </span>
             </div>
             
