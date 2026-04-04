@@ -16,6 +16,7 @@ interface ProductCardProps {
   originalPrice: number;
   rating: number;
   packSizes: number[];
+  variantPrices?: Record<number, { price: number; originalPrice: number }>;
   delay?: number;
 }
 
@@ -28,13 +29,18 @@ export const ProductCard = ({
   originalPrice,
   rating,
   packSizes,
+  variantPrices,
   delay = 0,
 }: ProductCardProps) => {
   const navigate = useNavigate();
   const { addToCart, items, updateQuantity, removeFromCart } = useCart();
   const { toast } = useToast();
   const [selectedPack, setSelectedPack] = useState(packSizes[0]);
-  const discount = Math.round(((originalPrice - price) / originalPrice) * 100);
+
+  // Get price for the selected pack from variantPrices if available, otherwise scale
+  const currentPrice = variantPrices?.[selectedPack]?.price ?? price * (selectedPack / packSizes[0]);
+  const currentOriginalPrice = variantPrices?.[selectedPack]?.originalPrice ?? originalPrice * (selectedPack / packSizes[0]);
+  const discount = Math.round(((currentOriginalPrice - currentPrice) / currentOriginalPrice) * 100);
 
   const cartItemId = `${id}-${selectedPack}`;
 
@@ -49,8 +55,8 @@ export const ProductCard = ({
       id: cartItemId,
       name,
       image,
-      price: price * (selectedPack / packSizes[0]),
-      originalPrice: originalPrice * (selectedPack / packSizes[0]),
+      price: currentPrice,
+      originalPrice: currentOriginalPrice,
       packSize: selectedPack,
       isSubscription: false
     });
@@ -130,10 +136,10 @@ export const ProductCard = ({
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-baseline gap-1.5">
               <span className="text-base sm:text-lg font-bold text-primary">
-                ₹{Math.round(price * (selectedPack / packSizes[0]))}
+                ₹{Math.round(currentPrice)}
               </span>
               <span className="text-xs text-muted-foreground line-through">
-                ₹{Math.round(originalPrice * (selectedPack / packSizes[0]))}
+                ₹{Math.round(currentOriginalPrice)}
               </span>
             </div>
             

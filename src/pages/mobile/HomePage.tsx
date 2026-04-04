@@ -43,6 +43,7 @@ interface GroupedProduct {
   originalPrice: number;
   rating: number;
   packSizes: number[];
+  variantPrices: Record<number, { price: number; originalPrice: number }>;
 }
 
 export const HomePage = () => {
@@ -118,6 +119,12 @@ export const HomePage = () => {
       const baseVariant = sortedVariants[0]; // 6 eggs variant (smallest)
       const packSizes = sortedVariants.map((v) => parseInt(v.unit?.replace(/\D/g, "") || "6"));
 
+      const variantPrices: Record<number, { price: number; originalPrice: number }> = {};
+      sortedVariants.forEach((v) => {
+        const size = parseInt(v.unit?.replace(/\D/g, "") || "6");
+        variantPrices[size] = { price: v.price, originalPrice: v.original_price || v.price };
+      });
+
       return {
         id: baseVariant.id,
         name: name,
@@ -127,6 +134,7 @@ export const HomePage = () => {
         originalPrice: baseVariant.original_price || baseVariant.price,
         rating: 4.8,
         packSizes,
+        variantPrices,
       };
     });
   }, [dbProducts]);
@@ -240,6 +248,7 @@ export const HomePage = () => {
               originalPrice={product.originalPrice}
               rating={product.rating}
               packSizes={product.packSizes}
+              variantPrices={product.variantPrices}
               delay={0.5 + i * 0.1}
             />
           ))}
