@@ -29,13 +29,18 @@ export const ProductCard = ({
   originalPrice,
   rating,
   packSizes,
+  variantPrices,
   delay = 0,
 }: ProductCardProps) => {
   const navigate = useNavigate();
   const { addToCart, items, updateQuantity, removeFromCart } = useCart();
   const { toast } = useToast();
   const [selectedPack, setSelectedPack] = useState(packSizes[0]);
-  const discount = Math.round(((originalPrice - price) / originalPrice) * 100);
+
+  // Get price for the selected pack from variantPrices if available, otherwise scale
+  const currentPrice = variantPrices?.[selectedPack]?.price ?? price * (selectedPack / packSizes[0]);
+  const currentOriginalPrice = variantPrices?.[selectedPack]?.originalPrice ?? originalPrice * (selectedPack / packSizes[0]);
+  const discount = Math.round(((currentOriginalPrice - currentPrice) / currentOriginalPrice) * 100);
 
   const cartItemId = `${id}-${selectedPack}`;
 
