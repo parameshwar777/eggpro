@@ -43,11 +43,13 @@ export const AdminSettings = () => {
         const version = data.find(d => d.key === "app_current_version");
         const telegram = data.find(d => d.key === "telegram_chat_ids");
         const subs = data.find(d => d.key === "show_subscriptions");
+        const referral = data.find(d => d.key === "show_referral");
         if (whatsapp) setAdminWhatsapp(whatsapp.value);
         if (wallpaper) setWallpaperUrl(wallpaper.value);
         if (version) setAppVersion(version.value);
         if (telegram) setTelegramChatIds(telegram.value);
         if (subs) setShowSubscriptions(subs.value === "true");
+        if (referral) setShowReferral(referral.value === "true");
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
