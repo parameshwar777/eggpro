@@ -29,6 +29,7 @@ interface DBProduct {
   description: string | null;
   price: number;
   original_price: number | null;
+  buy_once_price: number | null;
   unit: string | null;
   image_url: string | null;
   in_stock: boolean | null;
