@@ -131,7 +131,7 @@ export const HomePage = () => {
         name: name,
         description: baseVariant.description || "",
         image: baseVariant.image_url || "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=600",
-        price: baseVariant.price,
+        price: baseVariant.buy_once_price || baseVariant.price,
         originalPrice: baseVariant.original_price || baseVariant.price,
         rating: 4.8,
         packSizes,

@@ -412,14 +412,14 @@ export const ProductDetailPage = () => {
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-foreground">₹{finalPrice * quantity}</span>
-                  {isSubscription && (
+                  {finalPrice < currentPrice.original && (
                     <span className="text-sm text-muted-foreground line-through">
-                      ₹{currentPrice.buy * quantity}
+                      ₹{currentPrice.original * quantity}
                     </span>
                   )}
                 </div>
-                {isSubscription && (
-                  <p className="text-sm text-green-600 font-medium">You save ₹{savings * quantity}</p>
+                {finalPrice < currentPrice.original && (
+                  <p className="text-sm text-green-600 font-medium">You save ₹{(currentPrice.original - finalPrice) * quantity}</p>
                 )}
               </div>
               {isInCart ? (

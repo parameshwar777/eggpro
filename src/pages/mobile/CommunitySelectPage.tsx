@@ -280,7 +280,7 @@ export const CommunitySelectPage = () => {
 
             <AnimatePresence>
               {isDropdownOpen && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-lg z-50 max-h-64 overflow-hidden">
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute bottom-full left-0 right-0 mb-2 bg-card border border-border rounded-xl shadow-lg z-50 max-h-64 overflow-hidden">
                   <div className="p-2 border-b sticky top-0 bg-card">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
