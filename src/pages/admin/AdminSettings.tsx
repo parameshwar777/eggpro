@@ -22,6 +22,8 @@ export const AdminSettings = () => {
   const [detectedChats, setDetectedChats] = useState<any[]>([]);
   const [showSubscriptions, setShowSubscriptions] = useState(true);
   const [isSavingSubscription, setIsSavingSubscription] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
+  const [isSavingReferral, setIsSavingReferral] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
