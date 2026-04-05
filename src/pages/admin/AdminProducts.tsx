@@ -236,48 +236,44 @@ export const AdminProducts = () => {
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
         </div>
       ) : (
-        <div className="bg-amber-900/50 rounded-xl border border-amber-800 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-amber-800/50">
-              <tr>
-                <th className="text-left p-4 text-amber-200 font-medium">Product</th>
-                <th className="text-left p-4 text-amber-200 font-medium">Unit</th>
-                <th className="text-left p-4 text-amber-200 font-medium">MRP</th>
-                <th className="text-left p-4 text-amber-200 font-medium">Buy Once</th>
-                <th className="text-left p-4 text-amber-200 font-medium">Subscription</th>
-                <th className="text-left p-4 text-amber-200 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr key={product.id} className="border-t border-amber-800">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <img src={product.image_url} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
-                      <div>
-                        <p className="text-amber-100 font-medium">{product.name}</p>
-                        <p className="text-amber-400 text-sm">{product.description}</p>
-                      </div>
+        <div className="space-y-3">
+          {products.map((product) => (
+            <div key={product.id} className="bg-amber-900/50 rounded-xl border border-amber-800 p-4">
+              <div className="flex items-start gap-3">
+                <img src={product.image_url} alt={product.name} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-amber-100 font-semibold text-sm">{product.name}</p>
+                      <p className="text-amber-400 text-xs mt-0.5">{product.unit}</p>
                     </div>
-                  </td>
-                  <td className="p-4 text-amber-200">{product.unit}</td>
-                  <td className="p-4 text-amber-300">₹{product.original_price}</td>
-                  <td className="p-4 text-amber-100 font-medium">₹{product.buy_once_price}</td>
-                  <td className="p-4 text-green-400 font-medium">₹{product.price}</td>
-                  <td className="p-4">
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" className="text-amber-300 hover:text-amber-100 hover:bg-amber-800" onClick={() => handleEdit(product)}>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-amber-300 hover:text-amber-100 hover:bg-amber-800" onClick={() => handleEdit(product)}>
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-amber-800" onClick={() => handleDelete(product.id)}>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-amber-800" onClick={() => handleDelete(product.id)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <div>
+                      <p className="text-[10px] text-amber-500 uppercase">MRP</p>
+                      <p className="text-amber-300 text-sm line-through">₹{product.original_price}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-amber-500 uppercase">Buy Once</p>
+                      <p className="text-amber-100 text-sm font-semibold">₹{product.buy_once_price}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-green-500 uppercase">Subscribe</p>
+                      <p className="text-green-400 text-sm font-semibold">₹{product.price}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </AdminLayout>
