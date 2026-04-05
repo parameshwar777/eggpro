@@ -109,12 +109,13 @@ export const ProductDetailPage = () => {
 
   // Build prices object from variants
   const prices = useMemo(() => {
-    const priceMap: Record<number, { buy: number; subscribe: number }> = {};
+    const priceMap: Record<number, { buy: number; subscribe: number; original: number }> = {};
     variants.forEach((v) => {
       const packSize = parseInt(v.unit?.replace(/\D/g, '') || '6');
       priceMap[packSize] = {
-        buy: v.original_price || v.price,
+        buy: v.buy_once_price || v.original_price || v.price,
         subscribe: v.price,
+        original: v.original_price || v.price,
       };
     });
     return priceMap;
