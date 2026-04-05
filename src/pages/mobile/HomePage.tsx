@@ -123,7 +123,7 @@ export const HomePage = () => {
       const variantPrices: Record<number, { price: number; originalPrice: number }> = {};
       sortedVariants.forEach((v) => {
         const size = parseInt(v.unit?.replace(/\D/g, "") || "6");
-        variantPrices[size] = { price: v.price, originalPrice: v.original_price || v.price };
+        variantPrices[size] = { price: v.buy_once_price || v.price, originalPrice: v.original_price || v.price };
       });
 
       return {
