@@ -324,6 +324,9 @@ export const ProductDetailPage = () => {
                     <span className="font-medium text-foreground">Buy Once</span>
                   </div>
                   <p className="text-2xl font-bold text-foreground">₹{currentPrice.buy}</p>
+                  {currentPrice.buy < currentPrice.original && (
+                    <p className="text-xs text-muted-foreground line-through">₹{currentPrice.original}</p>
+                  )}
                 </motion.button>
 
                 {/* Subscribe */}
@@ -344,6 +347,9 @@ export const ProductDetailPage = () => {
                     <span className="font-medium text-foreground">Subscribe</span>
                   </div>
                   <p className="text-2xl font-bold text-primary">₹{currentPrice.subscribe}</p>
+                  {currentPrice.subscribe < currentPrice.original && (
+                    <p className="text-xs text-muted-foreground line-through">₹{currentPrice.original}</p>
+                  )}
                 </motion.button>
               </div>
             </motion.div>
