@@ -160,8 +160,7 @@ export const ProductDetailPage = () => {
 
   const currentPrice = prices[selectedPack] || prices[packSizes[0]];
   const finalPrice = isSubscription ? currentPrice.subscribe : currentPrice.buy;
-  const savings = currentPrice.buy - currentPrice.subscribe;
-  const discountPercent = Math.round((savings / currentPrice.buy) * 100);
+  const discountPercent = Math.round(((currentPrice.original - finalPrice) / currentPrice.original) * 100);
 
   // Get variant ID for the selected pack size
   const selectedVariant = variants.find(v => parseInt(v.unit?.replace(/\D/g, '') || '0') === selectedPack);
