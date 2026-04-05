@@ -14,6 +14,7 @@ interface DBProduct {
   description: string | null;
   price: number;
   original_price: number | null;
+  buy_once_price: number | null;
   unit: string | null;
   image_url: string | null;
   in_stock: boolean | null;
@@ -108,12 +109,13 @@ export const ProductDetailPage = () => {
 
   // Build prices object from variants
   const prices = useMemo(() => {
-    const priceMap: Record<number, { buy: number; subscribe: number }> = {};
+    const priceMap: Record<number, { buy: number; subscribe: number; original: number }> = {};
     variants.forEach((v) => {
       const packSize = parseInt(v.unit?.replace(/\D/g, '') || '6');
       priceMap[packSize] = {
-        buy: v.original_price || v.price,
+        buy: v.buy_once_price || v.original_price || v.price,
         subscribe: v.price,
+        original: v.original_price || v.price,
       };
     });
     return priceMap;
@@ -158,8 +160,7 @@ export const ProductDetailPage = () => {
 
   const currentPrice = prices[selectedPack] || prices[packSizes[0]];
   const finalPrice = isSubscription ? currentPrice.subscribe : currentPrice.buy;
-  const savings = currentPrice.buy - currentPrice.subscribe;
-  const discountPercent = Math.round((savings / currentPrice.buy) * 100);
+  const discountPercent = Math.round(((currentPrice.original - finalPrice) / currentPrice.original) * 100);
 
   // Get variant ID for the selected pack size
   const selectedVariant = variants.find(v => parseInt(v.unit?.replace(/\D/g, '') || '0') === selectedPack);
@@ -323,6 +324,9 @@ export const ProductDetailPage = () => {
                     <span className="font-medium text-foreground">Buy Once</span>
                   </div>
                   <p className="text-2xl font-bold text-foreground">₹{currentPrice.buy}</p>
+                  {currentPrice.buy < currentPrice.original && (
+                    <p className="text-xs text-muted-foreground line-through">₹{currentPrice.original}</p>
+                  )}
                 </motion.button>
 
                 {/* Subscribe */}
@@ -343,6 +347,9 @@ export const ProductDetailPage = () => {
                     <span className="font-medium text-foreground">Subscribe</span>
                   </div>
                   <p className="text-2xl font-bold text-primary">₹{currentPrice.subscribe}</p>
+                  {currentPrice.subscribe < currentPrice.original && (
+                    <p className="text-xs text-muted-foreground line-through">₹{currentPrice.original}</p>
+                  )}
                 </motion.button>
               </div>
             </motion.div>
@@ -405,14 +412,14 @@ export const ProductDetailPage = () => {
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-foreground">₹{finalPrice * quantity}</span>
-                  {isSubscription && (
+                  {finalPrice < currentPrice.original && (
                     <span className="text-sm text-muted-foreground line-through">
-                      ₹{currentPrice.buy * quantity}
+                      ₹{currentPrice.original * quantity}
                     </span>
                   )}
                 </div>
-                {isSubscription && (
-                  <p className="text-sm text-green-600 font-medium">You save ₹{savings * quantity}</p>
+                {finalPrice < currentPrice.original && (
+                  <p className="text-sm text-green-600 font-medium">You save ₹{(currentPrice.original - finalPrice) * quantity}</p>
                 )}
               </div>
               {isInCart ? (

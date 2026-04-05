@@ -29,6 +29,7 @@ interface DBProduct {
   description: string | null;
   price: number;
   original_price: number | null;
+  buy_once_price: number | null;
   unit: string | null;
   image_url: string | null;
   in_stock: boolean | null;
@@ -122,7 +123,7 @@ export const HomePage = () => {
       const variantPrices: Record<number, { price: number; originalPrice: number }> = {};
       sortedVariants.forEach((v) => {
         const size = parseInt(v.unit?.replace(/\D/g, "") || "6");
-        variantPrices[size] = { price: v.price, originalPrice: v.original_price || v.price };
+        variantPrices[size] = { price: v.buy_once_price || v.price, originalPrice: v.original_price || v.price };
       });
 
       return {
@@ -130,7 +131,7 @@ export const HomePage = () => {
         name: name,
         description: baseVariant.description || "",
         image: baseVariant.image_url || "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=600",
-        price: baseVariant.price,
+        price: baseVariant.buy_once_price || baseVariant.price,
         originalPrice: baseVariant.original_price || baseVariant.price,
         rating: 4.8,
         packSizes,

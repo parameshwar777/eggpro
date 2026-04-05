@@ -271,6 +271,7 @@ export type Database = {
       }
       products: {
         Row: {
+          buy_once_price: number | null
           created_at: string
           description: string | null
           id: string
@@ -283,6 +284,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          buy_once_price?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -295,6 +297,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          buy_once_price?: number | null
           created_at?: string
           description?: string | null
           id?: string

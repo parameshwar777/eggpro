@@ -13,6 +13,7 @@ interface Product {
   description: string;
   price: number;
   original_price: number;
+  buy_once_price: number;
   unit: string;
   image_url: string;
   in_stock: boolean;
@@ -29,6 +30,7 @@ export const AdminProducts = () => {
     description: "",
     price: "",
     original_price: "",
+    buy_once_price: "",
     unit: "",
     image_url: ""
   });
@@ -56,19 +58,16 @@ export const AdminProducts = () => {
 
     setUploading(true);
     try {
-      // Generate unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `products/${fileName}`;
 
-      // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from('product-images')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('product-images')
         .getPublicUrl(filePath);
@@ -90,6 +89,7 @@ export const AdminProducts = () => {
         description: formData.description,
         price: parseFloat(formData.price),
         original_price: parseFloat(formData.original_price),
+        buy_once_price: parseFloat(formData.buy_once_price),
         unit: formData.unit,
         image_url: formData.image_url
       };
@@ -106,11 +106,15 @@ export const AdminProducts = () => {
 
       setDialogOpen(false);
       setEditingProduct(null);
-      setFormData({ name: "", description: "", price: "", original_price: "", unit: "", image_url: "" });
+      resetForm();
       fetchProducts();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
+  };
+
+  const resetForm = () => {
+    setFormData({ name: "", description: "", price: "", original_price: "", buy_once_price: "", unit: "", image_url: "" });
   };
 
   const handleEdit = (product: Product) => {
@@ -120,6 +124,7 @@ export const AdminProducts = () => {
       description: product.description || "",
       price: product.price.toString(),
       original_price: product.original_price?.toString() || "",
+      buy_once_price: product.buy_once_price?.toString() || "",
       unit: product.unit || "",
       image_url: product.image_url || ""
     });
@@ -142,15 +147,16 @@ export const AdminProducts = () => {
   const headerActions = (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-primary/90" onClick={() => { setEditingProduct(null); setFormData({ name: "", description: "", price: "", original_price: "", unit: "", image_url: "" }); }}>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => { setEditingProduct(null); resetForm(); }}>
           <Plus className="w-4 h-4 mr-2" /> Add Product
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-amber-900 border-amber-800 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-amber-100">{editingProduct ? "Edit Product" : "Add Product"}</DialogTitle>
+          <DialogTitle className="text-amber-100">{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {/* Image Upload */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-amber-200">Product Image</label>
             <div className="flex flex-col items-center gap-3">
@@ -172,13 +178,52 @@ export const AdminProducts = () => {
             </div>
             <p className="text-xs text-amber-500">Or paste image URL below</p>
           </div>
-          <Input placeholder="Image URL" value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
-          <Input placeholder="Product Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
-          <Input placeholder="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
-          <Input placeholder="Price" type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
-          <Input placeholder="Original Price" type="number" value={formData.original_price} onChange={(e) => setFormData({ ...formData, original_price: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
-          <Input placeholder="Unit (e.g., 6 Eggs)" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
-          <Button onClick={handleSubmit} className="w-full bg-primary hover:bg-primary/90">{editingProduct ? "Update" : "Add"} Product</Button>
+
+          {/* Image URL */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-amber-200">Image URL</label>
+            <Input placeholder="https://example.com/image.jpg" value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
+          </div>
+
+          {/* Product Name */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-amber-200">Product Name</label>
+            <Input placeholder="e.g. Premium White Eggs" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-amber-200">Description</label>
+            <Input placeholder="e.g. Farm fresh white eggs" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
+          </div>
+
+          {/* Original Price (MRP) */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-amber-200">Original Price (MRP) ₹</label>
+            <Input placeholder="e.g. 80" type="number" value={formData.original_price} onChange={(e) => setFormData({ ...formData, original_price: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
+          </div>
+
+          {/* Buy Once Price */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-amber-200">Buy Once Price ₹</label>
+            <Input placeholder="e.g. 62" type="number" value={formData.buy_once_price} onChange={(e) => setFormData({ ...formData, buy_once_price: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
+            <p className="text-xs text-amber-500">Discounted price for one-time purchases</p>
+          </div>
+
+          {/* Subscription Price */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-amber-200">Subscription Price ₹</label>
+            <Input placeholder="e.g. 58" type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
+            <p className="text-xs text-amber-500">Discounted price for subscribers</p>
+          </div>
+
+          {/* Unit */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-amber-200">Unit / Pack Size</label>
+            <Input placeholder="e.g. 6 Eggs" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })} className="bg-amber-800 border-amber-700 text-amber-100" />
+          </div>
+
+          <Button onClick={handleSubmit} className="w-full bg-primary hover:bg-primary/90">{editingProduct ? "Update Product" : "Add Product"}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -197,7 +242,9 @@ export const AdminProducts = () => {
               <tr>
                 <th className="text-left p-4 text-amber-200 font-medium">Product</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Unit</th>
-                <th className="text-left p-4 text-amber-200 font-medium">Price</th>
+                <th className="text-left p-4 text-amber-200 font-medium">MRP</th>
+                <th className="text-left p-4 text-amber-200 font-medium">Buy Once</th>
+                <th className="text-left p-4 text-amber-200 font-medium">Subscription</th>
                 <th className="text-left p-4 text-amber-200 font-medium">Actions</th>
               </tr>
             </thead>
@@ -214,7 +261,9 @@ export const AdminProducts = () => {
                     </div>
                   </td>
                   <td className="p-4 text-amber-200">{product.unit}</td>
-                  <td className="p-4 text-amber-100">₹{product.price}</td>
+                  <td className="p-4 text-amber-300">₹{product.original_price}</td>
+                  <td className="p-4 text-amber-100 font-medium">₹{product.buy_once_price}</td>
+                  <td className="p-4 text-green-400 font-medium">₹{product.price}</td>
                   <td className="p-4">
                     <div className="flex gap-2">
                       <Button size="sm" variant="ghost" className="text-amber-300 hover:text-amber-100 hover:bg-amber-800" onClick={() => handleEdit(product)}>
