@@ -263,7 +263,7 @@ export const CommunitySelectPage = () => {
           </motion.div>
         </div>
 
-        <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="bg-card rounded-t-[2rem] p-6 shadow-elevated">
+        <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="bg-card rounded-t-[2rem] p-6 shadow-elevated relative z-10">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-primary/10 rounded-xl"><MapPin className="w-6 h-6 text-primary" /></div>
             <div>
