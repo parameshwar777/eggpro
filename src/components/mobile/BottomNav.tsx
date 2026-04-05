@@ -1,20 +1,35 @@
+import { useState, useEffect } from "react";
 import { Home, ClipboardList, Gift, User, ShoppingCart } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/contexts/CartContext";
-
-const navItems = [
-  { to: "/home", icon: Home, label: "Home" },
-  { to: "/orders", icon: ClipboardList, label: "Orders" },
-  { to: "/cart", icon: ShoppingCart, label: "Cart" },
-  { to: "/refer", icon: Gift, label: "Refer" },
-  { to: "/account", icon: User, label: "Account" },
-];
+import { supabase } from "@/integrations/supabase/client";
 
 export const BottomNav = () => {
   const location = useLocation();
   const { totalItems } = useCart();
+  const [showReferral, setShowReferral] = useState(false);
+
+  useEffect(() => {
+    const fetchSetting = async () => {
+      const { data } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "show_referral")
+        .maybeSingle();
+      setShowReferral(data?.value === "true");
+    };
+    fetchSetting();
+  }, []);
+
+  const navItems = [
+    { to: "/home", icon: Home, label: "Home" },
+    { to: "/orders", icon: ClipboardList, label: "Orders" },
+    { to: "/cart", icon: ShoppingCart, label: "Cart" },
+    ...(showReferral ? [{ to: "/refer", icon: Gift, label: "Refer" }] : []),
+    { to: "/account", icon: User, label: "Account" },
+  ];
 
   return (
     <motion.nav

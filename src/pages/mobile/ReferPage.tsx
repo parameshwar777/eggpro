@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const steps = [
   {
@@ -27,7 +28,23 @@ const steps = [
 
 export const ReferPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [referralCode, setReferralCode] = useState("Loading...");
+  const [isEnabled, setIsEnabled] = useState(true);
+
+  useEffect(() => {
+    const checkEnabled = async () => {
+      const { data } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "show_referral")
+        .maybeSingle();
+      if (data?.value !== "true") {
+        navigate("/home", { replace: true });
+      }
+    };
+    checkEnabled();
+  }, [navigate]);
   const [referralCount, setReferralCount] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
 
