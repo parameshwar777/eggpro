@@ -168,6 +168,11 @@ export const CartPage = () => {
                   className="w-full gradient-hero text-white h-14 text-lg font-semibold rounded-xl" 
                   size="lg"
                   onClick={() => {
+                    if (!user) {
+                      toast({ title: "Please login", description: "Login to continue with checkout" });
+                      navigate("/auth");
+                      return;
+                    }
                     // Check if any item is a subscription
                     const hasSubscription = items.some(item => item.isSubscription);
                     navigate(hasSubscription ? "/subscription" : "/checkout");
