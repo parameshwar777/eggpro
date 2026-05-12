@@ -53,6 +53,11 @@ export const ProductCard = ({
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!user) {
+      toast({ title: "Please login", description: "Login to add items to your cart" });
+      navigate("/auth");
+      return;
+    }
     addToCart({
       id: cartItemId,
       name,
