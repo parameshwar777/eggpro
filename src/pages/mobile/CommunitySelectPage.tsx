@@ -91,19 +91,20 @@ export const CommunitySelectPage = () => {
   };
 
   const handleContinue = async () => {
-    if (selectedCommunity && user) {
-      // Save community to profile
+    if (!selectedCommunity) return;
+    // Save to profile only if signed in; guests just store locally
+    if (user) {
       await supabase
         .from("profiles")
         .update({ community: selectedCommunity })
         .eq("id", user.id);
-      
-      setShowSuccess(true);
-      setTimeout(() => {
-        localStorage.setItem("selectedCommunity", selectedCommunity);
-        navigate("/home");
-      }, 2000);
     }
+
+    setShowSuccess(true);
+    setTimeout(() => {
+      localStorage.setItem("selectedCommunity", selectedCommunity);
+      navigate("/home");
+    }, 2000);
   };
 
   const handleNotListed = () => {
