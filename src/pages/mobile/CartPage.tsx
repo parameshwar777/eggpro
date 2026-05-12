@@ -11,6 +11,7 @@ import { getDeliverySlot } from "@/lib/deliveryTime";
 export const CartPage = () => {
   const navigate = useNavigate();
   const { items, updateQuantity, removeFromCart, totalPrice } = useCart();
+  const { user } = useAuth();
 
   useEffect(() => {
     // Load Razorpay script
