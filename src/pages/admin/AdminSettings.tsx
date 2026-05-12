@@ -40,18 +40,24 @@ export const AdminSettings = () => {
       const { data, error } = await supabase
         .from("admin_settings")
         .select("*")
-        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "telegram_chat_ids", "show_subscriptions", "show_referral"]);
+        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "app_current_version_ios", "app_update_url_android", "app_update_url_ios", "telegram_chat_ids", "show_subscriptions", "show_referral"]);
 
       if (!error && data) {
         const whatsapp = data.find(d => d.key === "admin_whatsapp");
         const wallpaper = data.find(d => d.key === "splash_wallpaper");
         const version = data.find(d => d.key === "app_current_version");
+        const versionIos = data.find(d => d.key === "app_current_version_ios");
+        const urlAndroid = data.find(d => d.key === "app_update_url_android");
+        const urlIos = data.find(d => d.key === "app_update_url_ios");
         const telegram = data.find(d => d.key === "telegram_chat_ids");
         const subs = data.find(d => d.key === "show_subscriptions");
         const referral = data.find(d => d.key === "show_referral");
         if (whatsapp) setAdminWhatsapp(whatsapp.value);
         if (wallpaper) setWallpaperUrl(wallpaper.value);
         if (version) setAppVersion(version.value);
+        if (versionIos) setAppVersionIos(versionIos.value);
+        if (urlAndroid) setUpdateUrlAndroid(urlAndroid.value);
+        if (urlIos) setUpdateUrlIos(urlIos.value);
         if (telegram) setTelegramChatIds(telegram.value);
         if (subs) setShowSubscriptions(subs.value === "true");
         if (referral) setShowReferral(referral.value === "true");
