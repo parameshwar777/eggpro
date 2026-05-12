@@ -173,6 +173,11 @@ export const ProductDetailPage = () => {
   const isInCart = items.some(item => item.id === cartItemId);
 
   const handleAddToCart = () => {
+    if (!user) {
+      toast({ title: "Please login", description: "Login to add items to your cart" });
+      navigate("/auth");
+      return;
+    }
     addToCart({
       id: cartItemId,
       name: product.name,
