@@ -108,6 +108,42 @@ export const AdminSettings = () => {
     }
   };
 
+  const handleSaveVersionIos = async () => {
+    setIsSavingVersionIos(true);
+    try {
+      const { error } = await supabase
+        .from("admin_settings")
+        .upsert({
+          key: "app_current_version_ios",
+          value: appVersionIos,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "key" });
+      if (error) throw error;
+      toast({ title: "iOS app version updated! iPhone users will see the update prompt." });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSavingVersionIos(false);
+    }
+  };
+
+  const handleSaveUpdateUrls = async () => {
+    setIsSavingUrls(true);
+    try {
+      const rows = [
+        { key: "app_update_url_android", value: updateUrlAndroid, updated_at: new Date().toISOString() },
+        { key: "app_update_url_ios", value: updateUrlIos, updated_at: new Date().toISOString() },
+      ];
+      const { error } = await supabase.from("admin_settings").upsert(rows, { onConflict: "key" });
+      if (error) throw error;
+      toast({ title: "Store update URLs saved!" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSavingUrls(false);
+    }
+  };
+
   const handleWallpaperUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
