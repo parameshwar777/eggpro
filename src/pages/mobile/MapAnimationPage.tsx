@@ -279,10 +279,12 @@ export const MapAnimationPage = () => {
             if (session?.user) {
               navigate("/home", { replace: true });
             } else {
-              navigate("/auth", { replace: true });
+              const savedCommunity = localStorage.getItem("selectedCommunity");
+              navigate(savedCommunity ? "/home" : "/community", { replace: true });
             }
           } catch {
-            navigate("/auth", { replace: true });
+            const savedCommunity = localStorage.getItem("selectedCommunity");
+            navigate(savedCommunity ? "/home" : "/community", { replace: true });
           }
         }}
       >
