@@ -67,10 +67,13 @@ export const MapAnimationPage = () => {
             navigate("/community", { replace: true });
           }
         } else {
-          navigate("/auth", { replace: true });
+          // Guest mode: allow browsing without login
+          const savedCommunity = localStorage.getItem("selectedCommunity");
+          navigate(savedCommunity ? "/home" : "/community", { replace: true });
         }
       } catch {
-        navigate("/auth", { replace: true });
+        const savedCommunity = localStorage.getItem("selectedCommunity");
+        navigate(savedCommunity ? "/home" : "/community", { replace: true });
       }
     }, 300 + communities.length * 250 + 4500);
 
