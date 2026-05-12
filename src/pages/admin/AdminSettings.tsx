@@ -15,7 +15,12 @@ export const AdminSettings = () => {
   const [wallpaperUrl, setWallpaperUrl] = useState("");
   const [isUploadingWallpaper, setIsUploadingWallpaper] = useState(false);
   const [appVersion, setAppVersion] = useState("1.0.0");
+  const [appVersionIos, setAppVersionIos] = useState("1.0.0");
+  const [updateUrlAndroid, setUpdateUrlAndroid] = useState("");
+  const [updateUrlIos, setUpdateUrlIos] = useState("");
   const [isSavingVersion, setIsSavingVersion] = useState(false);
+  const [isSavingVersionIos, setIsSavingVersionIos] = useState(false);
+  const [isSavingUrls, setIsSavingUrls] = useState(false);
   const [telegramChatIds, setTelegramChatIds] = useState("");
   const [isSavingTelegram, setIsSavingTelegram] = useState(false);
   const [isFetchingChats, setIsFetchingChats] = useState(false);
