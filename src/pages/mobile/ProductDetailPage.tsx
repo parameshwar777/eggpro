@@ -40,6 +40,7 @@ export const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { addToCart, items, updateQuantity, removeFromCart } = useCart();
+  const { user } = useAuth();
   
   const [variants, setVariants] = useState<DBProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
