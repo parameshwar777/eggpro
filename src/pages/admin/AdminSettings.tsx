@@ -251,15 +251,15 @@ export const AdminSettings = () => {
             </div>
           </div>
 
-          {/* App Version Settings */}
+          {/* App Version Settings - Android */}
           <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
             <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
               <Smartphone className="w-5 h-5" />
-              App Version (Play Store)
+              Android App Version (Play Store)
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-amber-300 block mb-2">Current App Version</label>
+                <label className="text-sm text-amber-300 block mb-2">Current Android Version</label>
                 <Input
                   value={appVersion}
                   onChange={(e) => setAppVersion(e.target.value)}
@@ -267,15 +267,77 @@ export const AdminSettings = () => {
                   className="bg-amber-800/50 border-amber-700 text-amber-100 max-w-md"
                 />
                 <p className="text-xs text-amber-400 mt-2">
-                  Update this after publishing a new version to Play Store. Users with older versions will see an update prompt.
+                  Update this after publishing a new version to Play Store. Android users with older versions will see an update prompt.
                 </p>
               </div>
               <Button onClick={handleSaveVersion} disabled={isSavingVersion} className="bg-blue-600 hover:bg-blue-700">
                 <Save className="w-4 h-4 mr-2" />
-                {isSavingVersion ? "Saving..." : "Update Version"}
+                {isSavingVersion ? "Saving..." : "Update Android Version"}
               </Button>
             </div>
           </div>
+
+          {/* App Version Settings - iOS */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
+              <Smartphone className="w-5 h-5" />
+              iOS App Version (App Store)
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-amber-300 block mb-2">Current iOS Version</label>
+                <Input
+                  value={appVersionIos}
+                  onChange={(e) => setAppVersionIos(e.target.value)}
+                  placeholder="1.0.0"
+                  className="bg-amber-800/50 border-amber-700 text-amber-100 max-w-md"
+                />
+                <p className="text-xs text-amber-400 mt-2">
+                  Update this after publishing a new version to the App Store. iPhone/iPad users with older versions will see an update prompt. Leave blank to skip iOS update checks.
+                </p>
+              </div>
+              <Button onClick={handleSaveVersionIos} disabled={isSavingVersionIos} className="bg-blue-600 hover:bg-blue-700">
+                <Save className="w-4 h-4 mr-2" />
+                {isSavingVersionIos ? "Saving..." : "Update iOS Version"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Store Update URLs (optional) */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
+              <Smartphone className="w-5 h-5" />
+              Store Update URLs (optional)
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-amber-300 block mb-2">Android — Play Store URL</label>
+                <Input
+                  value={updateUrlAndroid}
+                  onChange={(e) => setUpdateUrlAndroid(e.target.value)}
+                  placeholder="https://play.google.com/store/apps/details?id=com.eggpro.app"
+                  className="bg-amber-800/50 border-amber-700 text-amber-100 max-w-md"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-amber-300 block mb-2">iOS — App Store URL</label>
+                <Input
+                  value={updateUrlIos}
+                  onChange={(e) => setUpdateUrlIos(e.target.value)}
+                  placeholder="https://apps.apple.com/app/idXXXXXXXXX"
+                  className="bg-amber-800/50 border-amber-700 text-amber-100 max-w-md"
+                />
+                <p className="text-xs text-amber-400 mt-2">
+                  Leave blank to use the built-in defaults. Setting these does not affect existing Android behavior.
+                </p>
+              </div>
+              <Button onClick={handleSaveUpdateUrls} disabled={isSavingUrls} className="bg-blue-600 hover:bg-blue-700">
+                <Save className="w-4 h-4 mr-2" />
+                {isSavingUrls ? "Saving..." : "Save Store URLs"}
+              </Button>
+            </div>
+          </div>
+
 
           {/* Telegram Notification Settings */}
           <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
