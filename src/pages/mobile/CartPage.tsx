@@ -4,6 +4,8 @@ import { ArrowLeft, Trash2, Minus, Plus, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 import { getDeliverySlot } from "@/lib/deliveryTime";
 
 export const CartPage = () => {
