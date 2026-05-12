@@ -36,29 +36,31 @@ export const CommunitySelectPage = () => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
-  // Redirect to auth if not logged in (wait for auth to finish loading)
+  // Guest-friendly: only check existing community for logged-in users; guests can browse and pick
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
-    }
-  }, [user, authLoading, navigate]);
-
-  // Check if user already has community selected
-  useEffect(() => {
+    if (authLoading) return;
     if (user) {
       checkExistingCommunity();
+    } else {
+      // Guest: just load communities
+      const saved = localStorage.getItem("selectedCommunity");
+      if (saved) {
+        navigate("/home", { replace: true });
+      } else {
+        fetchCommunities();
+      }
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const checkExistingCommunity = async () => {
     if (!user) return;
-    
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("community")
       .eq("id", user.id)
       .single();
-    
+
     if (profile?.community) {
       localStorage.setItem("selectedCommunity", profile.community);
       navigate("/home");
