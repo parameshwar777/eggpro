@@ -35,6 +35,7 @@ export const ProductCard = ({
 }: ProductCardProps) => {
   const navigate = useNavigate();
   const { addToCart, items, updateQuantity, removeFromCart } = useCart();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPack, setSelectedPack] = useState(packSizes[0]);
 
