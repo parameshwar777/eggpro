@@ -142,14 +142,16 @@ export const CommunitySelectPage = () => {
       return distance <= 3;
     });
 
-    if (nearestCommunity && user) {
+    if (nearestCommunity) {
       setSelectedCommunity(nearestCommunity.name);
-      
-      await supabase
-        .from("profiles")
-        .update({ community: nearestCommunity.name })
-        .eq("id", user.id);
-      
+
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ community: nearestCommunity.name })
+          .eq("id", user.id);
+      }
+
       setShowMapPicker(false);
       setShowSuccess(true);
       setTimeout(() => {
