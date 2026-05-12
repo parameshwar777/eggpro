@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -39,6 +40,7 @@ export const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { addToCart, items, updateQuantity, removeFromCart } = useCart();
+  const { user } = useAuth();
   
   const [variants, setVariants] = useState<DBProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -171,6 +173,11 @@ export const ProductDetailPage = () => {
   const isInCart = items.some(item => item.id === cartItemId);
 
   const handleAddToCart = () => {
+    if (!user) {
+      toast({ title: "Please login", description: "Login to add items to your cart" });
+      navigate("/auth");
+      return;
+    }
     addToCart({
       id: cartItemId,
       name: product.name,

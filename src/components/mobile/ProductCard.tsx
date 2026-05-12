@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProductCardProps {
@@ -34,6 +35,7 @@ export const ProductCard = ({
 }: ProductCardProps) => {
   const navigate = useNavigate();
   const { addToCart, items, updateQuantity, removeFromCart } = useCart();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPack, setSelectedPack] = useState(packSizes[0]);
 
@@ -51,6 +53,11 @@ export const ProductCard = ({
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!user) {
+      toast({ title: "Please login", description: "Login to add items to your cart" });
+      navigate("/auth");
+      return;
+    }
     addToCart({
       id: cartItemId,
       name,

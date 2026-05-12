@@ -4,11 +4,14 @@ import { ArrowLeft, Trash2, Minus, Plus, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 import { getDeliverySlot } from "@/lib/deliveryTime";
 
 export const CartPage = () => {
   const navigate = useNavigate();
   const { items, updateQuantity, removeFromCart, totalPrice } = useCart();
+  const { user } = useAuth();
 
   useEffect(() => {
     // Load Razorpay script
@@ -165,6 +168,11 @@ export const CartPage = () => {
                   className="w-full gradient-hero text-white h-14 text-lg font-semibold rounded-xl" 
                   size="lg"
                   onClick={() => {
+                    if (!user) {
+                      toast({ title: "Please login", description: "Login to continue with checkout" });
+                      navigate("/auth");
+                      return;
+                    }
                     // Check if any item is a subscription
                     const hasSubscription = items.some(item => item.isSubscription);
                     navigate(hasSubscription ? "/subscription" : "/checkout");

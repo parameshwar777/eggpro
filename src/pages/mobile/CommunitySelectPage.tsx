@@ -36,29 +36,31 @@ export const CommunitySelectPage = () => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
-  // Redirect to auth if not logged in (wait for auth to finish loading)
+  // Guest-friendly: only check existing community for logged-in users; guests can browse and pick
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
-    }
-  }, [user, authLoading, navigate]);
-
-  // Check if user already has community selected
-  useEffect(() => {
+    if (authLoading) return;
     if (user) {
       checkExistingCommunity();
+    } else {
+      // Guest: just load communities
+      const saved = localStorage.getItem("selectedCommunity");
+      if (saved) {
+        navigate("/home", { replace: true });
+      } else {
+        fetchCommunities();
+      }
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const checkExistingCommunity = async () => {
     if (!user) return;
-    
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("community")
       .eq("id", user.id)
       .single();
-    
+
     if (profile?.community) {
       localStorage.setItem("selectedCommunity", profile.community);
       navigate("/home");
@@ -89,19 +91,20 @@ export const CommunitySelectPage = () => {
   };
 
   const handleContinue = async () => {
-    if (selectedCommunity && user) {
-      // Save community to profile
+    if (!selectedCommunity) return;
+    // Save to profile only if signed in; guests just store locally
+    if (user) {
       await supabase
         .from("profiles")
         .update({ community: selectedCommunity })
         .eq("id", user.id);
-      
-      setShowSuccess(true);
-      setTimeout(() => {
-        localStorage.setItem("selectedCommunity", selectedCommunity);
-        navigate("/home");
-      }, 2000);
     }
+
+    setShowSuccess(true);
+    setTimeout(() => {
+      localStorage.setItem("selectedCommunity", selectedCommunity);
+      navigate("/home");
+    }, 2000);
   };
 
   const handleNotListed = () => {
@@ -139,14 +142,16 @@ export const CommunitySelectPage = () => {
       return distance <= 3;
     });
 
-    if (nearestCommunity && user) {
+    if (nearestCommunity) {
       setSelectedCommunity(nearestCommunity.name);
-      
-      await supabase
-        .from("profiles")
-        .update({ community: nearestCommunity.name })
-        .eq("id", user.id);
-      
+
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ community: nearestCommunity.name })
+          .eq("id", user.id);
+      }
+
       setShowMapPicker(false);
       setShowSuccess(true);
       setTimeout(() => {
