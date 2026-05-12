@@ -20,24 +20,40 @@ const isVersionOutdated = (current: string, required: string): boolean => {
   return false;
 };
 
+const DEFAULT_ANDROID_URL = "https://play.google.com/store/apps/details?id=com.eggpro.app";
+const DEFAULT_IOS_URL = "https://apps.apple.com/app/eggpro";
+
 export const AppUpdateChecker = () => {
   const [showUpdate, setShowUpdate] = useState(false);
+  const [updateUrl, setUpdateUrl] = useState<string>(DEFAULT_ANDROID_URL);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
+
+    const platform = Capacitor.getPlatform(); // 'ios' | 'android' | 'web'
+    const isIos = platform === "ios";
+
+    // Per-platform keys; fall back to legacy `app_current_version` (Android) for safety.
+    const versionKey = isIos ? "app_current_version_ios" : "app_current_version";
+    const urlKey = isIos ? "app_update_url_ios" : "app_update_url_android";
+    const fallbackUrl = isIos ? DEFAULT_IOS_URL : DEFAULT_ANDROID_URL;
 
     const checkVersion = async () => {
       try {
         const appInfo = await App.getInfo();
         const currentVersion = appInfo.version;
 
-        const { data } = await supabase
+        const { data: rows } = await supabase
           .from("admin_settings")
-          .select("value")
-          .eq("key", "app_current_version")
-          .single();
+          .select("key,value")
+          .in("key", [versionKey, urlKey]);
 
-        if (data?.value && isVersionOutdated(currentVersion, data.value)) {
+        const requiredVersion = rows?.find((r) => r.key === versionKey)?.value;
+        const customUrl = rows?.find((r) => r.key === urlKey)?.value;
+        setUpdateUrl(customUrl || fallbackUrl);
+
+        // Only prompt if admin has set a required version for this platform AND user is outdated.
+        if (requiredVersion && isVersionOutdated(currentVersion, requiredVersion)) {
           setShowUpdate(true);
         }
       } catch (e) {
@@ -59,7 +75,7 @@ export const AppUpdateChecker = () => {
           A new version of EggPro is available. Please update to get the latest features and improvements.
         </p>
         <a
-          href="https://play.google.com/store/apps/details?id=com.eggpro.app"
+          href={updateUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="block w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-xl transition-colors"
