@@ -614,7 +614,7 @@ export const AuthPage = () => {
                 className="space-y-4"
               >
                 <p className="text-sm text-muted-foreground">
-                  Enter the email on your account. We'll send a password reset link.
+                  Enter your account email. We'll send a 6-digit code to reset your password.
                 </p>
                 <div className="space-y-2">
                   <label className="text-base font-semibold">Email</label>
@@ -625,12 +625,67 @@ export const AuthPage = () => {
                   </div>
                 </div>
                 <Button className="w-full h-12 gradient-hero text-white font-semibold"
-                  onClick={handleForgotPassword} disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send Reset Link"}
+                  onClick={handleForgotSendOtp} disabled={isLoading}>
+                  {isLoading ? "Sending..." : "Send Code"}
                 </Button>
                 <button onClick={() => setMode("login")} className="w-full text-center text-base font-medium text-primary">
                   Back to login
                 </button>
+              </motion.div>
+            )}
+
+            {/* ============== FORGOT PASSWORD — VERIFY ============== */}
+            {mode === "forgot-verify" && (
+              <motion.div key="forgot-verify"
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                className="space-y-4"
+              >
+                <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                  <span className="text-muted-foreground">Code sent to:</span>{" "}
+                  <span className="font-semibold">{forgotEmail}</span>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-base font-semibold">6-Digit Code</label>
+                  <div className="flex justify-center">
+                    <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-base font-semibold">New Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input type={showPassword ? "text" : "password"} placeholder="Min 6 chars" value={password}
+                      onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10 h-12" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <Button className="w-full h-12 gradient-hero text-white font-semibold"
+                  onClick={handleForgotVerify} disabled={isLoading || otp.length !== 6}>
+                  {isLoading ? "Updating..." : "Reset Password"}
+                </Button>
+
+                <p className="text-center text-base text-muted-foreground">
+                  Didn't receive the code?{" "}
+                  <button onClick={handleForgotResend} disabled={resendTimer > 0 || isLoading}
+                    className={`font-bold ${resendTimer > 0 ? 'text-muted-foreground' : 'text-primary'}`}>
+                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend"}
+                  </button>
+                </p>
               </motion.div>
             )}
 
