@@ -24,6 +24,28 @@ async function hashOTP(otp: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+async function findUserByEmail(supabase: any, email: string): Promise<any | null> {
+  // 1) Fast path: profiles table
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+  if (profile?.id) {
+    const { data: u } = await supabase.auth.admin.getUserById(profile.id);
+    if (u?.user) return u.user;
+  }
+  // 2) Fallback: paginate through auth users (handles legacy users without profile row)
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data?.users?.length) break;
+    const match = data.users.find((u: any) => u.email?.toLowerCase() === email);
+    if (match) return match;
+    if (data.users.length < 200) break;
+  }
+  return null;
+}
+
 serve(async (req: Request) => {
   console.log("Email OTP function called:", req.method);
   
@@ -58,11 +80,7 @@ serve(async (req: Request) => {
         );
       }
 
-      // Check if user exists
-      const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(
-        (u) => u.email?.toLowerCase() === normalizedEmail
-      );
+      const existingUser = await findUserByEmail(supabase, normalizedEmail);
       
       if (!existingUser) {
         return new Response(
@@ -176,10 +194,7 @@ serve(async (req: Request) => {
       await supabase.from("email_otps").delete().eq("email", normalizedEmail);
 
       // Find user and update password
-      const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(
-        (u) => u.email?.toLowerCase() === normalizedEmail
-      );
+      const existingUser = await findUserByEmail(supabase, normalizedEmail);
 
       if (!existingUser) {
         return new Response(
