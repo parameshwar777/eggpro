@@ -617,19 +617,37 @@ export const AuthPage = () => {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <div className="space-y-2">
-                  <label className="text-base font-semibold">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-12 text-base"
-                    />
+                {channel === "email" ? (
+                  <div className="space-y-2">
+                    <label className="text-base font-semibold">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10 h-12 text-base"
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-base font-semibold">WhatsApp Number</label>
+                    <div className="relative">
+                      <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="10-digit phone"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                        className="pl-10 h-12 text-base"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <Button
                   className="w-full h-12 gradient-hero text-white font-semibold text-base"
