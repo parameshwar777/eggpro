@@ -11,11 +11,12 @@ import { EggLogo } from "@/components/EggLogo";
 import { supabase } from "@/integrations/supabase/client";
 
 type AuthMode =
-  | "login"          // either email or phone login
-  | "signup"         // phone signup step 1: enter phone
-  | "verify-otp"     // phone signup step 2: OTP
-  | "complete-profile" // phone signup step 3: name+email+password
-  | "forgot";        // request email reset link (works for both email & phone accounts)
+  | "login"
+  | "signup"
+  | "verify-otp"
+  | "complete-profile"
+  | "forgot"          // step 1: enter email, send OTP
+  | "forgot-verify";  // step 2: enter OTP + new password
 
 type AuthChannel = "email" | "phone";
 
@@ -221,27 +222,62 @@ export const AuthPage = () => {
     }
   };
 
-  // ============ FORGOT PASSWORD — EMAIL RESET LINK ============
-  const handleForgotPassword = async () => {
+  // ============ FORGOT PASSWORD — STEP 1: send email OTP ============
+  const handleForgotSendOtp = async () => {
     if (!forgotEmail.trim() || !forgotEmail.includes("@")) {
       return err("Enter the email on your account");
     }
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim().toLowerCase(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const { data, error } = await supabase.functions.invoke("email-otp", {
+        body: { action: "reset-send", email: forgotEmail.trim().toLowerCase() },
       });
       if (error) throw error;
-      toast({
-        title: "Reset link sent",
-        description: "Check your email for a password reset link.",
-      });
-      setMode("login");
+      if (!data?.success) throw new Error(data?.error || "Could not send code");
+      toast({ title: "Code sent", description: `Check ${forgotEmail} for a 6-digit code` });
+      setMode("forgot-verify");
+      setOtp("");
+      setPassword("");
+      setResendTimer(60);
     } catch (e: any) {
-      err(e.message || "Could not send reset link");
+      err(e.message || "Could not send code");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ============ FORGOT PASSWORD — STEP 2: verify OTP + set new password ============
+  const handleForgotVerify = async () => {
+    if (otp.length !== 6) return err("Enter the 6-digit code");
+    if (!password || password.length < 6) return err("New password must be at least 6 characters");
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("email-otp", {
+        body: {
+          action: "reset-verify",
+          email: forgotEmail.trim().toLowerCase(),
+          otp,
+          newPassword: password,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Could not reset password");
+      toast({ title: "Password updated", description: "Sign in with your new password" });
+      setEmail(forgotEmail.trim().toLowerCase());
+      setOtp("");
+      setPassword("");
+      setMode("login");
+      setChannel("email");
+    } catch (e: any) {
+      err(e.message || "Reset failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotResend = async () => {
+    if (resendTimer > 0) return;
+    await handleForgotSendOtp();
   };
 
   // ============ EMAIL SIGNUP (kept simple) ============
