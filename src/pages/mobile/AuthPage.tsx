@@ -325,6 +325,7 @@ export const AuthPage = () => {
     "verify-otp": "Verify Phone",
     "complete-profile": "Almost done",
     forgot: "Reset Password",
+    "forgot-verify": "Enter Code",
   }[mode];
 
   const headerSub = {
@@ -332,7 +333,8 @@ export const AuthPage = () => {
     signup: channel === "phone" ? "We'll send a code on WhatsApp" : "Join EggPro today",
     "verify-otp": `Enter the code sent to ${normalizePhone(phone)}`,
     "complete-profile": "Add your details to finish signup",
-    forgot: "Get a reset link by email",
+    forgot: "We'll email you a 6-digit code",
+    "forgot-verify": `Code sent to ${forgotEmail}`,
   }[mode];
 
   return (
@@ -344,6 +346,7 @@ export const AuthPage = () => {
             if (mode === "verify-otp") { setMode("signup"); setOtp(""); }
             else if (mode === "complete-profile") { setMode("verify-otp"); }
             else if (mode === "forgot") { setMode("login"); }
+            else if (mode === "forgot-verify") { setMode("forgot"); setOtp(""); }
             else if (mode === "signup") { setMode("login"); }
             else navigate(-1);
           }}
