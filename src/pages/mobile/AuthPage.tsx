@@ -101,9 +101,20 @@ export const AuthPage = () => {
     }
   }, [resendTimer]);
 
+  const otpFnName = channel === "whatsapp" ? "whatsapp-otp" : "email-otp";
+  const otpFnBody = (extra: Record<string, any>) =>
+    channel === "whatsapp"
+      ? { phone: normalizePhone(phone), ...extra }
+      : { email: email.toLowerCase().trim(), ...extra };
+
   const handleSendOTP = async () => {
-    if (!email || !password || !fullName) {
+    const identifier = channel === "whatsapp" ? normalizePhone(phone) : email.trim();
+    if (!identifier || !password || !fullName) {
       toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
+      return;
+    }
+    if (channel === "whatsapp" && phone.replace(/\D/g, "").length < 10) {
+      toast({ title: "Error", description: "Enter a valid 10-digit phone number", variant: "destructive" });
       return;
     }
     if (password.length < 6) {
@@ -113,21 +124,24 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     try {
-      // Store signup draft for the verification step (use both storages for reliability)
       sessionStorage.setItem("signup_password", password);
       localStorage.setItem("signup_password", password);
       sessionStorage.setItem("signup_fullname", fullName);
       localStorage.setItem("signup_fullname", fullName);
-      
-      // Use custom edge function to send a real 6-digit OTP email
-      const response = await supabase.functions.invoke("email-otp", {
-        body: { action: "send", email: email.toLowerCase().trim() }
+
+      const response = await supabase.functions.invoke(otpFnName, {
+        body: otpFnBody({ action: "send" }),
       });
 
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Failed to send OTP");
 
-      toast({ title: "OTP Sent!", description: "Check your email for the 6-digit verification code." });
+      toast({
+        title: "OTP Sent!",
+        description: channel === "whatsapp"
+          ? `Check WhatsApp on ${normalizePhone(phone)} for the 6-digit code.`
+          : "Check your email for the 6-digit verification code.",
+      });
       setMode("verify-otp");
       setResendTimer(60);
     } catch (error: any) {
@@ -150,58 +164,51 @@ export const AuthPage = () => {
       const storedFullName = getStoredFullName() || fullName;
 
       if (!verifyPassword || verifyPassword.length < 6) {
-        toast({
-          title: "Error",
-          description: "Password must be at least 6 characters",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
         return;
       }
 
-      // Verify OTP using custom edge function (creates user if valid)
-      const response = await supabase.functions.invoke("email-otp", {
-        body: {
+      const response = await supabase.functions.invoke(otpFnName, {
+        body: otpFnBody({
           action: "verify",
-          email: email.toLowerCase().trim(),
           otp,
           password: verifyPassword,
           fullName: storedFullName,
-        },
+        }),
       });
 
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Verification failed");
 
-      // Clear stored signup data
       sessionStorage.removeItem("signup_password");
       localStorage.removeItem("signup_password");
       sessionStorage.removeItem("signup_fullname");
       localStorage.removeItem("signup_fullname");
 
-      // Handle referral code if provided
+      // Handle referral
       if (referralCode && response.data?.userId) {
         const { data: referrer } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("referral_code", referralCode.toUpperCase())
-          .single();
-        
+          .from("profiles").select("id")
+          .eq("referral_code", referralCode.toUpperCase()).single();
         if (referrer) {
           await supabase.from("referrals").insert({
             referrer_id: referrer.id,
             referred_id: response.data.userId,
             referral_code: referralCode.toUpperCase(),
-            status: "pending"
+            status: "pending",
           });
         }
       }
 
       toast({ title: "Account Created!", description: "Signing you in..." });
-      
-      // Sign in the user
-      const { error: signInError } = await signInWithEmail(email.toLowerCase().trim(), verifyPassword);
+
+      const loginEmail = channel === "whatsapp"
+        ? (response.data?.email || phoneToEmail(normalizePhone(phone)))
+        : email.toLowerCase().trim();
+
+      const { error: signInError } = await signInWithEmail(loginEmail, verifyPassword);
       if (signInError) throw signInError;
-      
+
       navigate("/community");
     } catch (error: any) {
       console.error("Verify OTP error:", error);
@@ -213,21 +220,17 @@ export const AuthPage = () => {
 
   const handleResendOTP = async () => {
     if (resendTimer > 0) return;
-    
     setIsLoading(true);
     try {
-      const response = await supabase.functions.invoke("email-otp", {
-        body: { action: "send", email: email.toLowerCase().trim() }
+      const response = await supabase.functions.invoke(otpFnName, {
+        body: otpFnBody({ action: "send" }),
       });
-
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Failed to resend OTP");
-
-      toast({ title: "OTP Resent!", description: "Check your email for the new code." });
+      toast({ title: "OTP Resent!" });
       setResendTimer(60);
       setOtp("");
     } catch (error: any) {
-      console.error("Resend OTP error:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
@@ -240,39 +243,30 @@ export const AuthPage = () => {
       return;
     }
 
-    // Login flow
-    if (!email || !password) {
+    // Login
+    const identifier = channel === "whatsapp" ? normalizePhone(phone) : email.trim();
+    if (!identifier || !password) {
       toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
       return;
     }
 
     setIsLoading(true);
     try {
-      const { error } = await signInWithEmail(email, password);
+      const loginEmail = channel === "whatsapp" ? phoneToEmail(normalizePhone(phone)) : email;
+      const { error } = await signInWithEmail(loginEmail, password);
       if (error) throw error;
       toast({ title: "Welcome back!", description: "You've successfully signed in." });
-      
+
       const currentUser = (await supabase.auth.getUser()).data.user;
       if (!currentUser) throw new Error("Login failed");
 
-      // Check if merchant
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", currentUser.id);
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", currentUser.id);
       const userRoles = roles?.map(r => r.role) || [];
       if (userRoles.includes("merchant") && !userRoles.includes("admin")) {
-        navigate("/merchant/orders");
-        return;
+        navigate("/merchant/orders"); return;
       }
 
-      // Check if user has community set
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("community")
-        .eq("id", currentUser.id)
-        .single();
-      
+      const { data: profile } = await supabase.from("profiles").select("community").eq("id", currentUser.id).single();
       if (profile?.community) {
         localStorage.setItem("selectedCommunity", profile.community);
         navigate("/home");
@@ -287,25 +281,20 @@ export const AuthPage = () => {
   };
 
   const handleForgotPassword = async () => {
-    if (!email) {
-      toast({ title: "Error", description: "Please enter your email", variant: "destructive" });
+    const identifier = channel === "whatsapp" ? normalizePhone(phone) : email.trim();
+    if (!identifier) {
+      toast({ title: "Error", description: channel === "whatsapp" ? "Enter your phone" : "Please enter your email", variant: "destructive" });
       return;
     }
-
     setIsLoading(true);
     try {
-      const response = await supabase.functions.invoke("email-otp", {
-        body: { action: "reset-send", email: email.toLowerCase().trim() }
+      const response = await supabase.functions.invoke(otpFnName, {
+        body: otpFnBody({ action: "reset-send" }),
       });
-
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Failed to send OTP");
-
-      toast({ title: "OTP Sent!", description: "Check your email for the 6-digit code to reset your password." });
-      setMode("reset-otp");
-      setResendTimer(60);
-      setOtp("");
-      setNewPassword("");
+      toast({ title: "OTP Sent!", description: channel === "whatsapp" ? "Check WhatsApp for the reset code." : "Check your email." });
+      setMode("reset-otp"); setResendTimer(60); setOtp(""); setNewPassword("");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -322,26 +311,15 @@ export const AuthPage = () => {
       toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
       return;
     }
-
     setIsLoading(true);
     try {
-      const response = await supabase.functions.invoke("email-otp", {
-        body: {
-          action: "reset-verify",
-          email: email.toLowerCase().trim(),
-          otp,
-          newPassword
-        }
+      const response = await supabase.functions.invoke(otpFnName, {
+        body: otpFnBody({ action: "reset-verify", otp, newPassword }),
       });
-
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Password reset failed");
-
       toast({ title: "Password Reset!", description: "You can now sign in with your new password." });
-      setMode("login");
-      setOtp("");
-      setNewPassword("");
-      setPassword("");
+      setMode("login"); setOtp(""); setNewPassword(""); setPassword("");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -351,25 +329,23 @@ export const AuthPage = () => {
 
   const handleResendResetOTP = async () => {
     if (resendTimer > 0) return;
-    
     setIsLoading(true);
     try {
-      const response = await supabase.functions.invoke("email-otp", {
-        body: { action: "reset-send", email: email.toLowerCase().trim() }
+      const response = await supabase.functions.invoke(otpFnName, {
+        body: otpFnBody({ action: "reset-send" }),
       });
-
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || "Failed to resend OTP");
-
-      toast({ title: "OTP Resent!", description: "Check your email for the new code." });
-      setResendTimer(60);
-      setOtp("");
+      toast({ title: "OTP Resent!" });
+      setResendTimer(60); setOtp("");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
+
+
 
 
   return (
