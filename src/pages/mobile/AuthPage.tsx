@@ -507,19 +507,56 @@ export const AuthPage = () => {
                   </>
                 )}
 
-                <div className="space-y-2">
-                  <label className="text-base font-semibold">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+                {/* Channel toggle */}
+                <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setChannel("email")}
+                    className={`py-2 text-sm font-semibold rounded-md flex items-center justify-center gap-1.5 transition ${channel === "email" ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
+                  >
+                    <Mail className="w-4 h-4" /> Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChannel("whatsapp")}
+                    className={`py-2 text-sm font-semibold rounded-md flex items-center justify-center gap-1.5 transition ${channel === "whatsapp" ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
+                  >
+                    <MessageCircle className="w-4 h-4" /> WhatsApp
+                  </button>
                 </div>
+
+                {channel === "email" ? (
+                  <div className="space-y-2">
+                    <label className="text-base font-semibold">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-base font-semibold">WhatsApp Number</label>
+                    <div className="relative">
+                      <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="10-digit phone (India +91)"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                        className="pl-10"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">We'll send a 6-digit code on WhatsApp</p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
