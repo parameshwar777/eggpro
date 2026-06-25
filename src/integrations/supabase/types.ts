@@ -269,6 +269,27 @@ export type Database = {
         }
         Relationships: []
       }
+      phone_otps: {
+        Row: {
+          created_at: string
+          expires_at: string
+          otp_hash: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          otp_hash: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          otp_hash?: string
+          phone?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           buy_once_price: number | null
