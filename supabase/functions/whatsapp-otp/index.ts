@@ -6,155 +6,233 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Simple in-memory OTP store (for demo - in production use Redis/DB)
-const otpStore = new Map<string, { otp: string; expires: number }>();
-
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+async function hashOTP(otp: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(otp);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Normalize phone to E.164 with leading +
+function normalizePhone(input: string): string {
+  let p = String(input || "").trim().replace(/[\s\-()]/g, "");
+  if (!p) return "";
+  if (!p.startsWith("+")) {
+    // If 10 digits, assume India
+    const digits = p.replace(/\D/g, "");
+    if (digits.length === 10) p = "+91" + digits;
+    else p = "+" + digits;
   }
+  return p;
+}
+
+// Synthetic email used to back the auth.users record for a phone-only signup
+function phoneToEmail(phone: string): string {
+  return `${phone.replace(/\D/g, "")}@phone.eggpro.app`;
+}
+
+async function sendWhatsAppOtp(toPhone: string, code: string) {
+  const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const FROM = Deno.env.get("TWILIO_WHATSAPP_FROM");
+  const CONTENT_SID = Deno.env.get("TWILIO_WA_OTP_CONTENT_SID");
+
+  if (!TWILIO_API_KEY || !LOVABLE_API_KEY) throw new Error("Twilio not configured");
+  if (!FROM) throw new Error("TWILIO_WHATSAPP_FROM not configured");
+  if (!CONTENT_SID) throw new Error("TWILIO_WA_OTP_CONTENT_SID not configured");
+
+  const body = new URLSearchParams({
+    To: `whatsapp:${toPhone}`,
+    From: `whatsapp:${FROM}`,
+    ContentSid: CONTENT_SID,
+    ContentVariables: JSON.stringify({ "1": code }),
+  });
+
+  const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "X-Connection-Api-Key": TWILIO_API_KEY,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.error("Twilio send error:", res.status, data);
+    throw new Error(data?.message || `Twilio error ${res.status}`);
+  }
+  console.log("WhatsApp OTP sent, sid:", data?.sid);
+  return data;
+}
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { action, phone, otp } = await req.json();
-    
-    if (action === "send") {
-      // Generate OTP
-      const generatedOtp = generateOTP();
-      const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
-      
-      // Store OTP
-      otpStore.set(phone, { otp: generatedOtp, expires });
-      
-      console.log(`OTP generated for ${phone}: ${generatedOtp}`);
-      
-      // Create WhatsApp message with OTP
-      const message = `🥚 *EggPro Verification*\n\nYour OTP is: *${generatedOtp}*\n\nThis code expires in 5 minutes.\n\n_Do not share this code with anyone._`;
-      
-      // WhatsApp URL to send OTP - user will open WhatsApp to themselves
-      // In production, you'd use WhatsApp Business API to send automatically
-      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-      
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "OTP generated. Please verify via WhatsApp.",
-        otp: generatedOtp, // Return OTP for display (since we can't auto-send via WhatsApp without Business API)
-        whatsappUrl
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    } 
-    
-    if (action === "verify") {
-      const stored = otpStore.get(phone);
-      
-      if (!stored) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "OTP not found or expired. Please request a new one." 
-        }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-      
-      if (Date.now() > stored.expires) {
-        otpStore.delete(phone);
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "OTP expired. Please request a new one." 
-        }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-      
-      if (stored.otp !== otp) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "Invalid OTP. Please try again." 
-        }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-      
-      // OTP verified - clean up
-      otpStore.delete(phone);
-      
-      // Create or sign in user with Supabase
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      
-      // Check if user exists with this phone
-      const { data: existingUser } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("phone", phone)
-        .single();
-      
-      if (existingUser) {
-        // User exists - generate a magic link token for them
-        const { data: authData, error: authError } = await supabase.auth.admin.generateLink({
-          type: "magiclink",
-          email: `${phone.replace("+", "")}@phone.eggpro.app`,
-        });
-        
-        if (authError) {
-          console.error("Auth error:", authError);
-          throw authError;
-        }
-        
-        return new Response(JSON.stringify({ 
-          success: true, 
-          message: "OTP verified successfully",
-          isNewUser: false,
-          userId: existingUser.id,
-          token: authData?.properties?.hashed_token
-        }), {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-      
-      // New user - create account
-      const email = `${phone.replace("+", "").replace(/\D/g, "")}@phone.eggpro.app`;
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email,
-        phone,
-        email_confirm: true,
-        phone_confirm: true,
-        user_metadata: { phone }
-      });
-      
-      if (createError) {
-        console.error("Create user error:", createError);
-        throw createError;
-      }
-      
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Account created and verified",
-        isNewUser: true,
-        userId: newUser.user?.id
-      }), {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { action, phone: rawPhone, otp, fullName, password, newPassword } = await req.json();
+    const phone = normalizePhone(rawPhone);
+    if (!phone) {
+      return new Response(JSON.stringify({ success: false, error: "Phone is required" }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
-    
-    return new Response(JSON.stringify({ error: "Invalid action" }), {
+
+    // ---- SEND OTP (signup or login) ----
+    if (action === "send" || action === "reset-send") {
+      const code = generateOTP();
+      const otp_hash = await hashOTP(code);
+      const expires_at = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+      const { error: upErr } = await supabase
+        .from("phone_otps")
+        .upsert({ phone, otp_hash, expires_at }, { onConflict: "phone" });
+      if (upErr) throw upErr;
+
+      try {
+        await sendWhatsAppOtp(phone, code);
+      } catch (e: any) {
+        await supabase.from("phone_otps").delete().eq("phone", phone);
+        return new Response(
+          JSON.stringify({ success: false, error: e?.message || "Failed to send WhatsApp OTP" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      return new Response(JSON.stringify({ success: true, message: "OTP sent on WhatsApp" }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // ---- VERIFY OTP ----
+    if (action === "verify" || action === "reset-verify") {
+      if (!otp) {
+        return new Response(JSON.stringify({ success: false, error: "OTP is required" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      const { data: stored } = await supabase
+        .from("phone_otps")
+        .select("*")
+        .eq("phone", phone)
+        .maybeSingle();
+
+      if (!stored) {
+        return new Response(
+          JSON.stringify({ success: false, error: "OTP not found. Please request a new one." }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      if (new Date(stored.expires_at) < new Date()) {
+        await supabase.from("phone_otps").delete().eq("phone", phone);
+        return new Response(
+          JSON.stringify({ success: false, error: "OTP expired. Please request a new one." }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      const otp_hash = await hashOTP(otp);
+      if (stored.otp_hash !== otp_hash) {
+        return new Response(JSON.stringify({ success: false, error: "Invalid OTP" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      await supabase.from("phone_otps").delete().eq("phone", phone);
+
+      const email = phoneToEmail(phone);
+
+      // Find existing user by phone or synthetic email
+      const { data: existing } = await supabase.auth.admin.listUsers();
+      const existingUser = existing?.users?.find(
+        (u: any) => u.email?.toLowerCase() === email || u.phone === phone.replace(/^\+/, "")
+      );
+
+      // RESET FLOW: update password for existing user
+      if (action === "reset-verify") {
+        if (!existingUser) {
+          return new Response(
+            JSON.stringify({ success: false, error: "No account found with this phone" }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+        if (!newPassword || String(newPassword).length < 6) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Password must be at least 6 characters" }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+        const { error: updErr } = await supabase.auth.admin.updateUserById(existingUser.id, {
+          password: String(newPassword),
+        });
+        if (updErr) throw updErr;
+        return new Response(
+          JSON.stringify({ success: true, email, message: "Password updated" }),
+          { headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // SIGNUP/LOGIN FLOW
+      if (existingUser) {
+        // existing account – nothing to create. Frontend will sign in using password if provided.
+        return new Response(
+          JSON.stringify({ success: true, email, userId: existingUser.id, isNewUser: false }),
+          { headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      if (!password || String(password).length < 6) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Password required (min 6 chars) to create account" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
+        email,
+        password: String(password),
+        email_confirm: true,
+        phone: phone.replace(/^\+/, ""),
+        phone_confirm: true,
+        user_metadata: { full_name: fullName || "", phone },
+      });
+      if (createErr) throw createErr;
+
+      // Ensure profile has phone
+      try {
+        await supabase.from("profiles").update({ phone }).eq("id", newUser.user!.id);
+      } catch (_) {}
+
+      return new Response(
+        JSON.stringify({ success: true, email, userId: newUser.user?.id, isNewUser: true }),
+        { headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    return new Response(JSON.stringify({ success: false, error: "Invalid action" }), {
       status: 400,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-  } catch (error: any) {
-    console.error("Error in WhatsApp OTP:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (e: any) {
+    console.error("whatsapp-otp error:", e);
+    return new Response(JSON.stringify({ success: false, error: e?.message || "Server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
