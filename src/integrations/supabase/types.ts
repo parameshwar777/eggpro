@@ -275,18 +275,24 @@ export type Database = {
           expires_at: string
           otp_hash: string
           phone: string
+          verified: boolean
+          verified_at: string | null
         }
         Insert: {
           created_at?: string
           expires_at: string
           otp_hash: string
           phone: string
+          verified?: boolean
+          verified_at?: string | null
         }
         Update: {
           created_at?: string
           expires_at?: string
           otp_hash?: string
           phone?: string
+          verified?: boolean
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -337,9 +343,12 @@ export type Database = {
           address: string | null
           community: string | null
           created_at: string
+          email: string | null
+          email_verified: boolean
           full_name: string | null
           id: string
           phone: string | null
+          phone_verified: boolean
           referral_code: string | null
           updated_at: string
           wallet_balance: number | null
@@ -348,9 +357,12 @@ export type Database = {
           address?: string | null
           community?: string | null
           created_at?: string
+          email?: string | null
+          email_verified?: boolean
           full_name?: string | null
           id: string
           phone?: string | null
+          phone_verified?: boolean
           referral_code?: string | null
           updated_at?: string
           wallet_balance?: number | null
@@ -359,9 +371,12 @@ export type Database = {
           address?: string | null
           community?: string | null
           created_at?: string
+          email?: string | null
+          email_verified?: boolean
           full_name?: string | null
           id?: string
           phone?: string | null
+          phone_verified?: boolean
           referral_code?: string | null
           updated_at?: string
           wallet_balance?: number | null
