@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, Eye, EyeOff, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -12,6 +12,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 
 type AuthMode = "login" | "signup" | "forgot" | "verify-otp" | "reset-otp";
+type AuthChannel = "email" | "whatsapp";
+
+const normalizePhone = (raw: string) => {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.length === 10) return "+91" + digits;
+  if (digits.startsWith("91") && digits.length === 12) return "+" + digits;
+  return "+" + digits;
+};
+const phoneToEmail = (phone: string) => `${phone.replace(/\D/g, "")}@phone.eggpro.app`;
 
 export const AuthPage = () => {
   const navigate = useNavigate();
@@ -19,7 +29,9 @@ export const AuthPage = () => {
   const { signInWithEmail, user } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>("login");
+  const [channel, setChannel] = useState<AuthChannel>("email");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [referralCode, setReferralCode] = useState("");
