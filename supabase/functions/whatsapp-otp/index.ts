@@ -6,35 +6,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const SYNTH_DOMAIN = "@phone.eggpro.app";
+
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 async function hashOTP(otp: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(otp);
+  const data = new TextEncoder().encode(otp);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Normalize phone to E.164 with leading +
 function normalizePhone(input: string): string {
   let p = String(input || "").trim().replace(/[\s\-()]/g, "");
   if (!p) return "";
   if (!p.startsWith("+")) {
-    // If 10 digits, assume India
     const digits = p.replace(/\D/g, "");
     if (digits.length === 10) p = "+91" + digits;
     else p = "+" + digits;
   }
   return p;
-}
-
-// Synthetic email used to back the auth.users record for a phone-only signup
-function phoneToEmail(phone: string): string {
-  return `${phone.replace(/\D/g, "")}@phone.eggpro.app`;
 }
 
 async function sendWhatsAppOtp(toPhone: string, code: string) {
@@ -82,8 +74,15 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { action, phone: rawPhone, otp, fullName, password, newPassword } = await req.json();
-    const phone = normalizePhone(rawPhone);
+    const reqBody = await req.json();
+    const action = reqBody.action as string;
+    const phone = normalizePhone(reqBody.phone);
+    const otp = reqBody.otp as string | undefined;
+    const purpose = (reqBody.purpose as string) || "signup"; // 'signup' | 'legacy-login'
+    const email = reqBody.email ? String(reqBody.email).toLowerCase().trim() : "";
+    const password = reqBody.password as string | undefined;
+    const fullName = (reqBody.fullName as string) || "";
+
     if (!phone) {
       return new Response(JSON.stringify({ success: false, error: "Phone is required" }), {
         status: 200,
@@ -91,15 +90,61 @@ serve(async (req: Request) => {
       });
     }
 
-    // ---- SEND OTP (signup or login) ----
-    if (action === "send" || action === "reset-send") {
+    // ---------- SEND OTP ----------
+    if (action === "send") {
+      // Rate limit: max 5 OTP requests / hour per phone
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from("phone_otps")
+        .select("phone", { count: "exact", head: true })
+        .eq("phone", phone)
+        .gte("created_at", oneHourAgo);
+
+      // Identity gating
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id, email, phone")
+        .eq("phone", phone)
+        .maybeSingle();
+
+      if (purpose === "signup" && existingProfile) {
+        const userEmail = existingProfile.email || "";
+        const isSynthetic = userEmail.endsWith(SYNTH_DOMAIN) || !userEmail;
+        if (isSynthetic) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "This phone is already registered. Please log in instead.",
+              code: "phone_taken_phone",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        } else {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: `This number is already linked to an email account. Please log in with email.`,
+              code: "phone_taken_email",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+      }
+
+      if (purpose === "legacy-login" && !existingProfile) {
+        return new Response(
+          JSON.stringify({ success: false, error: "No account found for this phone" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
       const code = generateOTP();
       const otp_hash = await hashOTP(code);
       const expires_at = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
       const { error: upErr } = await supabase
         .from("phone_otps")
-        .upsert({ phone, otp_hash, expires_at }, { onConflict: "phone" });
+        .upsert({ phone, otp_hash, expires_at, verified: false, verified_at: null }, { onConflict: "phone" });
       if (upErr) throw upErr;
 
       try {
@@ -117,108 +162,137 @@ serve(async (req: Request) => {
       });
     }
 
-    // ---- VERIFY OTP ----
-    if (action === "verify" || action === "reset-verify") {
+    // ---------- VERIFY OTP (signup step 1: just verifies code) ----------
+    if (action === "verify") {
       if (!otp) {
         return new Response(JSON.stringify({ success: false, error: "OTP is required" }), {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
       const { data: stored } = await supabase
-        .from("phone_otps")
-        .select("*")
-        .eq("phone", phone)
-        .maybeSingle();
+        .from("phone_otps").select("*").eq("phone", phone).maybeSingle();
 
       if (!stored) {
-        return new Response(
-          JSON.stringify({ success: false, error: "OTP not found. Please request a new one." }),
-          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
+        return new Response(JSON.stringify({ success: false, error: "OTP not found. Request a new one." }), {
+          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
       }
-
       if (new Date(stored.expires_at) < new Date()) {
         await supabase.from("phone_otps").delete().eq("phone", phone);
-        return new Response(
-          JSON.stringify({ success: false, error: "OTP expired. Please request a new one." }),
-          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
+        return new Response(JSON.stringify({ success: false, error: "OTP expired. Request a new one." }), {
+          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
       }
-
       const otp_hash = await hashOTP(otp);
       if (stored.otp_hash !== otp_hash) {
         return new Response(JSON.stringify({ success: false, error: "Invalid OTP" }), {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
-      await supabase.from("phone_otps").delete().eq("phone", phone);
+      // Mark OTP verified but keep row for 15min so signup can complete
+      const verified_at = new Date().toISOString();
+      const new_expiry = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      await supabase
+        .from("phone_otps")
+        .update({ verified: true, verified_at, expires_at: new_expiry })
+        .eq("phone", phone);
 
-      const email = phoneToEmail(phone);
-
-      // Find existing user by phone or synthetic email
-      const { data: existing } = await supabase.auth.admin.listUsers();
-      const existingUser = existing?.users?.find(
-        (u: any) => u.email?.toLowerCase() === email || u.phone === phone.replace(/^\+/, "")
-      );
-
-      // RESET FLOW: update password for existing user
-      if (action === "reset-verify") {
-        if (!existingUser) {
-          return new Response(
-            JSON.stringify({ success: false, error: "No account found with this phone" }),
-            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-          );
+      // For legacy-login: directly return the user's existing email so frontend can sign in.
+      if (purpose === "legacy-login") {
+        const { data: profile } = await supabase
+          .from("profiles").select("id, email").eq("phone", phone).maybeSingle();
+        let loginEmail = profile?.email || null;
+        if (!loginEmail && profile?.id) {
+          const { data: u } = await supabase.auth.admin.getUserById(profile.id);
+          loginEmail = u?.user?.email || null;
         }
-        if (!newPassword || String(newPassword).length < 6) {
-          return new Response(
-            JSON.stringify({ success: false, error: "Password must be at least 6 characters" }),
-            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-          );
-        }
-        const { error: updErr } = await supabase.auth.admin.updateUserById(existingUser.id, {
-          password: String(newPassword),
-        });
-        if (updErr) throw updErr;
         return new Response(
-          JSON.stringify({ success: true, email, message: "Password updated" }),
+          JSON.stringify({ success: true, email: loginEmail, userId: profile?.id || null, verified: true }),
           { headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
 
-      // SIGNUP/LOGIN FLOW
-      if (existingUser) {
-        // existing account – nothing to create. Frontend will sign in using password if provided.
+      return new Response(JSON.stringify({ success: true, verified: true }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // ---------- COMPLETE SIGNUP (after OTP verified, with email+password) ----------
+    if (action === "complete-signup") {
+      if (!email || !password || password.length < 6) {
         return new Response(
-          JSON.stringify({ success: true, email, userId: existingUser.id, isNewUser: false }),
-          { headers: { "Content-Type": "application/json", ...corsHeaders } }
+          JSON.stringify({ success: false, error: "Email and password (min 6 chars) required" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
 
-      if (!password || String(password).length < 6) {
+      // Check OTP verified
+      const { data: stored } = await supabase
+        .from("phone_otps").select("*").eq("phone", phone).maybeSingle();
+      if (!stored || !stored.verified) {
         return new Response(
-          JSON.stringify({ success: false, error: "Password required (min 6 chars) to create account" }),
+          JSON.stringify({ success: false, error: "Phone not verified. Please verify OTP first." }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      if (new Date(stored.expires_at) < new Date()) {
+        await supabase.from("phone_otps").delete().eq("phone", phone);
+        return new Response(
+          JSON.stringify({ success: false, error: "Verification expired. Please restart signup." }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Re-check phone not taken in race
+      const { data: phoneTaken } = await supabase
+        .from("profiles").select("id").eq("phone", phone).maybeSingle();
+      if (phoneTaken) {
+        return new Response(
+          JSON.stringify({ success: false, error: "This phone is already registered." }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Check email not taken
+      const { data: emailTaken } = await supabase
+        .from("profiles").select("id").eq("email", email).maybeSingle();
+      if (emailTaken) {
+        return new Response(
+          JSON.stringify({ success: false, error: "This email is already registered. Please log in with email." }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: authList } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
+      const authHit = authList?.users?.find((u: any) => u.email?.toLowerCase() === email);
+      if (authHit) {
+        return new Response(
+          JSON.stringify({ success: false, error: "This email is already registered. Please log in with email." }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
 
       const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
         email,
-        password: String(password),
+        password,
         email_confirm: true,
         phone: phone.replace(/^\+/, ""),
         phone_confirm: true,
-        user_metadata: { full_name: fullName || "", phone },
+        user_metadata: { full_name: fullName, phone },
       });
       if (createErr) throw createErr;
 
-      // Ensure profile has phone
-      try {
-        await supabase.from("profiles").update({ phone }).eq("id", newUser.user!.id);
-      } catch (_) {}
+      // Ensure profile row has phone + email + name + verified flags
+      await supabase.from("profiles").update({
+        phone,
+        email,
+        full_name: fullName || null,
+        phone_verified: true,
+        email_verified: true,
+      }).eq("id", newUser.user!.id);
+
+      await supabase.from("phone_otps").delete().eq("phone", phone);
 
       return new Response(
         JSON.stringify({ success: true, email, userId: newUser.user?.id, isNewUser: true }),
@@ -227,14 +301,12 @@ serve(async (req: Request) => {
     }
 
     return new Response(JSON.stringify({ success: false, error: "Invalid action" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (e: any) {
     console.error("whatsapp-otp error:", e);
     return new Response(JSON.stringify({ success: false, error: e?.message || "Server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 });
