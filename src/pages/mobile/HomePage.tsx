@@ -99,6 +99,21 @@ export const HomePage = () => {
     fetchProducts();
   }, []);
 
+  // First-order eligibility (50% off banner)
+  const [isFirstOrder, setIsFirstOrder] = useState(false);
+  useEffect(() => {
+    const checkFirstOrder = async () => {
+      if (!user) { setIsFirstOrder(true); return; }
+      const { count } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("payment_status", "completed");
+      setIsFirstOrder((count || 0) === 0);
+    };
+    checkFirstOrder();
+  }, [user]);
+
   // Group products by name and extract pack sizes
   const products = useMemo<GroupedProduct[]>(() => {
     const grouped = new Map<string, DBProduct[]>();
