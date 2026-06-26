@@ -35,6 +35,8 @@ export const AdminLayout = ({ children, title, headerActions }: AdminLayoutProps
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
     { icon: Package, label: "Products", path: "/admin/products" },
     { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
+    { icon: AlertCircle, label: "Payment Issues", path: "/admin/payment-issues" },
+
     { icon: Users, label: "Communities", path: "/admin/communities" },
     { icon: Bell, label: "Notifications", path: "/admin/notifications" },
     { icon: Tag, label: "Offers", path: "/admin/offers" },
