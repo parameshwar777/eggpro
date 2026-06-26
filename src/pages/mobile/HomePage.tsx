@@ -240,6 +240,21 @@ export const HomePage = () => {
         </motion.div>
       </motion.div>
 
+      {/* First-order offer banner */}
+      {isFirstOrder && (
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="mx-4 mt-4 p-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg flex items-center gap-3"
+        >
+          <div className="text-3xl">🎉</div>
+          <div className="flex-1">
+            <p className="font-bold text-base leading-tight">Welcome offer — 50% OFF</p>
+            <p className="text-xs opacity-90 mt-0.5">Auto-applied at checkout on your first order. Limited time!</p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Products Section */}
       <div className="px-4 py-5">
         <motion.div
