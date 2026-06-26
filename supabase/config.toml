@@ -12,3 +12,7 @@ verify_jwt = false
 [functions.razorpay-checkout-page]
 verify_jwt = false
 
+[functions.twilio-whatsapp-order]
+verify_jwt = false
+
+
