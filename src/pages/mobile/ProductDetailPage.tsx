@@ -44,7 +44,7 @@ export const ProductDetailPage = () => {
   
   const [variants, setVariants] = useState<DBProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPack, setSelectedPack] = useState<number>(6);
+  const [selectedPack, setSelectedPack] = useState<number>(12);
   const [isSubscription, setIsSubscription] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showSubscriptions, setShowSubscriptions] = useState(false);
