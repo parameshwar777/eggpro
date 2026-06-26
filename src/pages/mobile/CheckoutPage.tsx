@@ -223,9 +223,9 @@ export const CheckoutPage = () => {
 
     try {
       // If wallet has enough balance and user wants to use it
-      if (useWallet && walletBalance >= totalPrice) {
+      if (useWallet && walletBalance >= finalTotal) {
         // Deduct from wallet
-        const newBalance = walletBalance - totalPrice;
+        const newBalance = walletBalance - finalTotal;
         await supabase
           .from("profiles")
           .update({ wallet_balance: newBalance })
@@ -236,7 +236,7 @@ export const CheckoutPage = () => {
           .from("wallet_transactions")
           .insert({
             user_id: user.id,
-            amount: totalPrice,
+            amount: finalTotal,
             type: "debit",
             description: "One-time Order Payment"
           });
@@ -255,7 +255,7 @@ export const CheckoutPage = () => {
               packSize: i.packSize,
               isOneTime: true
             })),
-            total_amount: totalPrice,
+            total_amount: finalTotal,
             payment_status: "completed",
             order_status: "confirmed"
           });
@@ -291,7 +291,7 @@ export const CheckoutPage = () => {
             packSize: i.packSize,
             isOneTime: true
           })),
-          total_amount: totalPrice,
+          total_amount: finalTotal,
           payment_status: "pending",
           order_status: "pending"
         })
@@ -302,7 +302,7 @@ export const CheckoutPage = () => {
 
       // Create Razorpay order
       const { data: razorpayData, error: razorpayError } = await supabase.functions.invoke("create-razorpay-order", {
-        body: { amount: totalPrice, receipt: orderData.id }
+        body: { amount: finalTotal, receipt: orderData.id }
       });
 
       if (razorpayError) throw razorpayError;
@@ -335,7 +335,7 @@ export const CheckoutPage = () => {
             phone,
             customerName,
             items: mappedItems,
-            totalAmount: totalPrice
+            totalAmount: finalTotal
           }
         });
 
@@ -623,9 +623,9 @@ export const CheckoutPage = () => {
                   />
                 </motion.button>
               </div>
-              {useWallet && walletBalance < totalPrice && (
+              {useWallet && walletBalance < finalTotal && (
                 <p className="text-xs text-destructive mt-2">
-                  Insufficient balance. Need ₹{totalPrice - walletBalance} more.
+                  Insufficient balance. Need ₹{finalTotal - walletBalance} more.
                 </p>
               )}
             </motion.div>
@@ -660,7 +660,7 @@ export const CheckoutPage = () => {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Total Amount</p>
-                <p className="text-2xl font-bold text-foreground">₹{totalPrice}</p>
+                <p className="text-2xl font-bold text-foreground">₹{finalTotal}</p>
               </div>
               <Button
                 id="pay-now-btn"
