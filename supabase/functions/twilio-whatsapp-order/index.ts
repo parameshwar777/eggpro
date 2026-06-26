@@ -17,18 +17,43 @@ function normalizePhone(input: string): string {
   return p;
 }
 
-async function sendWhatsAppText(toPhone: string, body: string) {
+interface WhatsAppMessagePayload {
+  To: string;
+  From: string;
+  Body?: string;
+  ContentSid?: string;
+  ContentVariables?: string;
+}
+
+async function sendWhatsAppMessage(toPhone: string, body: string, contentVariables?: Record<string, string>) {
   const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const FROM = Deno.env.get("TWILIO_WHATSAPP_FROM");
+  const CONTENT_SID = Deno.env.get("TWILIO_WA_ORDER_CONTENT_SID");
+
   if (!TWILIO_API_KEY || !LOVABLE_API_KEY || !FROM) {
     throw new Error("Twilio WhatsApp not configured");
   }
-  const params = new URLSearchParams({
+
+  const payload: WhatsAppMessagePayload = {
     To: `whatsapp:${toPhone}`,
     From: `whatsapp:${FROM}`,
-    Body: body,
-  });
+  };
+
+  if (CONTENT_SID) {
+    payload.ContentSid = CONTENT_SID;
+    if (contentVariables) {
+      payload.ContentVariables = JSON.stringify(contentVariables);
+    }
+  } else {
+    payload.Body = body;
+  }
+
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(payload)) {
+    if (value !== undefined) params.append(key, value);
+  }
+
   const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
     method: "POST",
     headers: {
@@ -46,6 +71,7 @@ async function sendWhatsAppText(toPhone: string, body: string) {
   console.log("Twilio order WA sent, sid:", data?.sid, "to:", toPhone);
   return data;
 }
+
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -82,12 +108,24 @@ serve(async (req: Request) => {
       `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
     const body = `🥚 *New EggPro Order!*\n\n*Order:* ${String(orderId).slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
 
+    const contentVariables: Record<string, string> = {
+      "1": String(orderId).slice(0, 8),
+      "2": customerName || "Customer",
+      "3": phone || "",
+      "4": community || "",
+      "5": address || "",
+      "6": itemsList || "No items",
+      "7": String(totalAmount || 0),
+      "8": new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+    };
+
     let sent = 0;
     const errors: string[] = [];
     for (const to of recipients) {
-      try { await sendWhatsAppText(to, body); sent++; }
+      try { await sendWhatsAppMessage(to, body, contentVariables); sent++; }
       catch (e: any) { errors.push(`${to}: ${e.message}`); }
     }
+
 
     return new Response(JSON.stringify({ ok: true, sent, errors }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
