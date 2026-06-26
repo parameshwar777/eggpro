@@ -44,6 +44,8 @@ import { AdminOffers } from "./pages/admin/AdminOffers";
 import { AdminCommunities } from "./pages/admin/AdminCommunities";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminUsers } from "./pages/admin/AdminUsers";
+import { AdminPaymentIssues } from "./pages/admin/AdminPaymentIssues";
+
 
 // Merchant Pages
 import { MerchantLogin } from "./pages/merchant/MerchantLogin";
