@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Package, ShoppingCart, Bell, Tag, 
-  LogOut, Menu, X, Users, Settings
+  LogOut, Menu, X, Users, Settings, AlertCircle
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
