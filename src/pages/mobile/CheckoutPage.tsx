@@ -66,6 +66,11 @@ export const CheckoutPage = () => {
   const [selectedCommunityId, setSelectedCommunityId] = useState("");
   const [deliverySlots] = useState<DeliverySlot[]>(getAvailableDeliverySlots());
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
+  const [isFirstOrder, setIsFirstOrder] = useState(false);
+
+  const firstOrderDiscount = isFirstOrder ? Math.round(totalPrice * 0.5) : 0;
+  const finalTotal = Math.max(totalPrice - firstOrderDiscount, 0);
+
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
