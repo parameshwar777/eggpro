@@ -30,6 +30,8 @@ import { SubscriptionsPage } from "./pages/mobile/SubscriptionsPage";
 import { PrivacyPolicyPage } from "./pages/mobile/PrivacyPolicyPage";
 import { TermsPage } from "./pages/mobile/TermsPage";
 import { AboutPage } from "./pages/mobile/AboutPage";
+import { PaymentIssuePage } from "./pages/mobile/PaymentIssuePage";
+
 
 // Admin Pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
