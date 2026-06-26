@@ -269,6 +269,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_issues: {
+        Row: {
+          admin_notes: string | null
+          amount: number | null
+          created_at: string
+          description: string | null
+          id: string
+          screenshot_url: string | null
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          screenshot_url?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          screenshot_url?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       phone_otps: {
         Row: {
           created_at: string
