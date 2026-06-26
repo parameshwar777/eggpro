@@ -117,10 +117,8 @@ export const HomePage = () => {
         return aSize - bSize;
       });
 
-      // Minimum order is 12 eggs — exclude smaller packs (e.g. 6)
-      const filteredVariants = sortedVariants.filter(
-        (v) => parseInt(v.unit?.replace(/\D/g, "") || "0") >= 12
-      );
+      // Show every variant the admin has published (catalog is admin-driven)
+      const filteredVariants = sortedVariants;
       if (filteredVariants.length === 0) return null;
 
       const baseVariant = filteredVariants[0];
