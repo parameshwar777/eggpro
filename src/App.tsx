@@ -102,6 +102,8 @@ const App = () => (
                 <Route path="/admin/communities" element={<AdminCommunities />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/payment-issues" element={<AdminPaymentIssues />} />
+
 
                 {/* Merchant Routes */}
                 <Route path="/merchant/login" element={<MerchantLogin />} />
