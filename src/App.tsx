@@ -30,6 +30,8 @@ import { SubscriptionsPage } from "./pages/mobile/SubscriptionsPage";
 import { PrivacyPolicyPage } from "./pages/mobile/PrivacyPolicyPage";
 import { TermsPage } from "./pages/mobile/TermsPage";
 import { AboutPage } from "./pages/mobile/AboutPage";
+import { PaymentIssuePage } from "./pages/mobile/PaymentIssuePage";
+
 
 // Admin Pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
@@ -42,6 +44,8 @@ import { AdminOffers } from "./pages/admin/AdminOffers";
 import { AdminCommunities } from "./pages/admin/AdminCommunities";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminUsers } from "./pages/admin/AdminUsers";
+import { AdminPaymentIssues } from "./pages/admin/AdminPaymentIssues";
+
 
 // Merchant Pages
 import { MerchantLogin } from "./pages/merchant/MerchantLogin";
@@ -84,6 +88,8 @@ const App = () => (
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/payment-issue" element={<PaymentIssuePage />} />
+
 
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminPage />} />
@@ -96,6 +102,8 @@ const App = () => (
                 <Route path="/admin/communities" element={<AdminCommunities />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/payment-issues" element={<AdminPaymentIssues />} />
+
 
                 {/* Merchant Routes */}
                 <Route path="/merchant/login" element={<MerchantLogin />} />

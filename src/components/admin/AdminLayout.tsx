@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Package, ShoppingCart, Bell, Tag, 
-  LogOut, Menu, X, Users, Settings
+  LogOut, Menu, X, Users, Settings, AlertCircle
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -34,6 +35,8 @@ export const AdminLayout = ({ children, title, headerActions }: AdminLayoutProps
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
     { icon: Package, label: "Products", path: "/admin/products" },
     { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
+    { icon: AlertCircle, label: "Payment Issues", path: "/admin/payment-issues" },
+
     { icon: Users, label: "Communities", path: "/admin/communities" },
     { icon: Bell, label: "Notifications", path: "/admin/notifications" },
     { icon: Tag, label: "Offers", path: "/admin/offers" },

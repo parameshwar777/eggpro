@@ -117,14 +117,21 @@ export const HomePage = () => {
         return aSize - bSize;
       });
 
-      const baseVariant = sortedVariants[0]; // 6 eggs variant (smallest)
-      const packSizes = sortedVariants.map((v) => parseInt(v.unit?.replace(/\D/g, "") || "6"));
+      // Minimum order is 12 eggs — exclude smaller packs (e.g. 6)
+      const filteredVariants = sortedVariants.filter(
+        (v) => parseInt(v.unit?.replace(/\D/g, "") || "0") >= 12
+      );
+      if (filteredVariants.length === 0) return null;
+
+      const baseVariant = filteredVariants[0];
+      const packSizes = filteredVariants.map((v) => parseInt(v.unit?.replace(/\D/g, "") || "12"));
 
       const variantPrices: Record<number, { price: number; originalPrice: number }> = {};
-      sortedVariants.forEach((v) => {
-        const size = parseInt(v.unit?.replace(/\D/g, "") || "6");
+      filteredVariants.forEach((v) => {
+        const size = parseInt(v.unit?.replace(/\D/g, "") || "12");
         variantPrices[size] = { price: v.buy_once_price || v.price, originalPrice: v.original_price || v.price };
       });
+
 
       return {
         id: baseVariant.id,
@@ -137,8 +144,9 @@ export const HomePage = () => {
         packSizes,
         variantPrices,
       };
-    });
+    }).filter((p): p is GroupedProduct => p !== null);
   }, [dbProducts]);
+
 
   return (
     <MobileLayout>

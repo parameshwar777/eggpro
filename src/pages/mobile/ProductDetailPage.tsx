@@ -44,7 +44,7 @@ export const ProductDetailPage = () => {
   
   const [variants, setVariants] = useState<DBProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPack, setSelectedPack] = useState<number>(6);
+  const [selectedPack, setSelectedPack] = useState<number>(12);
   const [isSubscription, setIsSubscription] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showSubscriptions, setShowSubscriptions] = useState(false);
@@ -78,13 +78,18 @@ export const ProductDetailPage = () => {
         
         if (variantsError) throw variantsError;
         
-        setVariants(allVariants || []);
-        
-        // Set initial selected pack based on first variant
-        if (allVariants && allVariants.length > 0) {
-          const firstPackSize = parseInt(allVariants[0].unit?.replace(/\D/g, '') || '6');
+        // Minimum order is 12 eggs — exclude smaller packs
+        const eligibleVariants = (allVariants || []).filter(
+          (v) => parseInt(v.unit?.replace(/\D/g, '') || '0') >= 12
+        );
+        setVariants(eligibleVariants);
+
+        // Set initial selected pack based on first eligible variant
+        if (eligibleVariants.length > 0) {
+          const firstPackSize = parseInt(eligibleVariants[0].unit?.replace(/\D/g, '') || '12');
           setSelectedPack(firstPackSize);
         }
+
       } catch (error) {
         console.error("Error fetching product:", error);
       } finally {
@@ -113,7 +118,7 @@ export const ProductDetailPage = () => {
   const prices = useMemo(() => {
     const priceMap: Record<number, { buy: number; subscribe: number; original: number }> = {};
     variants.forEach((v) => {
-      const packSize = parseInt(v.unit?.replace(/\D/g, '') || '6');
+      const packSize = parseInt(v.unit?.replace(/\D/g, '') || '12');
       priceMap[packSize] = {
         buy: v.buy_once_price || v.original_price || v.price,
         subscribe: v.price,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn, Settings, Pencil, Check, X, ChevronDown, FileText, Shield, Info, Home as HomeIcon } from "lucide-react";
+import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn, Settings, Pencil, Check, X, ChevronDown, FileText, Shield, Info, Home as HomeIcon, AlertCircle } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -98,6 +98,8 @@ export const AccountPage = () => {
     { icon: Wallet, label: "Wallet", desc: `₹${walletBalance} available`, to: "/wallet", color: "bg-green-100 text-green-600" },
     { icon: RefreshCw, label: "My Subscriptions", desc: `${subscriptionCount} active`, to: "/subscriptions", color: "bg-purple-100 text-purple-600" },
     { icon: Bell, label: "Notifications", desc: `${userNotifCount} unread`, to: "/notifications", color: "bg-red-100 text-red-600" },
+    { icon: AlertCircle, label: "Report Payment Issue", desc: "Paid but order missing? Tell us.", to: "/payment-issue", color: "bg-rose-100 text-rose-600" },
+
     { icon: Info, label: "About EggPro", desc: "Learn about us", to: "/about", color: "bg-amber-100 text-amber-600" },
     { icon: Shield, label: "Privacy Policy", desc: "Your data is safe", to: "/privacy", color: "bg-indigo-100 text-indigo-600" },
     { icon: FileText, label: "Terms of Service", desc: "Usage terms", to: "/terms", color: "bg-slate-100 text-slate-600" },

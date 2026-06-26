@@ -66,6 +66,11 @@ export const CheckoutPage = () => {
   const [selectedCommunityId, setSelectedCommunityId] = useState("");
   const [deliverySlots] = useState<DeliverySlot[]>(getAvailableDeliverySlots());
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
+  const [isFirstOrder, setIsFirstOrder] = useState(false);
+
+  const firstOrderDiscount = isFirstOrder ? Math.round(totalPrice * 0.5) : 0;
+  const finalTotal = Math.max(totalPrice - firstOrderDiscount, 0);
+
 
   const community = localStorage.getItem("selectedCommunity") || "";
 
@@ -81,6 +86,15 @@ export const CheckoutPage = () => {
         .eq("id", user.id)
         .single();
       setWalletBalance(profile?.wallet_balance || 0);
+
+      // Check if this is the user's first paid order (for 50% discount)
+      const { count: paidCount } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("payment_status", "completed");
+      setIsFirstOrder((paidCount || 0) === 0);
+
 
       // Fetch communities for dropdown
       const { data: comms } = await supabase
@@ -209,9 +223,9 @@ export const CheckoutPage = () => {
 
     try {
       // If wallet has enough balance and user wants to use it
-      if (useWallet && walletBalance >= totalPrice) {
+      if (useWallet && walletBalance >= finalTotal) {
         // Deduct from wallet
-        const newBalance = walletBalance - totalPrice;
+        const newBalance = walletBalance - finalTotal;
         await supabase
           .from("profiles")
           .update({ wallet_balance: newBalance })
@@ -222,7 +236,7 @@ export const CheckoutPage = () => {
           .from("wallet_transactions")
           .insert({
             user_id: user.id,
-            amount: totalPrice,
+            amount: finalTotal,
             type: "debit",
             description: "One-time Order Payment"
           });
@@ -241,7 +255,7 @@ export const CheckoutPage = () => {
               packSize: i.packSize,
               isOneTime: true
             })),
-            total_amount: totalPrice,
+            total_amount: finalTotal,
             payment_status: "completed",
             order_status: "confirmed"
           });
@@ -277,7 +291,7 @@ export const CheckoutPage = () => {
             packSize: i.packSize,
             isOneTime: true
           })),
-          total_amount: totalPrice,
+          total_amount: finalTotal,
           payment_status: "pending",
           order_status: "pending"
         })
@@ -288,7 +302,7 @@ export const CheckoutPage = () => {
 
       // Create Razorpay order
       const { data: razorpayData, error: razorpayError } = await supabase.functions.invoke("create-razorpay-order", {
-        body: { amount: totalPrice, receipt: orderData.id }
+        body: { amount: finalTotal, receipt: orderData.id }
       });
 
       if (razorpayError) throw razorpayError;
@@ -321,7 +335,7 @@ export const CheckoutPage = () => {
             phone,
             customerName,
             items: mappedItems,
-            totalAmount: totalPrice
+            totalAmount: finalTotal
           }
         });
 
@@ -570,10 +584,21 @@ export const CheckoutPage = () => {
                 <span className="text-muted-foreground">Delivery:</span>
                 <span className="font-semibold text-green-600">FREE</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal:</span>
+                <span className="font-semibold">₹{totalPrice}</span>
+              </div>
+              {isFirstOrder && (
+                <div className="flex justify-between bg-green-50 -mx-1 px-2 py-1 rounded">
+                  <span className="font-semibold text-green-700">🎉 First Order Discount (50%):</span>
+                  <span className="font-semibold text-green-700">- ₹{firstOrderDiscount}</span>
+                </div>
+              )}
               <div className="border-t border-primary/20 pt-2 mt-2 flex justify-between">
                 <span className="font-bold text-foreground">Total Amount:</span>
-                <span className="font-bold text-primary text-lg">₹{totalPrice}</span>
+                <span className="font-bold text-primary text-lg">₹{finalTotal}</span>
               </div>
+
             </div>
           </motion.div>
 
@@ -609,9 +634,9 @@ export const CheckoutPage = () => {
                   />
                 </motion.button>
               </div>
-              {useWallet && walletBalance < totalPrice && (
+              {useWallet && walletBalance < finalTotal && (
                 <p className="text-xs text-destructive mt-2">
-                  Insufficient balance. Need ₹{totalPrice - walletBalance} more.
+                  Insufficient balance. Need ₹{finalTotal - walletBalance} more.
                 </p>
               )}
             </motion.div>
@@ -646,7 +671,7 @@ export const CheckoutPage = () => {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Total Amount</p>
-                <p className="text-2xl font-bold text-foreground">₹{totalPrice}</p>
+                <p className="text-2xl font-bold text-foreground">₹{finalTotal}</p>
               </div>
               <Button
                 id="pay-now-btn"
