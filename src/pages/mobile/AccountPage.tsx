@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn, Settings, Pencil, Check, X, ChevronDown, FileText, Shield, Info, Home as HomeIcon } from "lucide-react";
+import { MapPin, Wallet, RefreshCw, Bell, HelpCircle, ChevronRight, Star, LogOut, LogIn, Settings, Pencil, Check, X, ChevronDown, FileText, Shield, Info, Home as HomeIcon, AlertCircle } from "lucide-react";
 import { MobileLayout } from "@/components/mobile/MobileLayout";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
