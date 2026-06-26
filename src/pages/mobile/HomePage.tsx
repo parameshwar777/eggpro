@@ -144,8 +144,9 @@ export const HomePage = () => {
         packSizes,
         variantPrices,
       };
-    });
+    }).filter((p): p is GroupedProduct => p !== null);
   }, [dbProducts]);
+
 
   return (
     <MobileLayout>
