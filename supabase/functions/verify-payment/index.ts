@@ -264,6 +264,21 @@ serve(async (req: Request) => {
       console.error("WhatsApp notification error:", e);
     }
 
+    // --- Twilio WhatsApp order alert to admin (free-form text) ---
+    try {
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-whatsapp-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ orderId, customerName, phone, community, address, items, totalAmount }),
+      });
+      console.log("Twilio WhatsApp order alert dispatched");
+    } catch (e) {
+      console.error("Twilio WhatsApp order alert error:", e);
+    }
+
     // --- 3. Send Telegram notification ---
     try {
       const TELEGRAM_GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";

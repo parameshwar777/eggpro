@@ -99,6 +99,21 @@ export const HomePage = () => {
     fetchProducts();
   }, []);
 
+  // First-order eligibility (50% off banner)
+  const [isFirstOrder, setIsFirstOrder] = useState(false);
+  useEffect(() => {
+    const checkFirstOrder = async () => {
+      if (!user) { setIsFirstOrder(true); return; }
+      const { count } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("payment_status", "completed");
+      setIsFirstOrder((count || 0) === 0);
+    };
+    checkFirstOrder();
+  }, [user]);
+
   // Group products by name and extract pack sizes
   const products = useMemo<GroupedProduct[]>(() => {
     const grouped = new Map<string, DBProduct[]>();
@@ -117,10 +132,8 @@ export const HomePage = () => {
         return aSize - bSize;
       });
 
-      // Minimum order is 12 eggs — exclude smaller packs (e.g. 6)
-      const filteredVariants = sortedVariants.filter(
-        (v) => parseInt(v.unit?.replace(/\D/g, "") || "0") >= 12
-      );
+      // Show every variant the admin has published (catalog is admin-driven)
+      const filteredVariants = sortedVariants;
       if (filteredVariants.length === 0) return null;
 
       const baseVariant = filteredVariants[0];
@@ -226,6 +239,21 @@ export const HomePage = () => {
           ))}
         </motion.div>
       </motion.div>
+
+      {/* First-order offer banner */}
+      {isFirstOrder && (
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="mx-4 mt-4 p-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg flex items-center gap-3"
+        >
+          <div className="text-3xl">🎉</div>
+          <div className="flex-1">
+            <p className="font-bold text-base leading-tight">Welcome offer — 50% OFF</p>
+            <p className="text-xs opacity-90 mt-0.5">Auto-applied at checkout on your first order. Limited time!</p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Products Section */}
       <div className="px-4 py-5">

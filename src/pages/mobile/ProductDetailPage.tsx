@@ -78,13 +78,11 @@ export const ProductDetailPage = () => {
         
         if (variantsError) throw variantsError;
         
-        // Minimum order is 12 eggs — exclude smaller packs
-        const eligibleVariants = (allVariants || []).filter(
-          (v) => parseInt(v.unit?.replace(/\D/g, '') || '0') >= 12
-        );
+        // Show every variant the admin has published
+        const eligibleVariants = allVariants || [];
         setVariants(eligibleVariants);
 
-        // Set initial selected pack based on first eligible variant
+        // Set initial selected pack based on first available variant
         if (eligibleVariants.length > 0) {
           const firstPackSize = parseInt(eligibleVariants[0].unit?.replace(/\D/g, '') || '12');
           setSelectedPack(firstPackSize);
