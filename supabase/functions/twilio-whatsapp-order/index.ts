@@ -108,12 +108,24 @@ serve(async (req: Request) => {
       `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
     const body = `🥚 *New EggPro Order!*\n\n*Order:* ${String(orderId).slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
 
+    const contentVariables: Record<string, string> = {
+      "1": String(orderId).slice(0, 8),
+      "2": customerName || "Customer",
+      "3": phone || "",
+      "4": community || "",
+      "5": address || "",
+      "6": itemsList || "No items",
+      "7": String(totalAmount || 0),
+      "8": new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+    };
+
     let sent = 0;
     const errors: string[] = [];
     for (const to of recipients) {
-      try { await sendWhatsAppText(to, body); sent++; }
+      try { await sendWhatsAppMessage(to, body, contentVariables); sent++; }
       catch (e: any) { errors.push(`${to}: ${e.message}`); }
     }
+
 
     return new Response(JSON.stringify({ ok: true, sent, errors }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
