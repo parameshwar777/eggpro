@@ -256,6 +256,9 @@ export const HomePage = () => {
         </motion.div>
       )}
 
+      {/* Festival / promotional offer banners */}
+      <OffersBanner />
+
       {/* Products Section */}
       <div className="px-4 py-5">
         <motion.div
