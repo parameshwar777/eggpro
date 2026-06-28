@@ -111,10 +111,14 @@ export const AdminPaymentIssues = () => {
                 <div key={iss.id} className="bg-amber-50 rounded-xl p-4 shadow-card">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <div className="flex items-center gap-2 text-amber-900">
+                      {iss.ticket_number && (
+                        <p className="font-bold text-amber-900 text-sm">🎫 {iss.ticket_number}</p>
+                      )}
+                      <div className="flex items-center gap-2 text-amber-900 mt-1">
                         <User className="w-4 h-4" />
                         <span className="font-semibold">{iss.profile?.full_name || "Unknown user"}</span>
                       </div>
+
                       <p className="text-sm text-amber-800">
                         {iss.profile?.phone || iss.profile?.email || "—"}
                       </p>
