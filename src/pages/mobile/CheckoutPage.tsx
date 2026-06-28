@@ -648,6 +648,12 @@ export const CheckoutPage = () => {
                   <span className="font-semibold text-green-700">- ₹{firstOrderDiscount}</span>
                 </div>
               )}
+              {appliedCoupon && (
+                <div className="flex justify-between bg-orange-50 -mx-1 px-2 py-1 rounded">
+                  <span className="font-semibold text-orange-700">🎟️ Coupon {appliedCoupon.code} ({appliedCoupon.discount_percentage}%):</span>
+                  <span className="font-semibold text-orange-700">- ₹{couponDiscount}</span>
+                </div>
+              )}
               <div className="border-t border-primary/20 pt-2 mt-2 flex justify-between">
                 <span className="font-bold text-foreground">Total Amount:</span>
                 <span className="font-bold text-primary text-lg">₹{finalTotal}</span>
