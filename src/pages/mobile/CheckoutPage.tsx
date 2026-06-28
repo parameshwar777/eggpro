@@ -187,6 +187,53 @@ export const CheckoutPage = () => {
     }
   };
 
+  const applyCoupon = async () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      toast({ title: "Enter a coupon code", variant: "destructive" });
+      return;
+    }
+    setValidatingCoupon(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("offers")
+        .select("id, code, discount_percentage, title, valid_from, valid_until, is_active")
+        .ilike("code", code)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast({ title: "Invalid coupon", description: "This code is not valid.", variant: "destructive" });
+        return;
+      }
+      if (data.valid_from && new Date(data.valid_from) > new Date()) {
+        toast({ title: "Coupon not active yet", variant: "destructive" });
+        return;
+      }
+      if (data.valid_until && new Date(data.valid_until) < new Date()) {
+        toast({ title: "Coupon expired", variant: "destructive" });
+        return;
+      }
+      setAppliedCoupon({
+        id: data.id,
+        code: data.code || code,
+        discount_percentage: data.discount_percentage || 0,
+        title: data.title,
+      });
+      toast({ title: "Coupon applied!", description: `${data.discount_percentage}% off` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+  };
+
   const handlePayment = async () => {
     if (!user) {
       toast({ title: "Please login", description: "You need to login to place order" });
