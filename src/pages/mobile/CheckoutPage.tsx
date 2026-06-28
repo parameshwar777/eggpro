@@ -68,8 +68,15 @@ export const CheckoutPage = () => {
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [isFirstOrder, setIsFirstOrder] = useState(false);
 
+  // Coupon
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discount_percentage: number; title: string } | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
   const firstOrderDiscount = isFirstOrder ? Math.round(totalPrice * 0.5) : 0;
-  const finalTotal = Math.max(totalPrice - firstOrderDiscount, 0);
+  const subtotalAfterFirst = Math.max(totalPrice - firstOrderDiscount, 0);
+  const couponDiscount = appliedCoupon ? Math.round(subtotalAfterFirst * (appliedCoupon.discount_percentage / 100)) : 0;
+  const finalTotal = Math.max(subtotalAfterFirst - couponDiscount, 0);
 
 
   const community = localStorage.getItem("selectedCommunity") || "";
