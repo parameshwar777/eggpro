@@ -144,6 +144,24 @@ export const AdminPaymentIssues = () => {
                     )}
                   </div>
 
+                  {(iss.screenshot_url || iss.order_screenshot_url) && (
+                    <div className="flex gap-2 mt-3">
+                      {iss.screenshot_url && (
+                        <a href={iss.screenshot_url} target="_blank" rel="noreferrer" className="flex-1">
+                          <img src={iss.screenshot_url} alt="Payment" className="w-full h-28 object-cover rounded-lg border" />
+                          <p className="text-[10px] text-center text-amber-800 mt-1 font-semibold">Payment Screenshot</p>
+                        </a>
+                      )}
+                      {iss.order_screenshot_url && (
+                        <a href={iss.order_screenshot_url} target="_blank" rel="noreferrer" className="flex-1">
+                          <img src={iss.order_screenshot_url} alt="Order" className="w-full h-28 object-cover rounded-lg border" />
+                          <p className="text-[10px] text-center text-amber-800 mt-1 font-semibold">Order Screenshot</p>
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+
                   {iss.admin_notes && (
                     <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2 text-sm">
                       <span className="font-semibold">Previous note:</span> {iss.admin_notes}
