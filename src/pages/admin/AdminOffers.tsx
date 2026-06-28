@@ -141,7 +141,7 @@ export const AdminOffers = () => {
   const fmt = (d: string | null) => d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Offers & Coupons">
       <div className="p-4 md:p-6 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
