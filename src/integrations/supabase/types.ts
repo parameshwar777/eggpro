@@ -282,8 +282,10 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          order_screenshot_url: string | null
           screenshot_url: string | null
           status: string
+          ticket_number: string | null
           transaction_id: string | null
           updated_at: string
           user_id: string
@@ -294,8 +296,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          order_screenshot_url?: string | null
           screenshot_url?: string | null
           status?: string
+          ticket_number?: string | null
           transaction_id?: string | null
           updated_at?: string
           user_id: string
@@ -306,8 +310,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          order_screenshot_url?: string | null
           screenshot_url?: string | null
           status?: string
+          ticket_number?: string | null
           transaction_id?: string | null
           updated_at?: string
           user_id?: string

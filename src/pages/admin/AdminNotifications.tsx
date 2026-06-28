@@ -1,15 +1,11 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, Package, ShoppingCart, Bell, Tag, 
-  LogOut, Menu, X, Plus, Trash2
-} from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, Trash2, Search, X } from "lucide-react";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,36 +18,27 @@ interface Notification {
 }
 
 export const AdminNotifications = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
-  const { signOut, isAdmin, isLoading: authLoading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ title: "", message: "" });
 
-  useEffect(() => {
-    if (!authLoading && !isAdmin) {
-      navigate("/admin/login");
-    }
-  }, [isAdmin, authLoading, navigate]);
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  useEffect(() => { fetchNotifications(); }, []);
 
   const fetchNotifications = async () => {
-    try {
-      const { data, error } = await supabase.from("notifications").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      setNotifications(data || []);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from("notifications").select("*").order("created_at", { ascending: false });
+    if (error) console.error(error);
+    setNotifications(data || []);
+    setIsLoading(false);
   };
 
   const handleSubmit = async () => {
@@ -59,134 +46,148 @@ export const AdminNotifications = () => {
       toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
       return;
     }
-
-    try {
-      const { error } = await supabase.from("notifications").insert({
-        title: formData.title,
-        message: formData.message,
-        is_active: true
-      });
-      if (error) throw error;
-      toast({ title: "Success", description: "Notification sent successfully" });
-      setDialogOpen(false);
-      setFormData({ title: "", message: "" });
-      fetchNotifications();
-    } catch (error: any) {
+    const { error } = await supabase.from("notifications").insert({
+      title: formData.title, message: formData.message, is_active: true,
+    });
+    if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
     }
+    toast({ title: "Sent", description: "Notification published" });
+    setDialogOpen(false);
+    setFormData({ title: "", message: "" });
+    fetchNotifications();
   };
 
-  const toggleActive = async (id: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase.from("notifications").update({ is_active: !currentStatus }).eq("id", id);
-      if (error) throw error;
-      fetchNotifications();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    }
+  const toggleActive = async (id: string, current: boolean) => {
+    await supabase.from("notifications").update({ is_active: !current }).eq("id", id);
+    fetchNotifications();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this notification?")) return;
-    try {
-      const { error } = await supabase.from("notifications").delete().eq("id", id);
-      if (error) throw error;
-      toast({ title: "Success", description: "Notification deleted" });
-      fetchNotifications();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    }
+    if (!confirm("Delete this notification?")) return;
+    await supabase.from("notifications").delete().eq("id", id);
+    fetchNotifications();
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/admin/login");
+  const filtered = useMemo(() => {
+    return notifications.filter((n) => {
+      if (statusFilter === "active" && !n.is_active) return false;
+      if (statusFilter === "inactive" && n.is_active) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!n.title.toLowerCase().includes(q) && !n.message.toLowerCase().includes(q)) return false;
+      }
+      const created = new Date(n.created_at).getTime();
+      if (fromDate && created < new Date(fromDate).getTime()) return false;
+      if (toDate && created > new Date(toDate).getTime() + 86400000) return false;
+      return true;
+    });
+  }, [notifications, statusFilter, searchQuery, fromDate, toDate]);
+
+  const clearFilters = () => {
+    setSearchQuery(""); setStatusFilter("all"); setFromDate(""); setToDate("");
   };
 
-  const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
-    { icon: Package, label: "Products", path: "/admin/products" },
-    { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
-    { icon: Bell, label: "Notifications", path: "/admin/notifications" },
-    { icon: Tag, label: "Offers", path: "/admin/offers" },
-  ];
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+  const headerActions = (
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogTrigger asChild>
+        <Button><Plus className="w-4 h-4 mr-2" /> New Notification</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Create Notification</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <Input placeholder="Title" value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+          <Textarea placeholder="Message" value={formData.message}
+            onChange={(e) => setFormData({ ...formData, message: e.target.value })} rows={4} />
+          <Button onClick={handleSubmit} className="w-full">Send Notification</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-800 transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-200`}>
-        <div className="flex flex-col h-full">
-          <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-            <h1 className="text-xl font-bold text-white">EggPro Admin</h1>
-            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400"><X className="w-6 h-6" /></button>
-          </div>
-          <nav className="flex-1 p-4 space-y-2">
-            {menuItems.map((item) => (
-              <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === item.path ? "bg-primary text-white" : "text-slate-400 hover:bg-slate-700 hover:text-white"}`}>
-                <item.icon className="w-5 h-5" />{item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="p-4 border-t border-slate-700">
-            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700" onClick={handleLogout}><LogOut className="w-5 h-5 mr-3" />Logout</Button>
-          </div>
-        </div>
-      </aside>
-
-      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
-
-      <main className="flex-1 min-h-screen">
-        <header className="bg-slate-800 border-b border-slate-700 p-4 flex items-center justify-between">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-400"><Menu className="w-6 h-6" /></button>
-          <h2 className="text-xl font-semibold text-white">Notifications</h2>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4 mr-2" /> New Notification</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700">
-              <DialogHeader><DialogTitle className="text-white">Create Notification</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <Input placeholder="Title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
-                <Textarea placeholder="Message" value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })} className="bg-slate-700 border-slate-600 text-white" rows={4} />
-                <Button onClick={handleSubmit} className="w-full">Send Notification</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </header>
-
-        <div className="p-6">
-          {isLoading ? (
-            <div className="flex justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
-          ) : notifications.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">No notifications yet</div>
-          ) : (
-            <div className="space-y-4">
-              {notifications.map((notification) => (
-                <div key={notification.id} className="bg-slate-800 rounded-xl border border-slate-700 p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-white font-semibold">{notification.title}</h3>
-                      <p className="text-slate-400 text-sm mt-1">{notification.message}</p>
-                      <p className="text-slate-500 text-xs mt-2">{new Date(notification.created_at).toLocaleString()}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Switch checked={notification.is_active} onCheckedChange={() => toggleActive(notification.id, notification.is_active)} />
-                      <Button size="sm" variant="ghost" className="text-red-400" onClick={() => handleDelete(notification.id)}><Trash2 className="w-4 h-4" /></Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+    <AdminLayout title="Notifications" headerActions={headerActions}>
+      {/* Filters */}
+      <div className="bg-amber-900 rounded-xl p-4 mb-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-amber-100 font-semibold text-sm">Filters & Search</h3>
+          {(searchQuery || statusFilter !== "all" || fromDate || toDate) && (
+            <Button size="sm" variant="ghost" className="text-amber-200 hover:text-amber-100 hover:bg-amber-800" onClick={clearFilters}>
+              <X className="w-4 h-4 mr-1" /> Clear
+            </Button>
           )}
         </div>
-      </main>
-    </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="md:col-span-2">
+            <label className="text-xs text-amber-300 block mb-1">Search by title or message</label>
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-amber-400" />
+              <Input
+                placeholder="Type to search…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-amber-50"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-amber-300 block mb-1">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="h-12 w-full rounded-lg border border-input bg-amber-50 px-3 text-sm font-medium"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-amber-300 block mb-1">Date range</label>
+            <div className="flex gap-2">
+              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-amber-50" />
+              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-amber-50" />
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-amber-300">Showing {filtered.length} of {notifications.length}</p>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-amber-300 bg-amber-900 rounded-xl">No notifications match your filters</div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((n) => (
+            <div key={n.id} className="bg-amber-50 rounded-xl p-4 shadow-card">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-amber-900 font-semibold">{n.title}</h3>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${n.is_active ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-700"}`}>
+                      {n.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <p className="text-amber-800 text-sm mt-1 break-words">{n.message}</p>
+                  <p className="text-amber-700 text-xs mt-2">{new Date(n.created_at).toLocaleString()}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Switch checked={n.is_active} onCheckedChange={() => toggleActive(n.id, n.is_active)} />
+                  <Button size="sm" variant="ghost" className="text-red-600" onClick={() => handleDelete(n.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </AdminLayout>
   );
 };

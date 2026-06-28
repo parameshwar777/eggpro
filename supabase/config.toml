@@ -15,4 +15,9 @@ verify_jwt = false
 [functions.twilio-whatsapp-order]
 verify_jwt = false
 
+[functions.payment-issue-whatsapp]
+verify_jwt = false
+
+
+
 
