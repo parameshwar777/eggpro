@@ -183,8 +183,10 @@ export type Database = {
           description: string | null
           discount_percentage: number | null
           id: string
+          image_url: string | null
           is_active: boolean | null
           title: string
+          valid_from: string | null
           valid_until: string | null
         }
         Insert: {
@@ -193,8 +195,10 @@ export type Database = {
           description?: string | null
           discount_percentage?: number | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           title: string
+          valid_from?: string | null
           valid_until?: string | null
         }
         Update: {
@@ -203,8 +207,10 @@ export type Database = {
           description?: string | null
           discount_percentage?: number | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           title?: string
+          valid_from?: string | null
           valid_until?: string | null
         }
         Relationships: []

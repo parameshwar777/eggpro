@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { EggLogo } from "@/components/EggLogo";
 import { useAuth } from "@/contexts/AuthContext";
+import { OffersBanner } from "@/components/mobile/OffersBanner";
 import {
   Select,
   SelectContent,
@@ -254,6 +255,9 @@ export const HomePage = () => {
           </div>
         </motion.div>
       )}
+
+      {/* Festival / promotional offer banners */}
+      <OffersBanner />
 
       {/* Products Section */}
       <div className="px-4 py-5">

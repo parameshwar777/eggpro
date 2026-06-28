@@ -1,204 +1,273 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, Package, ShoppingCart, Bell, Tag, 
-  LogOut, Menu, X, Plus, Trash2
-} from "lucide-react";
+import { Plus, Trash2, Upload, X, Image as ImageIcon, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { useAuth } from "@/contexts/AuthContext";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface Offer {
   id: string;
   title: string;
-  description: string;
-  discount_percentage: number;
-  code: string;
-  is_active: boolean;
-  valid_until: string;
+  description: string | null;
+  discount_percentage: number | null;
+  code: string | null;
+  is_active: boolean | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  image_url: string | null;
   created_at: string;
 }
 
+const emptyForm = {
+  title: "",
+  description: "",
+  discount_percentage: "",
+  code: "",
+  valid_from: "",
+  valid_until: "",
+  image_url: "",
+};
+
 export const AdminOffers = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
-  const { signOut, isAdmin, isLoading: authLoading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({ title: "", description: "", discount_percentage: "", code: "", valid_until: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ ...emptyForm });
+  const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !isAdmin) {
-      navigate("/admin/login");
-    }
-  }, [isAdmin, authLoading, navigate]);
-
-  useEffect(() => {
-    fetchOffers();
-  }, []);
+  useEffect(() => { fetchOffers(); }, []);
 
   const fetchOffers = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase.from("offers").select("*").order("created_at", { ascending: false });
+    if (!error) setOffers((data || []) as Offer[]);
+    setIsLoading(false);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
     try {
-      const { data, error } = await supabase.from("offers").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      setOffers(data || []);
-    } catch (error) {
-      console.error("Error fetching offers:", error);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `offers/${fileName}`;
+      const { error: uploadError } = await supabase.storage.from('product-images').upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(filePath);
+      setFormData((f) => ({ ...f, image_url: publicUrl }));
+      toast({ title: "Image uploaded" });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
     } finally {
-      setIsLoading(false);
+      setUploading(false);
     }
+  };
+
+  const openCreate = () => {
+    setEditingId(null);
+    setFormData({ ...emptyForm });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (o: Offer) => {
+    setEditingId(o.id);
+    setFormData({
+      title: o.title || "",
+      description: o.description || "",
+      discount_percentage: o.discount_percentage?.toString() || "",
+      code: o.code || "",
+      valid_from: o.valid_from ? new Date(o.valid_from).toISOString().slice(0, 16) : "",
+      valid_until: o.valid_until ? new Date(o.valid_until).toISOString().slice(0, 16) : "",
+      image_url: o.image_url || "",
+    });
+    setDialogOpen(true);
   };
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.discount_percentage) {
-      toast({ title: "Error", description: "Please fill required fields", variant: "destructive" });
+    if (!formData.title.trim()) {
+      toast({ title: "Title is required", variant: "destructive" });
       return;
     }
-
+    if (!formData.discount_percentage) {
+      toast({ title: "Discount % is required", variant: "destructive" });
+      return;
+    }
+    const payload = {
+      title: formData.title.trim(),
+      description: formData.description.trim() || null,
+      discount_percentage: parseInt(formData.discount_percentage),
+      code: formData.code.trim().toUpperCase() || null,
+      valid_from: formData.valid_from ? new Date(formData.valid_from).toISOString() : null,
+      valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null,
+      image_url: formData.image_url || null,
+    };
     try {
-      const { error } = await supabase.from("offers").insert({
-        title: formData.title,
-        description: formData.description,
-        discount_percentage: parseInt(formData.discount_percentage),
-        code: formData.code,
-        valid_until: formData.valid_until || null,
-        is_active: true
-      });
-      if (error) throw error;
-      toast({ title: "Success", description: "Offer created successfully" });
+      if (editingId) {
+        const { error } = await supabase.from("offers").update(payload).eq("id", editingId);
+        if (error) throw error;
+        toast({ title: "Offer updated" });
+      } else {
+        const { error } = await supabase.from("offers").insert({ ...payload, is_active: true });
+        if (error) throw error;
+        toast({ title: "Offer created" });
+      }
       setDialogOpen(false);
-      setFormData({ title: "", description: "", discount_percentage: "", code: "", valid_until: "" });
       fetchOffers();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
 
-  const toggleActive = async (id: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase.from("offers").update({ is_active: !currentStatus }).eq("id", id);
-      if (error) throw error;
-      fetchOffers();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    }
+  const toggleActive = async (id: string, current: boolean) => {
+    await supabase.from("offers").update({ is_active: !current }).eq("id", id);
+    fetchOffers();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this offer?")) return;
-    try {
-      const { error } = await supabase.from("offers").delete().eq("id", id);
-      if (error) throw error;
-      toast({ title: "Success", description: "Offer deleted" });
-      fetchOffers();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    }
+    if (!confirm("Delete this offer?")) return;
+    await supabase.from("offers").delete().eq("id", id);
+    toast({ title: "Offer deleted" });
+    fetchOffers();
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/admin/login");
-  };
-
-  const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
-    { icon: Package, label: "Products", path: "/admin/products" },
-    { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
-    { icon: Bell, label: "Notifications", path: "/admin/notifications" },
-    { icon: Tag, label: "Offers", path: "/admin/offers" },
-  ];
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+  const fmt = (d: string | null) => d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-800 transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-200`}>
-        <div className="flex flex-col h-full">
-          <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-            <h1 className="text-xl font-bold text-white">EggPro Admin</h1>
-            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400"><X className="w-6 h-6" /></button>
+    <AdminLayout title="Offers & Coupons">
+      <div className="p-4 md:p-6 max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Offers & Coupons</h1>
+            <p className="text-sm text-muted-foreground mt-1">Festival banners and coupon codes shown to customers</p>
           </div>
-          <nav className="flex-1 p-4 space-y-2">
-            {menuItems.map((item) => (
-              <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === item.path ? "bg-primary text-white" : "text-slate-400 hover:bg-slate-700 hover:text-white"}`}>
-                <item.icon className="w-5 h-5" />{item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="p-4 border-t border-slate-700">
-            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700" onClick={handleLogout}><LogOut className="w-5 h-5 mr-3" />Logout</Button>
-          </div>
+          <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" /> New Offer</Button>
         </div>
-      </aside>
 
-      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
-
-      <main className="flex-1 min-h-screen">
-        <header className="bg-slate-800 border-b border-slate-700 p-4 flex items-center justify-between">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-400"><Menu className="w-6 h-6" /></button>
-          <h2 className="text-xl font-semibold text-white">Offers</h2>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4 mr-2" /> New Offer</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700">
-              <DialogHeader><DialogTitle className="text-white">Create Offer</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <Input placeholder="Offer Title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
-                <Input placeholder="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
-                <Input placeholder="Discount %" type="number" value={formData.discount_percentage} onChange={(e) => setFormData({ ...formData, discount_percentage: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
-                <Input placeholder="Coupon Code" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
-                <Input type="date" value={formData.valid_until} onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
-                <Button onClick={handleSubmit} className="w-full">Create Offer</Button>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingId ? "Edit Offer" : "Create New Offer"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Offer Title *</Label>
+                <p className="text-xs text-muted-foreground mb-1">Short name shown on the banner (e.g. "Diwali Special")</p>
+                <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Diwali Special" />
               </div>
-            </DialogContent>
-          </Dialog>
-        </header>
 
-        <div className="p-6">
-          {isLoading ? (
-            <div className="flex justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
-          ) : offers.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">No offers yet</div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {offers.map((offer) => (
-                <div key={offer.id} className="bg-slate-800 rounded-xl border border-slate-700 p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-white font-semibold">{offer.title}</h3>
-                        <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">{offer.discount_percentage}% OFF</span>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <p className="text-xs text-muted-foreground mb-1">Tagline displayed below the title</p>
+                <Textarea id="description" rows={2} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Flat 20% off on all eggs" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="discount">Discount % *</Label>
+                  <p className="text-xs text-muted-foreground mb-1">Applied at checkout</p>
+                  <Input id="discount" type="number" min="1" max="100" value={formData.discount_percentage} onChange={(e) => setFormData({ ...formData, discount_percentage: e.target.value })} placeholder="20" />
+                </div>
+                <div>
+                  <Label htmlFor="code">Coupon Code</Label>
+                  <p className="text-xs text-muted-foreground mb-1">User types this</p>
+                  <Input id="code" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })} placeholder="DIWALI20" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="from">Valid From</Label>
+                  <p className="text-xs text-muted-foreground mb-1">Offer starts</p>
+                  <Input id="from" type="datetime-local" value={formData.valid_from} onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="until">Valid Until</Label>
+                  <p className="text-xs text-muted-foreground mb-1">Offer expires</p>
+                  <Input id="until" type="datetime-local" value={formData.valid_until} onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })} />
+                </div>
+              </div>
+
+              <div>
+                <Label>Banner Image</Label>
+                <p className="text-xs text-muted-foreground mb-1">Shown on the home page (recommended 1200×600)</p>
+                {formData.image_url ? (
+                  <div className="relative">
+                    <img src={formData.image_url} alt="" className="w-full h-40 object-cover rounded-lg border" />
+                    <button onClick={() => setFormData({ ...formData, image_url: "" })} className="absolute top-2 right-2 p-1 bg-black/60 text-white rounded-full">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+                    <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+                    <span className="text-sm text-muted-foreground">{uploading ? "Uploading..." : "Click to upload"}</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                  </label>
+                )}
+              </div>
+
+              <Button onClick={handleSubmit} className="w-full" disabled={uploading}>
+                {editingId ? "Save Changes" : "Create Offer"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {isLoading ? (
+          <div className="flex justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
+        ) : offers.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
+            No offers yet. Create one to show a banner on the home page.
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {offers.map((offer) => (
+              <div key={offer.id} className="bg-card rounded-xl border overflow-hidden">
+                {offer.image_url ? (
+                  <img src={offer.image_url} alt={offer.title} className="w-full h-36 object-cover" />
+                ) : (
+                  <div className="w-full h-36 bg-muted flex items-center justify-center text-muted-foreground">
+                    <ImageIcon className="w-10 h-10" />
+                  </div>
+                )}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold truncate">{offer.title}</h3>
+                        <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{offer.discount_percentage}% OFF</span>
                       </div>
-                      <p className="text-slate-400 text-sm mt-1">{offer.description}</p>
+                      {offer.description && <p className="text-sm text-muted-foreground mt-1">{offer.description}</p>}
                       {offer.code && <p className="text-primary font-mono text-sm mt-2">Code: {offer.code}</p>}
-                      {offer.valid_until && <p className="text-slate-500 text-xs mt-1">Valid until: {new Date(offer.valid_until).toLocaleDateString()}</p>}
+                      <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
+                        <p>From: {fmt(offer.valid_from)}</p>
+                        <p>Until: {fmt(offer.valid_until)}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Switch checked={offer.is_active} onCheckedChange={() => toggleActive(offer.id, offer.is_active)} />
-                      <Button size="sm" variant="ghost" className="text-red-400" onClick={() => handleDelete(offer.id)}><Trash2 className="w-4 h-4" /></Button>
-                    </div>
+                    <Switch checked={!!offer.is_active} onCheckedChange={() => toggleActive(offer.id, !!offer.is_active)} />
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(offer)}>
+                      <Pencil className="w-3 h-3 mr-1" /> Edit
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-red-500" onClick={() => handleDelete(offer.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </AdminLayout>
   );
 };

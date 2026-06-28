@@ -68,8 +68,15 @@ export const CheckoutPage = () => {
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [isFirstOrder, setIsFirstOrder] = useState(false);
 
+  // Coupon
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discount_percentage: number; title: string } | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
   const firstOrderDiscount = isFirstOrder ? Math.round(totalPrice * 0.5) : 0;
-  const finalTotal = Math.max(totalPrice - firstOrderDiscount, 0);
+  const subtotalAfterFirst = Math.max(totalPrice - firstOrderDiscount, 0);
+  const couponDiscount = appliedCoupon ? Math.round(subtotalAfterFirst * (appliedCoupon.discount_percentage / 100)) : 0;
+  const finalTotal = Math.max(subtotalAfterFirst - couponDiscount, 0);
 
 
   const community = localStorage.getItem("selectedCommunity") || "";
@@ -178,6 +185,53 @@ export const CheckoutPage = () => {
     } finally {
       setIsSavingAddress(false);
     }
+  };
+
+  const applyCoupon = async () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      toast({ title: "Enter a coupon code", variant: "destructive" });
+      return;
+    }
+    setValidatingCoupon(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("offers")
+        .select("id, code, discount_percentage, title, valid_from, valid_until, is_active")
+        .ilike("code", code)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast({ title: "Invalid coupon", description: "This code is not valid.", variant: "destructive" });
+        return;
+      }
+      if (data.valid_from && new Date(data.valid_from) > new Date()) {
+        toast({ title: "Coupon not active yet", variant: "destructive" });
+        return;
+      }
+      if (data.valid_until && new Date(data.valid_until) < new Date()) {
+        toast({ title: "Coupon expired", variant: "destructive" });
+        return;
+      }
+      setAppliedCoupon({
+        id: data.id,
+        code: data.code || code,
+        discount_percentage: data.discount_percentage || 0,
+        title: data.title,
+      });
+      toast({ title: "Coupon applied!", description: `${data.discount_percentage}% off` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
   };
 
   const handlePayment = async () => {
@@ -594,6 +648,12 @@ export const CheckoutPage = () => {
                   <span className="font-semibold text-green-700">- ₹{firstOrderDiscount}</span>
                 </div>
               )}
+              {appliedCoupon && (
+                <div className="flex justify-between bg-orange-50 -mx-1 px-2 py-1 rounded">
+                  <span className="font-semibold text-orange-700">🎟️ Coupon {appliedCoupon.code} ({appliedCoupon.discount_percentage}%):</span>
+                  <span className="font-semibold text-orange-700">- ₹{couponDiscount}</span>
+                </div>
+              )}
               <div className="border-t border-primary/20 pt-2 mt-2 flex justify-between">
                 <span className="font-bold text-foreground">Total Amount:</span>
                 <span className="font-bold text-primary text-lg">₹{finalTotal}</span>
@@ -641,6 +701,39 @@ export const CheckoutPage = () => {
               )}
             </motion.div>
           )}
+
+          {/* Coupon Code */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.22 }}
+            className="bg-card rounded-2xl p-4 shadow-card"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="w-5 h-5 text-orange-500" />
+              <h3 className="font-semibold text-foreground">Apply Coupon</h3>
+            </div>
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+                <div>
+                  <p className="font-semibold text-orange-700 text-sm">{appliedCoupon.code} applied</p>
+                  <p className="text-xs text-orange-600">{appliedCoupon.discount_percentage}% off — {appliedCoupon.title}</p>
+                </div>
+                <Button size="sm" variant="ghost" className="text-red-500" onClick={removeCoupon}>Remove</Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                />
+                <Button onClick={applyCoupon} disabled={validatingCoupon}>
+                  {validatingCoupon ? "..." : "Apply"}
+                </Button>
+              </div>
+            )}
+          </motion.div>
 
           {/* Referral Code */}
           <motion.div

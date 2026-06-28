@@ -88,7 +88,14 @@ serve(async (req: Request) => {
     const recipients = new Set<string>();
     const { data: setting } = await supabase
       .from("admin_settings").select("value").eq("key", "admin_whatsapp").maybeSingle();
-    if (setting?.value) recipients.add(normalizePhone(setting.value));
+    if (setting?.value) {
+      // Support comma/space/semicolon-separated list of admin phone numbers
+      String(setting.value)
+        .split(/[,;\s]+/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .forEach((p) => recipients.add(normalizePhone(p)));
+    }
 
     const { data: adminRoles } = await supabase
       .from("user_roles").select("user_id").eq("role", "admin");
