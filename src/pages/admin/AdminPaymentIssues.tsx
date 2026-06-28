@@ -8,15 +8,19 @@ import { AlertCircle, CheckCircle2, Clock, XCircle, User } from "lucide-react";
 
 interface PaymentIssue {
   id: string;
+  ticket_number: string | null;
   user_id: string;
   transaction_id: string | null;
   amount: number | null;
   description: string | null;
+  screenshot_url: string | null;
+  order_screenshot_url: string | null;
   status: string;
   admin_notes: string | null;
   created_at: string;
   profile?: { full_name: string | null; phone: string | null; email: string | null };
 }
+
 
 export const AdminPaymentIssues = () => {
   const { toast } = useToast();
