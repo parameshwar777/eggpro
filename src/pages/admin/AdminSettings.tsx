@@ -199,15 +199,16 @@ export const AdminSettings = () => {
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-amber-300 block mb-2">Admin WhatsApp Number</label>
+                <label className="text-sm text-amber-300 block mb-2">Admin WhatsApp Number(s)</label>
                 <Input
                   value={adminWhatsapp}
                   onChange={(e) => setAdminWhatsapp(e.target.value)}
-                  placeholder="919440229378"
+                  placeholder="919440229378, 919999999999"
                   className="bg-amber-800/50 border-amber-700 text-amber-100 max-w-md"
                 />
                 <p className="text-xs text-amber-400 mt-2">
-                  Enter number with country code without + (e.g., 919440229378)
+                  Order alerts are sent to every number listed here. Separate multiple numbers with a comma.
+                  Use country code without + (e.g., <span className="font-mono">919440229378, 919999999999</span>).
                 </p>
               </div>
               <Button onClick={handleSave} disabled={isSaving} className="bg-green-600 hover:bg-green-700">
