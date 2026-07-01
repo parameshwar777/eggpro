@@ -100,20 +100,32 @@ export const HomePage = () => {
     fetchProducts();
   }, []);
 
-  // First-order eligibility (50% off banner)
+  // First-order eligibility (discount banner)
   const [isFirstOrder, setIsFirstOrder] = useState(false);
+  const [firstOrderDiscountPercent, setFirstOrderDiscountPercent] = useState(50);
   useEffect(() => {
     const checkFirstOrder = async () => {
-      if (!user) { setIsFirstOrder(true); return; }
-      const { count } = await supabase
-        .from("orders")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("payment_status", "completed");
-      setIsFirstOrder((count || 0) === 0);
+      if (!user) { setIsFirstOrder(true); } else {
+        const { count } = await supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("payment_status", "completed");
+        setIsFirstOrder((count || 0) === 0);
+      }
+      const { data: setting } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "first_order_discount_percent")
+        .maybeSingle();
+      if (setting?.value) {
+        const parsed = parseFloat(setting.value);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) setFirstOrderDiscountPercent(parsed);
+      }
     };
     checkFirstOrder();
   }, [user]);
+
 
   // Group products by name and extract pack sizes
   const products = useMemo<GroupedProduct[]>(() => {
