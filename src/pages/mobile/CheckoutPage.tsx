@@ -67,6 +67,7 @@ export const CheckoutPage = () => {
   const [deliverySlots] = useState<DeliverySlot[]>(getAvailableDeliverySlots());
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [isFirstOrder, setIsFirstOrder] = useState(false);
+  const [firstOrderDiscountPercent, setFirstOrderDiscountPercent] = useState(50);
 
   // Coupon
   const [couponCode, setCouponCode] = useState("");
@@ -74,10 +75,11 @@ export const CheckoutPage = () => {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const originalTotal = items.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
-  const firstOrderDiscount = isFirstOrder ? Math.min(Math.round(originalTotal * 0.5), totalPrice) : 0;
+  const firstOrderDiscount = isFirstOrder ? Math.min(Math.round(originalTotal * (firstOrderDiscountPercent / 100)), totalPrice) : 0;
   const subtotalAfterFirst = Math.max(totalPrice - firstOrderDiscount, 0);
   const couponDiscount = appliedCoupon ? Math.round(subtotalAfterFirst * (appliedCoupon.discount_percentage / 100)) : 0;
   const finalTotal = Math.max(subtotalAfterFirst - couponDiscount, 0);
+
 
 
   const community = localStorage.getItem("selectedCommunity") || "";
@@ -95,13 +97,26 @@ export const CheckoutPage = () => {
         .single();
       setWalletBalance(profile?.wallet_balance || 0);
 
-      // Check if this is the user's first paid order (for 50% discount)
+      // Check if this is the user's first paid order (for discount)
       const { count: paidCount } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("payment_status", "completed");
       setIsFirstOrder((paidCount || 0) === 0);
+
+      // Fetch first-order discount % from admin settings
+      const { data: discountSetting } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "first_order_discount_percent")
+        .maybeSingle();
+      if (discountSetting?.value) {
+        const parsed = parseFloat(discountSetting.value);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) setFirstOrderDiscountPercent(parsed);
+      }
+
+
 
 
       // Fetch communities for dropdown

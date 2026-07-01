@@ -29,6 +29,9 @@ export const AdminSettings = () => {
   const [isSavingSubscription, setIsSavingSubscription] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
   const [isSavingReferral, setIsSavingReferral] = useState(false);
+  const [firstOrderDiscount, setFirstOrderDiscount] = useState("50");
+  const [isSavingFirstOrder, setIsSavingFirstOrder] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -40,7 +43,7 @@ export const AdminSettings = () => {
       const { data, error } = await supabase
         .from("admin_settings")
         .select("*")
-        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "app_current_version_ios", "app_update_url_android", "app_update_url_ios", "telegram_chat_ids", "show_subscriptions", "show_referral"]);
+        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "app_current_version_ios", "app_update_url_android", "app_update_url_ios", "telegram_chat_ids", "show_subscriptions", "show_referral", "first_order_discount_percent"]);
 
       if (!error && data) {
         const whatsapp = data.find(d => d.key === "admin_whatsapp");
@@ -61,7 +64,10 @@ export const AdminSettings = () => {
         if (telegram) setTelegramChatIds(telegram.value);
         if (subs) setShowSubscriptions(subs.value === "true");
         if (referral) setShowReferral(referral.value === "true");
+        const firstOrder = data.find(d => d.key === "first_order_discount_percent");
+        if (firstOrder) setFirstOrderDiscount(firstOrder.value);
       }
+
     } catch (error) {
       console.error("Error fetching settings:", error);
     } finally {
@@ -183,6 +189,28 @@ export const AdminSettings = () => {
     }
   };
 
+  const handleSaveFirstOrder = async () => {
+    const value = parseFloat(firstOrderDiscount);
+    if (isNaN(value) || value < 0 || value > 100) {
+      toast({ title: "Invalid value", description: "Enter a number between 0 and 100", variant: "destructive" });
+      return;
+    }
+    setIsSavingFirstOrder(true);
+    try {
+      const { error } = await supabase.from("admin_settings").upsert({
+        key: "first_order_discount_percent",
+        value: String(value),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+      if (error) throw error;
+      toast({ title: "First-order discount updated!", description: `New users now get ${value}% off their first order.` });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSavingFirstOrder(false);
+    }
+  };
+
   return (
     <AdminLayout title="Settings">
       {isLoading ? (
@@ -217,6 +245,39 @@ export const AdminSettings = () => {
               </Button>
             </div>
           </div>
+
+          {/* First-Order Discount */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
+              <Gift className="w-5 h-5" />
+              First-Order Welcome Discount
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-amber-300 block mb-2">Discount Percentage (0 – 100)</label>
+                <div className="flex items-center gap-2 max-w-xs">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={firstOrderDiscount}
+                    onChange={(e) => setFirstOrderDiscount(e.target.value)}
+                    className="bg-amber-800/50 border-amber-700 text-amber-100"
+                  />
+                  <span className="text-amber-100 font-bold">%</span>
+                </div>
+                <p className="text-xs text-amber-400 mt-2">
+                  Applied to every new user's first successful order (calculated off the original MRP).
+                  Set to <span className="font-mono">0</span> to disable the welcome offer.
+                </p>
+              </div>
+              <Button onClick={handleSaveFirstOrder} disabled={isSavingFirstOrder} className="bg-green-600 hover:bg-green-700">
+                <Save className="w-4 h-4 mr-2" />
+                {isSavingFirstOrder ? "Saving..." : "Save Discount"}
+              </Button>
+            </div>
+          </div>
+
 
           {/* Splash Wallpaper Settings */}
           <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
