@@ -189,6 +189,28 @@ export const AdminSettings = () => {
     }
   };
 
+  const handleSaveFirstOrder = async () => {
+    const value = parseFloat(firstOrderDiscount);
+    if (isNaN(value) || value < 0 || value > 100) {
+      toast({ title: "Invalid value", description: "Enter a number between 0 and 100", variant: "destructive" });
+      return;
+    }
+    setIsSavingFirstOrder(true);
+    try {
+      const { error } = await supabase.from("admin_settings").upsert({
+        key: "first_order_discount_percent",
+        value: String(value),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+      if (error) throw error;
+      toast({ title: "First-order discount updated!", description: `New users now get ${value}% off their first order.` });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSavingFirstOrder(false);
+    }
+  };
+
   return (
     <AdminLayout title="Settings">
       {isLoading ? (
