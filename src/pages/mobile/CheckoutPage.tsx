@@ -67,6 +67,7 @@ export const CheckoutPage = () => {
   const [deliverySlots] = useState<DeliverySlot[]>(getAvailableDeliverySlots());
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [isFirstOrder, setIsFirstOrder] = useState(false);
+  const [firstOrderDiscountPercent, setFirstOrderDiscountPercent] = useState(50);
 
   // Coupon
   const [couponCode, setCouponCode] = useState("");
@@ -74,10 +75,11 @@ export const CheckoutPage = () => {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const originalTotal = items.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
-  const firstOrderDiscount = isFirstOrder ? Math.min(Math.round(originalTotal * 0.5), totalPrice) : 0;
+  const firstOrderDiscount = isFirstOrder ? Math.min(Math.round(originalTotal * (firstOrderDiscountPercent / 100)), totalPrice) : 0;
   const subtotalAfterFirst = Math.max(totalPrice - firstOrderDiscount, 0);
   const couponDiscount = appliedCoupon ? Math.round(subtotalAfterFirst * (appliedCoupon.discount_percentage / 100)) : 0;
   const finalTotal = Math.max(subtotalAfterFirst - couponDiscount, 0);
+
 
 
   const community = localStorage.getItem("selectedCommunity") || "";
