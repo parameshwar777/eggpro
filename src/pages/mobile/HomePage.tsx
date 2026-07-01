@@ -262,7 +262,7 @@ export const HomePage = () => {
         >
           <div className="text-3xl">🎉</div>
           <div className="flex-1">
-            <p className="font-bold text-base leading-tight">Welcome offer — 50% OFF</p>
+            <p className="font-bold text-base leading-tight">Welcome offer — {firstOrderDiscountPercent}% OFF</p>
             <p className="text-xs opacity-90 mt-0.5">Auto-applied at checkout on your first order. Limited time!</p>
           </div>
         </motion.div>
