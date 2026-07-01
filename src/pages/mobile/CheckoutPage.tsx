@@ -73,7 +73,8 @@ export const CheckoutPage = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discount_percentage: number; title: string } | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
-  const firstOrderDiscount = isFirstOrder ? Math.round(totalPrice * 0.5) : 0;
+  const originalTotal = items.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
+  const firstOrderDiscount = isFirstOrder ? Math.min(Math.round(originalTotal * 0.5), totalPrice) : 0;
   const subtotalAfterFirst = Math.max(totalPrice - firstOrderDiscount, 0);
   const couponDiscount = appliedCoupon ? Math.round(subtotalAfterFirst * (appliedCoupon.discount_percentage / 100)) : 0;
   const finalTotal = Math.max(subtotalAfterFirst - couponDiscount, 0);

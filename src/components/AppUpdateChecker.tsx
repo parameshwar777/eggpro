@@ -82,12 +82,9 @@ export const AppUpdateChecker = () => {
         >
           Update Now
         </a>
-        <button
-          onClick={() => setShowUpdate(false)}
-          className="mt-3 text-sm text-gray-400 hover:text-gray-600"
-        >
-          Later
-        </button>
+        <p className="mt-3 text-xs text-gray-500">
+          This update is required to continue using EggPro.
+        </p>
       </div>
     </div>
   );
