@@ -246,6 +246,39 @@ export const AdminSettings = () => {
             </div>
           </div>
 
+          {/* First-Order Discount */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
+              <Gift className="w-5 h-5" />
+              First-Order Welcome Discount
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-amber-300 block mb-2">Discount Percentage (0 – 100)</label>
+                <div className="flex items-center gap-2 max-w-xs">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={firstOrderDiscount}
+                    onChange={(e) => setFirstOrderDiscount(e.target.value)}
+                    className="bg-amber-800/50 border-amber-700 text-amber-100"
+                  />
+                  <span className="text-amber-100 font-bold">%</span>
+                </div>
+                <p className="text-xs text-amber-400 mt-2">
+                  Applied to every new user's first successful order (calculated off the original MRP).
+                  Set to <span className="font-mono">0</span> to disable the welcome offer.
+                </p>
+              </div>
+              <Button onClick={handleSaveFirstOrder} disabled={isSavingFirstOrder} className="bg-green-600 hover:bg-green-700">
+                <Save className="w-4 h-4 mr-2" />
+                {isSavingFirstOrder ? "Saving..." : "Save Discount"}
+              </Button>
+            </div>
+          </div>
+
+
           {/* Splash Wallpaper Settings */}
           <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
             <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
