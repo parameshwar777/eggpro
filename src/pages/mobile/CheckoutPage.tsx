@@ -97,13 +97,26 @@ export const CheckoutPage = () => {
         .single();
       setWalletBalance(profile?.wallet_balance || 0);
 
-      // Check if this is the user's first paid order (for 50% discount)
+      // Check if this is the user's first paid order (for discount)
       const { count: paidCount } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("payment_status", "completed");
       setIsFirstOrder((paidCount || 0) === 0);
+
+      // Fetch first-order discount % from admin settings
+      const { data: discountSetting } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "first_order_discount_percent")
+        .maybeSingle();
+      if (discountSetting?.value) {
+        const parsed = parseFloat(discountSetting.value);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) setFirstOrderDiscountPercent(parsed);
+      }
+
+
 
 
       // Fetch communities for dropdown
