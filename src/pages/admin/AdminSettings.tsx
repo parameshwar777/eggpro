@@ -64,7 +64,10 @@ export const AdminSettings = () => {
         if (telegram) setTelegramChatIds(telegram.value);
         if (subs) setShowSubscriptions(subs.value === "true");
         if (referral) setShowReferral(referral.value === "true");
+        const firstOrder = data.find(d => d.key === "first_order_discount_percent");
+        if (firstOrder) setFirstOrderDiscount(firstOrder.value);
       }
+
     } catch (error) {
       console.error("Error fetching settings:", error);
     } finally {
