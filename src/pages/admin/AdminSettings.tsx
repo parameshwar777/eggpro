@@ -43,7 +43,7 @@ export const AdminSettings = () => {
       const { data, error } = await supabase
         .from("admin_settings")
         .select("*")
-        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "app_current_version_ios", "app_update_url_android", "app_update_url_ios", "telegram_chat_ids", "show_subscriptions", "show_referral"]);
+        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "app_current_version_ios", "app_update_url_android", "app_update_url_ios", "telegram_chat_ids", "show_subscriptions", "show_referral", "first_order_discount_percent"]);
 
       if (!error && data) {
         const whatsapp = data.find(d => d.key === "admin_whatsapp");
