@@ -29,6 +29,9 @@ export const AdminSettings = () => {
   const [isSavingSubscription, setIsSavingSubscription] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
   const [isSavingReferral, setIsSavingReferral] = useState(false);
+  const [firstOrderDiscount, setFirstOrderDiscount] = useState("50");
+  const [isSavingFirstOrder, setIsSavingFirstOrder] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
