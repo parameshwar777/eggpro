@@ -40,7 +40,11 @@ export const OrdersPage = () => {
 
   useEffect(() => {
     if (user) {
-      fetchOrders();
+      // First, try to recover any orders that were paid but never confirmed
+      // (e.g. app closed after Razorpay success before verify-payment ran).
+      supabase.functions.invoke("reconcile-pending-payments").catch(() => {}).finally(() => {
+        fetchOrders();
+      });
     } else {
       setIsLoading(false);
     }
