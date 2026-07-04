@@ -32,7 +32,10 @@ export const AdminOrders = () => {
   const [adminWhatsapp, setAdminWhatsapp] = useState("919440229378");
 
   useEffect(() => {
-    fetchOrders();
+    // Recover any stuck-pending orders (payment succeeded but verify-payment never ran)
+    supabase.functions.invoke("reconcile-pending-payments").catch(() => {}).finally(() => {
+      fetchOrders();
+    });
     checkExpiredSubscriptions();
     fetchAdminWhatsapp();
 
