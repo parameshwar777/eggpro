@@ -658,12 +658,12 @@ export const CheckoutPage = () => {
                 <span className="font-semibold text-green-600">FREE</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-semibold">₹{totalPrice}</span>
+                <span className="text-muted-foreground">Subtotal ({isFirstOrder ? "MRP" : "price"}):</span>
+                <span className="font-semibold">₹{baseTotal}</span>
               </div>
               {isFirstOrder && (
                 <div className="flex justify-between bg-green-50 -mx-1 px-2 py-1 rounded">
-                  <span className="font-semibold text-green-700">🎉 First Order Discount (50%):</span>
+                  <span className="font-semibold text-green-700">🎉 First Order Discount ({firstOrderDiscountPercent}% off MRP):</span>
                   <span className="font-semibold text-green-700">- ₹{firstOrderDiscount}</span>
                 </div>
               )}
