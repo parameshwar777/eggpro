@@ -75,8 +75,11 @@ export const CheckoutPage = () => {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const originalTotal = items.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
-  const firstOrderDiscount = isFirstOrder ? Math.min(Math.round(originalTotal * (firstOrderDiscountPercent / 100)), totalPrice) : 0;
-  const subtotalAfterFirst = Math.max(totalPrice - firstOrderDiscount, 0);
+  // First-order discount is applied to the ORIGINAL (MRP) price, not on top of any existing "buy once" discount.
+  // Example: MRP ₹300, Buy Once ₹250. First-order 50% off => final ₹150 (50% of ₹300), not ₹100.
+  const baseTotal = isFirstOrder ? originalTotal : totalPrice;
+  const firstOrderDiscount = isFirstOrder ? Math.round(originalTotal * (firstOrderDiscountPercent / 100)) : 0;
+  const subtotalAfterFirst = Math.max(baseTotal - firstOrderDiscount, 0);
   const couponDiscount = appliedCoupon ? Math.round(subtotalAfterFirst * (appliedCoupon.discount_percentage / 100)) : 0;
   const finalTotal = Math.max(subtotalAfterFirst - couponDiscount, 0);
 
@@ -655,12 +658,12 @@ export const CheckoutPage = () => {
                 <span className="font-semibold text-green-600">FREE</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-semibold">₹{totalPrice}</span>
+                <span className="text-muted-foreground">Subtotal ({isFirstOrder ? "MRP" : "price"}):</span>
+                <span className="font-semibold">₹{baseTotal}</span>
               </div>
               {isFirstOrder && (
                 <div className="flex justify-between bg-green-50 -mx-1 px-2 py-1 rounded">
-                  <span className="font-semibold text-green-700">🎉 First Order Discount (50%):</span>
+                  <span className="font-semibold text-green-700">🎉 First Order Discount ({firstOrderDiscountPercent}% off MRP):</span>
                   <span className="font-semibold text-green-700">- ₹{firstOrderDiscount}</span>
                 </div>
               )}
