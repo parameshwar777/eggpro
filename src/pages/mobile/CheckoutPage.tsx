@@ -75,8 +75,11 @@ export const CheckoutPage = () => {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const originalTotal = items.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
-  const firstOrderDiscount = isFirstOrder ? Math.min(Math.round(originalTotal * (firstOrderDiscountPercent / 100)), totalPrice) : 0;
-  const subtotalAfterFirst = Math.max(totalPrice - firstOrderDiscount, 0);
+  // First-order discount is applied to the ORIGINAL (MRP) price, not on top of any existing "buy once" discount.
+  // Example: MRP ₹300, Buy Once ₹250. First-order 50% off => final ₹150 (50% of ₹300), not ₹100.
+  const baseTotal = isFirstOrder ? originalTotal : totalPrice;
+  const firstOrderDiscount = isFirstOrder ? Math.round(originalTotal * (firstOrderDiscountPercent / 100)) : 0;
+  const subtotalAfterFirst = Math.max(baseTotal - firstOrderDiscount, 0);
   const couponDiscount = appliedCoupon ? Math.round(subtotalAfterFirst * (appliedCoupon.discount_percentage / 100)) : 0;
   const finalTotal = Math.max(subtotalAfterFirst - couponDiscount, 0);
 
