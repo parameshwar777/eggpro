@@ -25,29 +25,23 @@ interface WhatsAppMessagePayload {
   ContentVariables?: string;
 }
 
-async function sendWhatsAppMessage(toPhone: string, body: string, contentVariables?: Record<string, string>) {
+async function sendWhatsAppMessage(toPhone: string, body: string) {
   const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const FROM = Deno.env.get("TWILIO_WHATSAPP_FROM");
-  const CONTENT_SID = Deno.env.get("TWILIO_WA_ORDER_CONTENT_SID");
 
   if (!TWILIO_API_KEY || !LOVABLE_API_KEY || !FROM) {
     throw new Error("Twilio WhatsApp not configured");
   }
 
+  // Note: the eggpro_admin_order Content Template is currently rejected by WhatsApp
+  // (too many variables). We rely on free-form text within the 24-hr session window;
+  // WATI handles the templated/out-of-window path.
   const payload: WhatsAppMessagePayload = {
     To: `whatsapp:${toPhone}`,
     From: `whatsapp:${FROM}`,
+    Body: body,
   };
-
-  if (CONTENT_SID) {
-    payload.ContentSid = CONTENT_SID;
-    if (contentVariables) {
-      payload.ContentVariables = JSON.stringify(contentVariables);
-    }
-  } else {
-    payload.Body = body;
-  }
 
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(payload)) {
@@ -114,24 +108,14 @@ serve(async (req: Request) => {
       const pack = i.packSize ? ` - ${i.packSize} eggs` : "";
       return `• ${i.name}${pack} × ${i.quantity} = ₹${i.price * i.quantity}`;
     }).join("\n");
-    const slotLine = deliverySlot ? `\n*Delivery Slot:* ${deliverySlot}` : "";
-    const body = `🥚 *New EggPro Order!*\n\n*Order:* ${String(orderId).slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}${slotLine}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
-
-    const contentVariables: Record<string, string> = {
-      "1": String(orderId).slice(0, 8),
-      "2": customerName || "Customer",
-      "3": phone || "",
-      "4": community || "",
-      "5": deliverySlot ? `${address}\nSlot: ${deliverySlot}` : address || "",
-      "6": itemsList || "No items",
-      "7": String(totalAmount || 0),
-      "8": new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
-    };
+    const addressWithSlot = deliverySlot ? `${address}\n*Delivery Slot:* ${deliverySlot}` : address;
+    const orderTime = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    const body = `🥚 *New EggPro Order!*\n\n*Order:* ${String(orderId).slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${addressWithSlot}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n*Time:* ${orderTime}`;
 
     let sent = 0;
     const errors: string[] = [];
     for (const to of recipients) {
-      try { await sendWhatsAppMessage(to, body, contentVariables); sent++; }
+      try { await sendWhatsAppMessage(to, body); sent++; }
       catch (e: any) { errors.push(`${to}: ${e.message}`); }
     }
 
