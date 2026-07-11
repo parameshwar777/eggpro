@@ -48,7 +48,9 @@ serve(async (req: Request) => {
       const parts = [i.name, pack].filter(Boolean).join(" - ");
       return `• ${parts} × ${i.quantity} = ₹${i.price * i.quantity}`;
     };
-    const slotLine = deliverySlot ? `\n*Delivery Slot:* ${deliverySlot}` : "";
+    // Slot is folded into the Address block; Time line uses the actual order timestamp.
+    const addressWithSlot = deliverySlot ? `${address}\n*Delivery Slot:* ${deliverySlot}` : address;
+    const slotLine = "";
 
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
     if (!RAZORPAY_KEY_SECRET) throw new Error("Razorpay secret not configured");
