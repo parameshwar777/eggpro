@@ -18,6 +18,7 @@ interface PaymentVerification {
   items: any[];
   totalAmount: number;
   subscriptionEndDate?: string;
+  deliverySlot?: string;
 }
 
 serve(async (req: Request) => {
