@@ -25,29 +25,23 @@ interface WhatsAppMessagePayload {
   ContentVariables?: string;
 }
 
-async function sendWhatsAppMessage(toPhone: string, body: string, contentVariables?: Record<string, string>) {
+async function sendWhatsAppMessage(toPhone: string, body: string) {
   const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const FROM = Deno.env.get("TWILIO_WHATSAPP_FROM");
-  const CONTENT_SID = Deno.env.get("TWILIO_WA_ORDER_CONTENT_SID");
 
   if (!TWILIO_API_KEY || !LOVABLE_API_KEY || !FROM) {
     throw new Error("Twilio WhatsApp not configured");
   }
 
+  // Note: the eggpro_admin_order Content Template is currently rejected by WhatsApp
+  // (too many variables). We rely on free-form text within the 24-hr session window;
+  // WATI handles the templated/out-of-window path.
   const payload: WhatsAppMessagePayload = {
     To: `whatsapp:${toPhone}`,
     From: `whatsapp:${FROM}`,
+    Body: body,
   };
-
-  if (CONTENT_SID) {
-    payload.ContentSid = CONTENT_SID;
-    if (contentVariables) {
-      payload.ContentVariables = JSON.stringify(contentVariables);
-    }
-  } else {
-    payload.Body = body;
-  }
 
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(payload)) {
