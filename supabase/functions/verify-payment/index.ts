@@ -38,8 +38,17 @@ serve(async (req: Request) => {
       customerName,
       items,
       totalAmount,
-      subscriptionEndDate
+      subscriptionEndDate,
+      deliverySlot
     } = await req.json() as PaymentVerification;
+
+    // Helper to format item lines like: "White Eggs - 30 eggs × 2 = ₹500"
+    const formatItem = (i: any) => {
+      const pack = i.packSize ? `${i.packSize} eggs` : "";
+      const parts = [i.name, pack].filter(Boolean).join(" - ");
+      return `• ${parts} × ${i.quantity} = ₹${i.price * i.quantity}`;
+    };
+    const slotLine = deliverySlot ? `\n*Delivery Slot:* ${deliverySlot}` : "";
 
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
     if (!RAZORPAY_KEY_SECRET) throw new Error("Razorpay secret not configured");
