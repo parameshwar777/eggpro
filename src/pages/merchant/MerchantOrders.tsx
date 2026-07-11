@@ -55,10 +55,15 @@ const isToday = (dateStr: string) => {
   return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 };
 
+// Delivery slot labels — kept in sync with what users see in checkout (src/lib/deliverySlots.ts).
+// Ordering window → Delivery window mapping:
+//   slot1: ordered 6 PM – 9 AM  → delivered 10 AM – 12 PM
+//   slot2: ordered 9 AM – 2 PM  → delivered 3 PM – 5 PM
+//   slot3: ordered 2 PM – 6 PM  → delivered 7 PM – 8:30 PM
 const TIME_SLOTS = [
-  { label: "6 PM - 9 AM", value: "slot1" },
-  { label: "9 AM - 2 PM", value: "slot2" },
-  { label: "2 PM - 6 PM", value: "slot3" },
+  { label: "10 AM - 12 PM", value: "slot1" },
+  { label: "3 PM - 5 PM", value: "slot2" },
+  { label: "7 PM - 8:30 PM", value: "slot3" },
 ];
 
 /**
