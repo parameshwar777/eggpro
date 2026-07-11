@@ -221,6 +221,7 @@ export type Database = {
           community: string
           created_at: string
           customer_name: string | null
+          delivery_slot: string | null
           id: string
           is_paused: boolean | null
           items: Json
@@ -240,6 +241,7 @@ export type Database = {
           community: string
           created_at?: string
           customer_name?: string | null
+          delivery_slot?: string | null
           id?: string
           is_paused?: boolean | null
           items: Json
@@ -259,6 +261,7 @@ export type Database = {
           community?: string
           created_at?: string
           customer_name?: string | null
+          delivery_slot?: string | null
           id?: string
           is_paused?: boolean | null
           items?: Json

@@ -77,7 +77,7 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { orderId, customerName, phone, community, address, items, totalAmount } = await req.json();
+    const { orderId, customerName, phone, community, address, items, totalAmount, deliverySlot } = await req.json();
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -89,7 +89,6 @@ serve(async (req: Request) => {
     const { data: setting } = await supabase
       .from("admin_settings").select("value").eq("key", "admin_whatsapp").maybeSingle();
     if (setting?.value) {
-      // Support comma/space/semicolon-separated list of admin phone numbers
       String(setting.value)
         .split(/[,;\s]+/)
         .map((p) => p.trim())
@@ -111,16 +110,19 @@ serve(async (req: Request) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const itemsList = (items || []).map((i: any) =>
-      `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
-    const body = `🥚 *New EggPro Order!*\n\n*Order:* ${String(orderId).slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
+    const itemsList = (items || []).map((i: any) => {
+      const pack = i.packSize ? ` - ${i.packSize} eggs` : "";
+      return `• ${i.name}${pack} × ${i.quantity} = ₹${i.price * i.quantity}`;
+    }).join("\n");
+    const slotLine = deliverySlot ? `\n*Delivery Slot:* ${deliverySlot}` : "";
+    const body = `🥚 *New EggPro Order!*\n\n*Order:* ${String(orderId).slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}${slotLine}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
 
     const contentVariables: Record<string, string> = {
       "1": String(orderId).slice(0, 8),
       "2": customerName || "Customer",
       "3": phone || "",
       "4": community || "",
-      "5": address || "",
+      "5": deliverySlot ? `${address}\nSlot: ${deliverySlot}` : address || "",
       "6": itemsList || "No items",
       "7": String(totalAmount || 0),
       "8": new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),

@@ -18,6 +18,7 @@ interface PaymentVerification {
   items: any[];
   totalAmount: number;
   subscriptionEndDate?: string;
+  deliverySlot?: string;
 }
 
 serve(async (req: Request) => {
@@ -37,8 +38,17 @@ serve(async (req: Request) => {
       customerName,
       items,
       totalAmount,
-      subscriptionEndDate
+      subscriptionEndDate,
+      deliverySlot
     } = await req.json() as PaymentVerification;
+
+    // Helper to format item lines like: "White Eggs - 30 eggs × 2 = ₹500"
+    const formatItem = (i: any) => {
+      const pack = i.packSize ? `${i.packSize} eggs` : "";
+      const parts = [i.name, pack].filter(Boolean).join(" - ");
+      return `• ${parts} × ${i.quantity} = ₹${i.price * i.quantity}`;
+    };
+    const slotLine = deliverySlot ? `\n*Delivery Slot:* ${deliverySlot}` : "";
 
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
     if (!RAZORPAY_KEY_SECRET) throw new Error("Razorpay secret not configured");
@@ -162,7 +172,7 @@ serve(async (req: Request) => {
 
       if (WATI_ACCESS_TOKEN && WATI_API_ENDPOINT) {
         const baseUrl = WATI_API_ENDPOINT.replace(/\/$/, "");
-        const itemsList = items.map((i: any) => `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
+        const itemsList = items.map(formatItem).join("\n");
 
         // --- 1. Send ORDER CONFIRMATION to CUSTOMER ---
         try {
@@ -225,7 +235,7 @@ serve(async (req: Request) => {
             if (settingsData?.value) recipientPhones.add(settingsData.value);
             if (recipientProfiles) { for (const p of recipientProfiles) { if (p.phone) recipientPhones.add(p.phone); } }
 
-            const adminMessage = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
+            const adminMessage = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}${slotLine}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
 
             for (const recipientPhone of recipientPhones) {
               try {
@@ -264,6 +274,9 @@ serve(async (req: Request) => {
       console.error("WhatsApp notification error:", e);
     }
 
+    // Global items list for downstream messages (Telegram etc.)
+    const itemsList = items.map(formatItem).join("\n");
+
     // --- Twilio WhatsApp order alert to admin (free-form text) ---
     try {
       await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-whatsapp-order`, {
@@ -272,7 +285,7 @@ serve(async (req: Request) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
         },
-        body: JSON.stringify({ orderId, customerName, phone, community, address, items, totalAmount }),
+        body: JSON.stringify({ orderId, customerName, phone, community, address, items, totalAmount, deliverySlot }),
       });
       console.log("Twilio WhatsApp order alert dispatched");
     } catch (e) {
@@ -298,7 +311,7 @@ serve(async (req: Request) => {
           : [];
 
         if (chatIds.length > 0) {
-          const telegramMessage = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
+          const telegramMessage = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${address}${slotLine}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
 
           for (const chatId of chatIds) {
             try {

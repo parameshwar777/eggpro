@@ -314,6 +314,7 @@ export const CheckoutPage = () => {
             description: "One-time Order Payment"
           });
 
+        const walletSlotLabel = deliverySlots.find(s => s.id === selectedSlotId)?.fullLabel || "";
         const { error: orderError } = await supabase
           .from("orders")
           .insert({
@@ -329,6 +330,7 @@ export const CheckoutPage = () => {
               isOneTime: true
             })),
             total_amount: finalTotal,
+            delivery_slot: walletSlotLabel,
             payment_status: "completed",
             order_status: "confirmed"
           });
@@ -349,6 +351,7 @@ export const CheckoutPage = () => {
         .single();
 
       // Create order in database
+      const selectedSlotLabel = deliverySlots.find(s => s.id === selectedSlotId)?.fullLabel || "";
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -365,6 +368,7 @@ export const CheckoutPage = () => {
             isOneTime: true
           })),
           total_amount: finalTotal,
+          delivery_slot: selectedSlotLabel,
           payment_status: "pending",
           order_status: "pending"
         })
@@ -382,7 +386,7 @@ export const CheckoutPage = () => {
 
       const fullAddress = `${address}, ${city} - ${pincode}`;
       const customerName = profile?.full_name || user.email?.split("@")[0] || "Customer";
-      const mappedItems = items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }));
+      const mappedItems = items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price, packSize: i.packSize }));
 
       // Open Razorpay checkout (native SDK on Capacitor, inline on web)
       try {
@@ -408,7 +412,8 @@ export const CheckoutPage = () => {
             phone,
             customerName,
             items: mappedItems,
-            totalAmount: finalTotal
+            totalAmount: finalTotal,
+            deliverySlot: selectedSlotLabel
           }
         });
 
