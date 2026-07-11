@@ -172,7 +172,7 @@ serve(async (req: Request) => {
 
       if (WATI_ACCESS_TOKEN && WATI_API_ENDPOINT) {
         const baseUrl = WATI_API_ENDPOINT.replace(/\/$/, "");
-        const itemsList = items.map((i: any) => `• ${i.name} x${i.quantity} = ₹${i.price * i.quantity}`).join("\n");
+        const itemsList = items.map(formatItem).join("\n");
 
         // --- 1. Send ORDER CONFIRMATION to CUSTOMER ---
         try {
