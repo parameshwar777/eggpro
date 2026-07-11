@@ -314,6 +314,7 @@ export const CheckoutPage = () => {
             description: "One-time Order Payment"
           });
 
+        const walletSlotLabel = deliverySlots.find(s => s.id === selectedSlotId)?.fullLabel || "";
         const { error: orderError } = await supabase
           .from("orders")
           .insert({
@@ -329,6 +330,7 @@ export const CheckoutPage = () => {
               isOneTime: true
             })),
             total_amount: finalTotal,
+            delivery_slot: walletSlotLabel,
             payment_status: "completed",
             order_status: "confirmed"
           });
