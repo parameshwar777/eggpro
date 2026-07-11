@@ -274,6 +274,9 @@ serve(async (req: Request) => {
       console.error("WhatsApp notification error:", e);
     }
 
+    // Global items list for downstream messages (Telegram etc.)
+    const itemsList = items.map(formatItem).join("\n");
+
     // --- Twilio WhatsApp order alert to admin (free-form text) ---
     try {
       await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-whatsapp-order`, {
@@ -282,7 +285,7 @@ serve(async (req: Request) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
         },
-        body: JSON.stringify({ orderId, customerName, phone, community, address, items, totalAmount }),
+        body: JSON.stringify({ orderId, customerName, phone, community, address, items, totalAmount, deliverySlot }),
       });
       console.log("Twilio WhatsApp order alert dispatched");
     } catch (e) {
