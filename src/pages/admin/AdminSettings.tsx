@@ -30,7 +30,9 @@ export const AdminSettings = () => {
   const [showReferral, setShowReferral] = useState(false);
   const [isSavingReferral, setIsSavingReferral] = useState(false);
   const [firstOrderDiscount, setFirstOrderDiscount] = useState("50");
+  const [firstOrderEnabled, setFirstOrderEnabled] = useState(true);
   const [isSavingFirstOrder, setIsSavingFirstOrder] = useState(false);
+  const [isSavingFirstOrderToggle, setIsSavingFirstOrderToggle] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,7 +45,7 @@ export const AdminSettings = () => {
       const { data, error } = await supabase
         .from("admin_settings")
         .select("*")
-        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "app_current_version_ios", "app_update_url_android", "app_update_url_ios", "telegram_chat_ids", "show_subscriptions", "show_referral", "first_order_discount_percent"]);
+        .in("key", ["admin_whatsapp", "splash_wallpaper", "app_current_version", "app_current_version_ios", "app_update_url_android", "app_update_url_ios", "telegram_chat_ids", "show_subscriptions", "show_referral", "first_order_discount_percent", "first_order_discount_enabled"]);
 
       if (!error && data) {
         const whatsapp = data.find(d => d.key === "admin_whatsapp");
@@ -66,6 +68,8 @@ export const AdminSettings = () => {
         if (referral) setShowReferral(referral.value === "true");
         const firstOrder = data.find(d => d.key === "first_order_discount_percent");
         if (firstOrder) setFirstOrderDiscount(firstOrder.value);
+        const firstOrderToggle = data.find(d => d.key === "first_order_discount_enabled");
+        if (firstOrderToggle) setFirstOrderEnabled(firstOrderToggle.value === "true");
       }
 
     } catch (error) {
@@ -211,6 +215,25 @@ export const AdminSettings = () => {
     }
   };
 
+  const handleToggleFirstOrder = async (enabled: boolean) => {
+    setFirstOrderEnabled(enabled);
+    setIsSavingFirstOrderToggle(true);
+    try {
+      const { error } = await supabase.from("admin_settings").upsert({
+        key: "first_order_discount_enabled",
+        value: enabled ? "true" : "false",
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+      if (error) throw error;
+      toast({ title: enabled ? "Welcome discount enabled" : "Welcome discount disabled", description: enabled ? "New users will get the first-order discount." : "No discount will be applied for new users." });
+    } catch (error: any) {
+      setFirstOrderEnabled(!enabled);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSavingFirstOrderToggle(false);
+    }
+  };
+
   return (
     <AdminLayout title="Settings">
       {isLoading ? (
@@ -253,6 +276,19 @@ export const AdminSettings = () => {
               First-Order Welcome Discount
             </h2>
             <div className="space-y-4">
+              <div className="flex items-center justify-between bg-amber-800/30 p-3 rounded-lg border border-amber-700">
+                <div>
+                  <p className="text-sm font-semibold text-amber-100">Enable welcome discount</p>
+                  <p className="text-xs text-amber-400 mt-1">
+                    {firstOrderEnabled ? "New users see the discount banner and get % off at checkout." : "No first-order discount is applied. Banner is hidden."}
+                  </p>
+                </div>
+                <Switch
+                  checked={firstOrderEnabled}
+                  onCheckedChange={handleToggleFirstOrder}
+                  disabled={isSavingFirstOrderToggle}
+                />
+              </div>
               <div>
                 <label className="text-sm text-amber-300 block mb-2">Discount Percentage (0 – 100)</label>
                 <div className="flex items-center gap-2 max-w-xs">
@@ -262,21 +298,22 @@ export const AdminSettings = () => {
                     max={100}
                     value={firstOrderDiscount}
                     onChange={(e) => setFirstOrderDiscount(e.target.value)}
-                    className="bg-amber-800/50 border-amber-700 text-amber-100"
+                    disabled={!firstOrderEnabled}
+                    className="bg-amber-800/50 border-amber-700 text-amber-100 disabled:opacity-50"
                   />
                   <span className="text-amber-100 font-bold">%</span>
                 </div>
                 <p className="text-xs text-amber-400 mt-2">
                   Applied to every new user's first successful order (calculated off the original MRP).
-                  Set to <span className="font-mono">0</span> to disable the welcome offer.
                 </p>
               </div>
-              <Button onClick={handleSaveFirstOrder} disabled={isSavingFirstOrder} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleSaveFirstOrder} disabled={isSavingFirstOrder || !firstOrderEnabled} className="bg-green-600 hover:bg-green-700">
                 <Save className="w-4 h-4 mr-2" />
-                {isSavingFirstOrder ? "Saving..." : "Save Discount"}
+                {isSavingFirstOrder ? "Saving..." : "Save Discount %"}
               </Button>
             </div>
           </div>
+
 
 
           {/* Splash Wallpaper Settings */}

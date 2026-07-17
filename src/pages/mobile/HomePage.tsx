@@ -103,6 +103,7 @@ export const HomePage = () => {
   // First-order eligibility (discount banner)
   const [isFirstOrder, setIsFirstOrder] = useState(false);
   const [firstOrderDiscountPercent, setFirstOrderDiscountPercent] = useState(50);
+  const [firstOrderEnabled, setFirstOrderEnabled] = useState(true);
   useEffect(() => {
     const checkFirstOrder = async () => {
       if (!user) { setIsFirstOrder(true); } else {
@@ -113,15 +114,17 @@ export const HomePage = () => {
           .eq("payment_status", "completed");
         setIsFirstOrder((count || 0) === 0);
       }
-      const { data: setting } = await supabase
+      const { data: settings } = await supabase
         .from("admin_settings")
-        .select("value")
-        .eq("key", "first_order_discount_percent")
-        .maybeSingle();
-      if (setting?.value) {
-        const parsed = parseFloat(setting.value);
+        .select("key,value")
+        .in("key", ["first_order_discount_percent", "first_order_discount_enabled"]);
+      const pct = settings?.find(s => s.key === "first_order_discount_percent")?.value;
+      const enabled = settings?.find(s => s.key === "first_order_discount_enabled")?.value;
+      if (pct) {
+        const parsed = parseFloat(pct);
         if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) setFirstOrderDiscountPercent(parsed);
       }
+      if (enabled !== undefined) setFirstOrderEnabled(enabled === "true");
     };
     checkFirstOrder();
   }, [user]);
@@ -254,7 +257,7 @@ export const HomePage = () => {
       </motion.div>
 
       {/* First-order offer banner */}
-      {isFirstOrder && firstOrderDiscountPercent > 0 && (
+      {isFirstOrder && firstOrderEnabled && firstOrderDiscountPercent > 0 && (
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

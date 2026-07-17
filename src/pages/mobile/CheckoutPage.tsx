@@ -68,17 +68,25 @@ export const CheckoutPage = () => {
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [isFirstOrder, setIsFirstOrder] = useState(false);
   const [firstOrderDiscountPercent, setFirstOrderDiscountPercent] = useState(50);
+  const [firstOrderEnabled, setFirstOrderEnabled] = useState(true);
 
   // Coupon
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discount_percentage: number; title: string } | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
-  const originalTotal = items.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
-  // First-order discount is applied to the ORIGINAL (MRP) price, not on top of any existing "buy once" discount.
-  // Example: MRP ₹300, Buy Once ₹250. First-order 50% off => final ₹150 (50% of ₹300), not ₹100.
-  const baseTotal = isFirstOrder ? originalTotal : totalPrice;
-  const firstOrderDiscount = isFirstOrder ? Math.round(originalTotal * (firstOrderDiscountPercent / 100)) : 0;
+  // Guard against stale/inflated originalPrice in cached cart items — never let discount base exceed 2x price.
+  const safeOriginal = (i: typeof items[number]) => {
+    const op = i.originalPrice || 0;
+    const p = i.price || 0;
+    if (op < p) return p;
+    if (op > p * 2) return p; // sanity cap for corrupted data
+    return op;
+  };
+  const originalTotal = items.reduce((acc, item) => acc + safeOriginal(item) * item.quantity, 0);
+  const discountEligible = isFirstOrder && firstOrderEnabled && firstOrderDiscountPercent > 0;
+  const baseTotal = discountEligible ? originalTotal : totalPrice;
+  const firstOrderDiscount = discountEligible ? Math.round(originalTotal * (firstOrderDiscountPercent / 100)) : 0;
   const subtotalAfterFirst = Math.max(baseTotal - firstOrderDiscount, 0);
   const couponDiscount = appliedCoupon ? Math.round(subtotalAfterFirst * (appliedCoupon.discount_percentage / 100)) : 0;
   const finalTotal = Math.max(subtotalAfterFirst - couponDiscount, 0);
@@ -108,16 +116,18 @@ export const CheckoutPage = () => {
         .eq("payment_status", "completed");
       setIsFirstOrder((paidCount || 0) === 0);
 
-      // Fetch first-order discount % from admin settings
-      const { data: discountSetting } = await supabase
+      // Fetch first-order discount % + enabled toggle from admin settings
+      const { data: discountSettings } = await supabase
         .from("admin_settings")
-        .select("value")
-        .eq("key", "first_order_discount_percent")
-        .maybeSingle();
-      if (discountSetting?.value) {
-        const parsed = parseFloat(discountSetting.value);
+        .select("key,value")
+        .in("key", ["first_order_discount_percent", "first_order_discount_enabled"]);
+      const pctRow = discountSettings?.find(s => s.key === "first_order_discount_percent");
+      const enabledRow = discountSettings?.find(s => s.key === "first_order_discount_enabled");
+      if (pctRow?.value) {
+        const parsed = parseFloat(pctRow.value);
         if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) setFirstOrderDiscountPercent(parsed);
       }
+      if (enabledRow?.value !== undefined) setFirstOrderEnabled(enabledRow.value === "true");
 
 
 
