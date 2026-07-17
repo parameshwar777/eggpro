@@ -257,7 +257,7 @@ export const HomePage = () => {
       </motion.div>
 
       {/* First-order offer banner */}
-      {isFirstOrder && firstOrderDiscountPercent > 0 && (
+      {isFirstOrder && firstOrderEnabled && firstOrderDiscountPercent > 0 && (
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
