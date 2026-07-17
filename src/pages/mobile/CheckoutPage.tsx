@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getAvailableDeliverySlots, type DeliverySlot } from "@/lib/deliverySlots";
+import { useSlotConfig } from "@/lib/slotConfig";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,7 +65,8 @@ export const CheckoutPage = () => {
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [communities, setCommunities] = useState<{ id: string; name: string; city: string; pincode: string | null }[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState("");
-  const [deliverySlots] = useState<DeliverySlot[]>(getAvailableDeliverySlots());
+  const slotConfig = useSlotConfig();
+  const deliverySlots: DeliverySlot[] = getAvailableDeliverySlots(slotConfig);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [isFirstOrder, setIsFirstOrder] = useState(false);
   const [firstOrderDiscountPercent, setFirstOrderDiscountPercent] = useState(50);

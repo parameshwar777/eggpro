@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Phone, Image, Upload, Smartphone, Send, Eye, Gift } from "lucide-react";
+import { Save, Phone, Image, Upload, Smartphone, Send, Eye, Gift, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_SLOT_CONFIG, loadSlotConfig, saveSlotConfig, type SlotDefinition } from "@/lib/slotConfig";
 
 export const AdminSettings = () => {
   const { toast } = useToast();
@@ -33,11 +34,14 @@ export const AdminSettings = () => {
   const [firstOrderEnabled, setFirstOrderEnabled] = useState(true);
   const [isSavingFirstOrder, setIsSavingFirstOrder] = useState(false);
   const [isSavingFirstOrderToggle, setIsSavingFirstOrderToggle] = useState(false);
+  const [slots, setSlots] = useState<SlotDefinition[]>(DEFAULT_SLOT_CONFIG);
+  const [isSavingSlots, setIsSavingSlots] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSettings();
+    loadSlotConfig(true).then(setSlots).catch(() => {});
   }, []);
 
   const fetchSettings = async () => {
@@ -234,6 +238,36 @@ export const AdminSettings = () => {
     }
   };
 
+  const updateSlot = (idx: number, patch: Partial<SlotDefinition>) => {
+    setSlots(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s));
+  };
+
+  const handleSaveSlots = async () => {
+    // basic validation
+    for (const s of slots) {
+      if (!s.deliveryLabel.trim()) {
+        toast({ title: "Missing label", description: `${s.id} needs a delivery label`, variant: "destructive" });
+        return;
+      }
+      if (s.orderStart < 0 || s.orderStart > 23 || s.orderEnd < 0 || s.orderEnd > 24) {
+        toast({ title: "Invalid hour", description: "Order hours must be between 0 and 24", variant: "destructive" });
+        return;
+      }
+    }
+    setIsSavingSlots(true);
+    try {
+      const saved = await saveSlotConfig(slots);
+      setSlots(saved);
+      toast({ title: "Delivery slots updated!", description: "Users, checkout, and merchants will see the new slots." });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSavingSlots(false);
+    }
+  };
+
+  const resetSlots = () => setSlots(DEFAULT_SLOT_CONFIG);
+
   return (
     <AdminLayout title="Settings">
       {isLoading ? (
@@ -314,6 +348,67 @@ export const AdminSettings = () => {
             </div>
           </div>
 
+          {/* Delivery Slots */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-2 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Delivery Slots
+            </h2>
+            <p className="text-xs text-amber-400 mb-4">
+              Edit the three delivery windows. The <strong>Order Start / End</strong> hours are 24-hour values that decide which slot an order is placed in and which
+              slots the user sees in checkout. The <strong>Delivery Label</strong> is the text shown everywhere (checkout, merchant orders, WhatsApp alerts).
+              Slot 1 supports crossing midnight (e.g. Start 18, End 9 = 6 PM to 9 AM next morning).
+            </p>
+            <div className="space-y-4">
+              {slots.map((s, i) => (
+                <div key={s.id} className="bg-amber-800/30 border border-amber-700 rounded-lg p-4">
+                  <p className="text-sm font-bold text-amber-100 mb-3">Slot {i + 1} <span className="text-amber-400 font-normal">({s.id})</span></p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs text-amber-300 block mb-1">Order Start (0–23)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={23}
+                        value={s.orderStart}
+                        onChange={(e) => updateSlot(i, { orderStart: Number(e.target.value) })}
+                        className="bg-amber-800/50 border-amber-700 text-amber-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-amber-300 block mb-1">Order End (0–24)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={24}
+                        value={s.orderEnd}
+                        onChange={(e) => updateSlot(i, { orderEnd: Number(e.target.value) })}
+                        className="bg-amber-800/50 border-amber-700 text-amber-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-amber-300 block mb-1">Delivery Label</label>
+                      <Input
+                        value={s.deliveryLabel}
+                        onChange={(e) => updateSlot(i, { deliveryLabel: e.target.value })}
+                        placeholder="e.g. 10 AM - 12 PM"
+                        className="bg-amber-800/50 border-amber-700 text-amber-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <Button onClick={handleSaveSlots} disabled={isSavingSlots} className="bg-green-600 hover:bg-green-700">
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSavingSlots ? "Saving..." : "Save Slots"}
+                </Button>
+                <Button onClick={resetSlots} variant="outline" className="border-amber-700 text-amber-200 hover:bg-amber-800">
+                  Reset to defaults
+                </Button>
+              </div>
+            </div>
+          </div>
 
 
           {/* Splash Wallpaper Settings */}

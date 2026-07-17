@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { RefreshCw, Download, Printer, Search, Calendar, X, Clock, MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { MerchantOrderCard } from "@/components/merchant/MerchantOrderCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCapacitorOrderNotification } from "@/components/CapacitorNotificationManager";
+import { useSlotConfig, isOrderInSlot, type SlotDefinition } from "@/lib/slotConfig";
 import {
   Dialog,
   DialogContent,
@@ -55,85 +56,17 @@ const isToday = (dateStr: string) => {
   return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 };
 
-// Delivery slot labels — kept in sync with what users see in checkout (src/lib/deliverySlots.ts).
-// Ordering window → Delivery window mapping:
-//   slot1: ordered 6 PM – 9 AM  → delivered 10 AM – 12 PM
-//   slot2: ordered 9 AM – 2 PM  → delivered 3 PM – 5 PM
-//   slot3: ordered 2 PM – 6 PM  → delivered 7 PM – 8:30 PM
-const TIME_SLOTS = [
-  { label: "10 AM - 12 PM", value: "slot1" },
-  { label: "3 PM - 5 PM", value: "slot2" },
-  { label: "7 PM - 8:30 PM", value: "slot3" },
-];
-
-/**
- * Check if an order falls into a time slot relative to "today".
- * - slot1 (6 PM - 9 AM): yesterday 6 PM to today 9 AM
- * - slot2 (9 AM - 2 PM): today 9 AM to today 2 PM
- * - slot3 (2 PM - 6 PM): today 2 PM to today 6 PM
- */
-const isInTimeSlotToday = (orderDateStr: string, slotValue: string): boolean => {
-  const orderDate = new Date(orderDateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  if (slotValue === "slot1") {
-    // Yesterday 6 PM to today 9 AM
-    const start = new Date(today);
-    start.setDate(start.getDate() - 1);
-    start.setHours(18, 0, 0, 0);
-    const end = new Date(today);
-    end.setHours(9, 0, 0, 0);
-    return orderDate >= start && orderDate < end;
-  } else if (slotValue === "slot2") {
-    // Today 9 AM to today 2 PM
-    const start = new Date(today);
-    start.setHours(9, 0, 0, 0);
-    const end = new Date(today);
-    end.setHours(14, 0, 0, 0);
-    return orderDate >= start && orderDate < end;
-  } else if (slotValue === "slot3") {
-    // Today 2 PM to today 6 PM
-    const start = new Date(today);
-    start.setHours(14, 0, 0, 0);
-    const end = new Date(today);
-    end.setHours(18, 0, 0, 0);
-    return orderDate >= start && orderDate < end;
-  }
-  return true;
-};
-
-/** For a specific chosen date */
-const isInTimeSlotForDate = (orderDateStr: string, slotValue: string, chosenDate: Date): boolean => {
-  const orderDate = new Date(orderDateStr);
-  const dayStart = new Date(chosenDate.getFullYear(), chosenDate.getMonth(), chosenDate.getDate());
-
-  if (slotValue === "slot1") {
-    const start = new Date(dayStart);
-    start.setDate(start.getDate() - 1);
-    start.setHours(18, 0, 0, 0);
-    const end = new Date(dayStart);
-    end.setHours(9, 0, 0, 0);
-    return orderDate >= start && orderDate < end;
-  } else if (slotValue === "slot2") {
-    const start = new Date(dayStart);
-    start.setHours(9, 0, 0, 0);
-    const end = new Date(dayStart);
-    end.setHours(14, 0, 0, 0);
-    return orderDate >= start && orderDate < end;
-  } else if (slotValue === "slot3") {
-    const start = new Date(dayStart);
-    start.setHours(14, 0, 0, 0);
-    const end = new Date(dayStart);
-    end.setHours(18, 0, 0, 0);
-    return orderDate >= start && orderDate < end;
-  }
-  return true;
-};
+// Slot definitions come from admin_settings.delivery_slots (see src/lib/slotConfig.ts).
+// Slot ids are stable (slot1/slot2/slot3); labels and hours are admin-editable.
 
 export const MerchantOrders = () => {
   const { toast } = useToast();
   const { notify } = useCapacitorOrderNotification();
+  const slotConfig = useSlotConfig();
+  const TIME_SLOTS = useMemo(
+    () => slotConfig.map((s) => ({ value: s.id, label: s.deliveryLabel })),
+    [slotConfig]
+  );
   const [orders, setOrders] = useState<MerchantOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -215,7 +148,7 @@ export const MerchantOrders = () => {
     if (showTodayOnly && !isToday(o.created_at)) return false;
     if (communityFilter !== "all" && o.community !== communityFilter) return false;
     if (timeSlotFilter !== "all") {
-      if (!isInTimeSlotToday(o.created_at, timeSlotFilter)) return false;
+      if (!isOrderInSlot(o.created_at, timeSlotFilter as SlotDefinition["id"], new Date(), slotConfig)) return false;
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -282,7 +215,7 @@ export const MerchantOrders = () => {
       });
     }
 
-    return orders.filter(o => isInTimeSlotForDate(o.created_at, waSlot, chosenDate));
+    return orders.filter(o => isOrderInSlot(o.created_at, waSlot as SlotDefinition["id"], chosenDate, slotConfig));
   };
 
   const handleWhatsAppSend = () => {

@@ -7,11 +7,13 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { getDeliverySlot } from "@/lib/deliveryTime";
+import { useSlotConfig } from "@/lib/slotConfig";
 
 export const CartPage = () => {
   const navigate = useNavigate();
   const { items, updateQuantity, removeFromCart, totalPrice } = useCart();
   const { user } = useAuth();
+  const slotConfig = useSlotConfig();
 
   useEffect(() => {
     // Load Razorpay script
@@ -142,7 +144,7 @@ export const CartPage = () => {
                 </div>
                 <div>
                   <p className="font-bold text-green-800 text-sm sm:text-base">Free Delivery</p>
-                  <p className="text-xs sm:text-sm text-green-600 font-medium">Estimated Delivery: {getDeliverySlot()}</p>
+                  <p className="text-xs sm:text-sm text-green-600 font-medium">Estimated Delivery: {getDeliverySlot(undefined, slotConfig)}</p>
                 </div>
               </motion.div>
             </div>
