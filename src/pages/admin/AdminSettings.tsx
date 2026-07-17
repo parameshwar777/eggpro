@@ -68,6 +68,8 @@ export const AdminSettings = () => {
         if (referral) setShowReferral(referral.value === "true");
         const firstOrder = data.find(d => d.key === "first_order_discount_percent");
         if (firstOrder) setFirstOrderDiscount(firstOrder.value);
+        const firstOrderToggle = data.find(d => d.key === "first_order_discount_enabled");
+        if (firstOrderToggle) setFirstOrderEnabled(firstOrderToggle.value === "true");
       }
 
     } catch (error) {
