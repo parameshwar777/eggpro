@@ -276,6 +276,19 @@ export const AdminSettings = () => {
               First-Order Welcome Discount
             </h2>
             <div className="space-y-4">
+              <div className="flex items-center justify-between bg-amber-800/30 p-3 rounded-lg border border-amber-700">
+                <div>
+                  <p className="text-sm font-semibold text-amber-100">Enable welcome discount</p>
+                  <p className="text-xs text-amber-400 mt-1">
+                    {firstOrderEnabled ? "New users see the discount banner and get % off at checkout." : "No first-order discount is applied. Banner is hidden."}
+                  </p>
+                </div>
+                <Switch
+                  checked={firstOrderEnabled}
+                  onCheckedChange={handleToggleFirstOrder}
+                  disabled={isSavingFirstOrderToggle}
+                />
+              </div>
               <div>
                 <label className="text-sm text-amber-300 block mb-2">Discount Percentage (0 – 100)</label>
                 <div className="flex items-center gap-2 max-w-xs">
@@ -285,21 +298,22 @@ export const AdminSettings = () => {
                     max={100}
                     value={firstOrderDiscount}
                     onChange={(e) => setFirstOrderDiscount(e.target.value)}
-                    className="bg-amber-800/50 border-amber-700 text-amber-100"
+                    disabled={!firstOrderEnabled}
+                    className="bg-amber-800/50 border-amber-700 text-amber-100 disabled:opacity-50"
                   />
                   <span className="text-amber-100 font-bold">%</span>
                 </div>
                 <p className="text-xs text-amber-400 mt-2">
                   Applied to every new user's first successful order (calculated off the original MRP).
-                  Set to <span className="font-mono">0</span> to disable the welcome offer.
                 </p>
               </div>
-              <Button onClick={handleSaveFirstOrder} disabled={isSavingFirstOrder} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleSaveFirstOrder} disabled={isSavingFirstOrder || !firstOrderEnabled} className="bg-green-600 hover:bg-green-700">
                 <Save className="w-4 h-4 mr-2" />
-                {isSavingFirstOrder ? "Saving..." : "Save Discount"}
+                {isSavingFirstOrder ? "Saving..." : "Save Discount %"}
               </Button>
             </div>
           </div>
+
 
 
           {/* Splash Wallpaper Settings */}
