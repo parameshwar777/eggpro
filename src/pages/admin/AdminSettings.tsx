@@ -238,6 +238,36 @@ export const AdminSettings = () => {
     }
   };
 
+  const updateSlot = (idx: number, patch: Partial<SlotDefinition>) => {
+    setSlots(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s));
+  };
+
+  const handleSaveSlots = async () => {
+    // basic validation
+    for (const s of slots) {
+      if (!s.deliveryLabel.trim()) {
+        toast({ title: "Missing label", description: `${s.id} needs a delivery label`, variant: "destructive" });
+        return;
+      }
+      if (s.orderStart < 0 || s.orderStart > 23 || s.orderEnd < 0 || s.orderEnd > 24) {
+        toast({ title: "Invalid hour", description: "Order hours must be between 0 and 24", variant: "destructive" });
+        return;
+      }
+    }
+    setIsSavingSlots(true);
+    try {
+      const saved = await saveSlotConfig(slots);
+      setSlots(saved);
+      toast({ title: "Delivery slots updated!", description: "Users, checkout, and merchants will see the new slots." });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSavingSlots(false);
+    }
+  };
+
+  const resetSlots = () => setSlots(DEFAULT_SLOT_CONFIG);
+
   return (
     <AdminLayout title="Settings">
       {isLoading ? (
