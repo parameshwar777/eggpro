@@ -116,16 +116,18 @@ export const CheckoutPage = () => {
         .eq("payment_status", "completed");
       setIsFirstOrder((paidCount || 0) === 0);
 
-      // Fetch first-order discount % from admin settings
-      const { data: discountSetting } = await supabase
+      // Fetch first-order discount % + enabled toggle from admin settings
+      const { data: discountSettings } = await supabase
         .from("admin_settings")
-        .select("value")
-        .eq("key", "first_order_discount_percent")
-        .maybeSingle();
-      if (discountSetting?.value) {
-        const parsed = parseFloat(discountSetting.value);
+        .select("key,value")
+        .in("key", ["first_order_discount_percent", "first_order_discount_enabled"]);
+      const pctRow = discountSettings?.find(s => s.key === "first_order_discount_percent");
+      const enabledRow = discountSettings?.find(s => s.key === "first_order_discount_enabled");
+      if (pctRow?.value) {
+        const parsed = parseFloat(pctRow.value);
         if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) setFirstOrderDiscountPercent(parsed);
       }
+      if (enabledRow?.value !== undefined) setFirstOrderEnabled(enabledRow.value === "true");
 
 
 
