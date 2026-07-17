@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Phone, Image, Upload, Smartphone, Send, Eye, Gift } from "lucide-react";
+import { Save, Phone, Image, Upload, Smartphone, Send, Eye, Gift, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_SLOT_CONFIG, loadSlotConfig, saveSlotConfig, type SlotDefinition } from "@/lib/slotConfig";
 
 export const AdminSettings = () => {
   const { toast } = useToast();
@@ -33,11 +34,14 @@ export const AdminSettings = () => {
   const [firstOrderEnabled, setFirstOrderEnabled] = useState(true);
   const [isSavingFirstOrder, setIsSavingFirstOrder] = useState(false);
   const [isSavingFirstOrderToggle, setIsSavingFirstOrderToggle] = useState(false);
+  const [slots, setSlots] = useState<SlotDefinition[]>(DEFAULT_SLOT_CONFIG);
+  const [isSavingSlots, setIsSavingSlots] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSettings();
+    loadSlotConfig(true).then(setSlots).catch(() => {});
   }, []);
 
   const fetchSettings = async () => {
