@@ -348,6 +348,67 @@ export const AdminSettings = () => {
             </div>
           </div>
 
+          {/* Delivery Slots */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-2 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Delivery Slots
+            </h2>
+            <p className="text-xs text-amber-400 mb-4">
+              Edit the three delivery windows. The <strong>Order Start / End</strong> hours are 24-hour values that decide which slot an order is placed in and which
+              slots the user sees in checkout. The <strong>Delivery Label</strong> is the text shown everywhere (checkout, merchant orders, WhatsApp alerts).
+              Slot 1 supports crossing midnight (e.g. Start 18, End 9 = 6 PM to 9 AM next morning).
+            </p>
+            <div className="space-y-4">
+              {slots.map((s, i) => (
+                <div key={s.id} className="bg-amber-800/30 border border-amber-700 rounded-lg p-4">
+                  <p className="text-sm font-bold text-amber-100 mb-3">Slot {i + 1} <span className="text-amber-400 font-normal">({s.id})</span></p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs text-amber-300 block mb-1">Order Start (0–23)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={23}
+                        value={s.orderStart}
+                        onChange={(e) => updateSlot(i, { orderStart: Number(e.target.value) })}
+                        className="bg-amber-800/50 border-amber-700 text-amber-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-amber-300 block mb-1">Order End (0–24)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={24}
+                        value={s.orderEnd}
+                        onChange={(e) => updateSlot(i, { orderEnd: Number(e.target.value) })}
+                        className="bg-amber-800/50 border-amber-700 text-amber-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-amber-300 block mb-1">Delivery Label</label>
+                      <Input
+                        value={s.deliveryLabel}
+                        onChange={(e) => updateSlot(i, { deliveryLabel: e.target.value })}
+                        placeholder="e.g. 10 AM - 12 PM"
+                        className="bg-amber-800/50 border-amber-700 text-amber-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <Button onClick={handleSaveSlots} disabled={isSavingSlots} className="bg-green-600 hover:bg-green-700">
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSavingSlots ? "Saving..." : "Save Slots"}
+                </Button>
+                <Button onClick={resetSlots} variant="outline" className="border-amber-700 text-amber-200 hover:bg-amber-800">
+                  Reset to defaults
+                </Button>
+              </div>
+            </div>
+          </div>
 
 
           {/* Splash Wallpaper Settings */}
