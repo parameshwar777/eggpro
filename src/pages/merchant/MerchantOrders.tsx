@@ -215,7 +215,7 @@ export const MerchantOrders = () => {
       });
     }
 
-    return orders.filter(o => isInTimeSlotForDate(o.created_at, waSlot, chosenDate));
+    return orders.filter(o => isOrderInSlot(o.created_at, waSlot as SlotDefinition["id"], chosenDate, slotConfig));
   };
 
   const handleWhatsAppSend = () => {
