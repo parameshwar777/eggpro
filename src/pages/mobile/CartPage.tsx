@@ -13,6 +13,7 @@ export const CartPage = () => {
   const navigate = useNavigate();
   const { items, updateQuantity, removeFromCart, totalPrice } = useCart();
   const { user } = useAuth();
+  const slotConfig = useSlotConfig();
 
   useEffect(() => {
     // Load Razorpay script
