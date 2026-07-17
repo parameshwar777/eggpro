@@ -215,6 +215,25 @@ export const AdminSettings = () => {
     }
   };
 
+  const handleToggleFirstOrder = async (enabled: boolean) => {
+    setFirstOrderEnabled(enabled);
+    setIsSavingFirstOrderToggle(true);
+    try {
+      const { error } = await supabase.from("admin_settings").upsert({
+        key: "first_order_discount_enabled",
+        value: enabled ? "true" : "false",
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+      if (error) throw error;
+      toast({ title: enabled ? "Welcome discount enabled" : "Welcome discount disabled", description: enabled ? "New users will get the first-order discount." : "No discount will be applied for new users." });
+    } catch (error: any) {
+      setFirstOrderEnabled(!enabled);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSavingFirstOrderToggle(false);
+    }
+  };
+
   return (
     <AdminLayout title="Settings">
       {isLoading ? (
