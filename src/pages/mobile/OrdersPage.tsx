@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Package, RefreshCw, MapPin, Phone, Calendar, Truck, CheckCircle, Clock } from "lucide-react";
 import { getDeliverySlot } from "@/lib/deliveryTime";
+import { useSlotConfig } from "@/lib/slotConfig";
 import { useNavigate } from "react-router-dom";
 
 interface Order {
@@ -37,6 +38,7 @@ export const OrdersPage = () => {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const slotConfig = useSlotConfig();
 
   useEffect(() => {
     if (user) {
@@ -240,7 +242,7 @@ export const OrdersPage = () => {
                                             Ordered: {new Date(order.created_at).toLocaleDateString()}
                                           </p>
                                           <p className="text-sm text-green-600 font-semibold">
-                                            🚚 Delivery: {getDeliverySlot(order.created_at)}
+                                            🚚 Delivery: {getDeliverySlot(order.created_at, slotConfig)}
                                           </p>
                                         </div>
 
