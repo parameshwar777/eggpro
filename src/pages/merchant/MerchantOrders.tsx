@@ -62,6 +62,11 @@ const isToday = (dateStr: string) => {
 export const MerchantOrders = () => {
   const { toast } = useToast();
   const { notify } = useCapacitorOrderNotification();
+  const slotConfig = useSlotConfig();
+  const TIME_SLOTS = useMemo(
+    () => slotConfig.map((s) => ({ value: s.id, label: s.deliveryLabel })),
+    [slotConfig]
+  );
   const [orders, setOrders] = useState<MerchantOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -143,7 +148,7 @@ export const MerchantOrders = () => {
     if (showTodayOnly && !isToday(o.created_at)) return false;
     if (communityFilter !== "all" && o.community !== communityFilter) return false;
     if (timeSlotFilter !== "all") {
-      if (!isInTimeSlotToday(o.created_at, timeSlotFilter)) return false;
+      if (!isOrderInSlot(o.created_at, timeSlotFilter as SlotDefinition["id"], new Date(), slotConfig)) return false;
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
