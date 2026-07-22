@@ -38,6 +38,9 @@ export const AdminSettings = () => {
   const [isSavingFirstOrderToggle, setIsSavingFirstOrderToggle] = useState(false);
   const [slots, setSlots] = useState<SlotDefinition[]>(DEFAULT_SLOT_CONFIG);
   const [isSavingSlots, setIsSavingSlots] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(true);
+  const [storeClosedMessage, setStoreClosedMessage] = useState("We're temporarily closed for new orders. Please check back soon!");
+  const [isSavingStore, setIsSavingStore] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
