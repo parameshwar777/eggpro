@@ -273,6 +273,21 @@ export const HomePage = () => {
         </motion.div>
       )}
 
+      {/* Store closed banner */}
+      {!store.isOpen && (
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="mx-4 mt-4 p-4 rounded-2xl bg-red-50 border-2 border-red-200 text-red-800 shadow-sm flex items-start gap-3"
+        >
+          <div className="text-2xl">🛑</div>
+          <div className="flex-1">
+            <p className="font-bold text-sm">Store Closed</p>
+            <p className="text-xs mt-0.5 opacity-90">{store.closedMessage}</p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Festival / promotional offer banners */}
       <OffersBanner />
 
