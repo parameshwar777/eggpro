@@ -67,6 +67,7 @@ export const CheckoutPage = () => {
   const [communities, setCommunities] = useState<{ id: string; name: string; city: string; pincode: string | null }[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState("");
   const slotConfig = useSlotConfig();
+  const store = useStoreStatus();
   const deliverySlots: DeliverySlot[] = getAvailableDeliverySlots(slotConfig);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [isFirstOrder, setIsFirstOrder] = useState(false);
@@ -267,6 +268,10 @@ export const CheckoutPage = () => {
   };
 
   const handlePayment = async () => {
+    if (!store.isOpen) {
+      toast({ title: "Store closed", description: store.closedMessage, variant: "destructive" });
+      return;
+    }
     if (!user) {
       toast({ title: "Please login", description: "You need to login to place order" });
       navigate("/auth");
