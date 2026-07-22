@@ -8,12 +8,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { getDeliverySlot } from "@/lib/deliveryTime";
 import { useSlotConfig } from "@/lib/slotConfig";
+import { useStoreStatus } from "@/lib/storeStatus";
 
 export const CartPage = () => {
   const navigate = useNavigate();
   const { items, updateQuantity, removeFromCart, totalPrice } = useCart();
   const { user } = useAuth();
   const slotConfig = useSlotConfig();
+  const store = useStoreStatus();
 
   useEffect(() => {
     // Load Razorpay script
@@ -149,6 +151,17 @@ export const CartPage = () => {
               </motion.div>
             </div>
 
+            {/* Store closed banner */}
+            {!store.isOpen && (
+              <div className="mx-4 mb-2 p-3 rounded-xl bg-red-50 border-2 border-red-200 text-red-800 flex items-start gap-2">
+                <span className="text-xl">🛑</span>
+                <div>
+                  <p className="font-bold text-sm">Store Closed</p>
+                  <p className="text-xs opacity-90">{store.closedMessage}</p>
+                </div>
+              </div>
+            )}
+
             {/* Bottom Bar */}
             <motion.div
               initial={{ y: 100 }}
@@ -169,7 +182,12 @@ export const CartPage = () => {
                 <Button 
                   className="w-full gradient-hero text-white h-14 text-lg font-semibold rounded-xl" 
                   size="lg"
+                  disabled={!store.isOpen}
                   onClick={() => {
+                    if (!store.isOpen) {
+                      toast({ title: "Store closed", description: store.closedMessage, variant: "destructive" });
+                      return;
+                    }
                     if (!user) {
                       toast({ title: "Please login", description: "Login to continue with checkout" });
                       navigate("/auth");
@@ -180,7 +198,7 @@ export const CartPage = () => {
                     navigate(hasSubscription ? "/subscription" : "/checkout");
                   }}
                 >
-                  Proceed to Checkout
+                  {store.isOpen ? "Proceed to Checkout" : "Store Closed"}
                 </Button>
               </div>
             </motion.div>
