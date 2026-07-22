@@ -274,6 +274,20 @@ export const AdminSettings = () => {
 
   const resetSlots = () => setSlots(DEFAULT_SLOT_CONFIG);
 
+  const handleSaveStore = async () => {
+    setIsSavingStore(true);
+    try {
+      const saved = await saveStoreStatus({ isOpen: storeOpen, closedMessage: storeClosedMessage });
+      setStoreOpen(saved.isOpen);
+      setStoreClosedMessage(saved.closedMessage);
+      toast({ title: saved.isOpen ? "Store is OPEN" : "Store is CLOSED", description: saved.isOpen ? "Customers can place orders." : "New orders are blocked. Users will see the closed message." });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSavingStore(false);
+    }
+  };
+
   return (
     <AdminLayout title="Settings">
       {isLoading ? (
