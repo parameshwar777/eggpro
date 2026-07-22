@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Phone, Image, Upload, Smartphone, Send, Eye, Gift, Clock } from "lucide-react";
+import { Save, Phone, Image, Upload, Smartphone, Send, Eye, Gift, Clock, Store } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { loadStoreStatus, saveStoreStatus, type StoreStatus } from "@/lib/storeStatus";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
