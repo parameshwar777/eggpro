@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useStoreStatus } from "@/lib/storeStatus";
 
 interface ProductCardProps {
   id: string;
