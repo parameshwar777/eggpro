@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EggLogo } from "@/components/EggLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { OffersBanner } from "@/components/mobile/OffersBanner";
+import { useStoreStatus } from "@/lib/storeStatus";
 import {
   Select,
   SelectContent,
