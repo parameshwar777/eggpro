@@ -53,6 +53,7 @@ export const HomePage = () => {
   const { totalItems } = useCart();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const store = useStoreStatus();
   const [selectedCommunity, setSelectedCommunity] = useState(
     localStorage.getItem("selectedCommunity") || "Select Community"
   );
