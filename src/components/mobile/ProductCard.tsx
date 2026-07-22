@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useStoreStatus } from "@/lib/storeStatus";
 
 interface ProductCardProps {
   id: string;
@@ -38,6 +39,7 @@ export const ProductCard = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPack, setSelectedPack] = useState(packSizes[0]);
+  const store = useStoreStatus();
 
   // Get price for the selected pack from variantPrices if available, otherwise scale
   const currentPrice = variantPrices?.[selectedPack]?.price ?? price * (selectedPack / packSizes[0]);
@@ -53,6 +55,10 @@ export const ProductCard = ({
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!store.isOpen) {
+      toast({ title: "Store closed", description: store.closedMessage, variant: "destructive" });
+      return;
+    }
     if (!user) {
       toast({ title: "Please login", description: "Login to add items to your cart" });
       navigate("/auth");
@@ -171,9 +177,9 @@ export const ProductCard = ({
                 </motion.button>
               </div>
             ) : (
-              <Button size="sm" onClick={handleAddToCart} className="h-8 px-3 gap-1">
+              <Button size="sm" onClick={handleAddToCart} disabled={!store.isOpen} className="h-8 px-3 gap-1">
                 <Plus className="w-3.5 h-3.5" />
-                <span className="text-xs">Add</span>
+                <span className="text-xs">{store.isOpen ? "Add" : "Closed"}</span>
               </Button>
             )}
           </div>

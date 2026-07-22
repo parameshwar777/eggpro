@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Phone, Image, Upload, Smartphone, Send, Eye, Gift, Clock } from "lucide-react";
+import { Save, Phone, Image, Upload, Smartphone, Send, Eye, Gift, Clock, Store } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { loadStoreStatus, saveStoreStatus, type StoreStatus } from "@/lib/storeStatus";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,12 +38,16 @@ export const AdminSettings = () => {
   const [isSavingFirstOrderToggle, setIsSavingFirstOrderToggle] = useState(false);
   const [slots, setSlots] = useState<SlotDefinition[]>(DEFAULT_SLOT_CONFIG);
   const [isSavingSlots, setIsSavingSlots] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(true);
+  const [storeClosedMessage, setStoreClosedMessage] = useState("We're temporarily closed for new orders. Please check back soon!");
+  const [isSavingStore, setIsSavingStore] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSettings();
     loadSlotConfig(true).then(setSlots).catch(() => {});
+    loadStoreStatus(true).then((s) => { setStoreOpen(s.isOpen); setStoreClosedMessage(s.closedMessage); }).catch(() => {});
   }, []);
 
   const fetchSettings = async () => {
@@ -268,6 +274,20 @@ export const AdminSettings = () => {
 
   const resetSlots = () => setSlots(DEFAULT_SLOT_CONFIG);
 
+  const handleSaveStore = async () => {
+    setIsSavingStore(true);
+    try {
+      const saved = await saveStoreStatus({ isOpen: storeOpen, closedMessage: storeClosedMessage });
+      setStoreOpen(saved.isOpen);
+      setStoreClosedMessage(saved.closedMessage);
+      toast({ title: saved.isOpen ? "Store is OPEN" : "Store is CLOSED", description: saved.isOpen ? "Customers can place orders." : "New orders are blocked. Users will see the closed message." });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSavingStore(false);
+    }
+  };
+
   return (
     <AdminLayout title="Settings">
       {isLoading ? (
@@ -276,6 +296,39 @@ export const AdminSettings = () => {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Store Status */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
+              <Store className="w-5 h-5" />
+              Store Status
+            </h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between bg-amber-800/30 p-3 rounded-lg border border-amber-700">
+                <div>
+                  <p className="text-sm font-semibold text-amber-100">{storeOpen ? "Store is OPEN" : "Store is CLOSED"}</p>
+                  <p className="text-xs text-amber-400 mt-1">
+                    {storeOpen ? "Customers can browse and place orders." : "Add-to-cart and checkout are blocked. Users see the closed message on Home and Cart."}
+                  </p>
+                </div>
+                <Switch checked={storeOpen} onCheckedChange={setStoreOpen} disabled={isSavingStore} />
+              </div>
+              <div>
+                <label className="text-sm text-amber-300 block mb-2">Closed Message (shown to users when store is closed)</label>
+                <Textarea
+                  value={storeClosedMessage}
+                  onChange={(e) => setStoreClosedMessage(e.target.value)}
+                  rows={2}
+                  className="bg-amber-800/50 border-amber-700 text-amber-100"
+                />
+              </div>
+              <Button onClick={handleSaveStore} disabled={isSavingStore} className="bg-green-600 hover:bg-green-700">
+                <Save className="w-4 h-4 mr-2" />
+                {isSavingStore ? "Saving..." : "Save Store Status"}
+              </Button>
+            </div>
+          </div>
+
+
           {/* WhatsApp Settings */}
           <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
             <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
