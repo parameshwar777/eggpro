@@ -296,6 +296,39 @@ export const AdminSettings = () => {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Store Status */}
+          <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
+            <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
+              <Store className="w-5 h-5" />
+              Store Status
+            </h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between bg-amber-800/30 p-3 rounded-lg border border-amber-700">
+                <div>
+                  <p className="text-sm font-semibold text-amber-100">{storeOpen ? "Store is OPEN" : "Store is CLOSED"}</p>
+                  <p className="text-xs text-amber-400 mt-1">
+                    {storeOpen ? "Customers can browse and place orders." : "Add-to-cart and checkout are blocked. Users see the closed message on Home and Cart."}
+                  </p>
+                </div>
+                <Switch checked={storeOpen} onCheckedChange={setStoreOpen} disabled={isSavingStore} />
+              </div>
+              <div>
+                <label className="text-sm text-amber-300 block mb-2">Closed Message (shown to users when store is closed)</label>
+                <Textarea
+                  value={storeClosedMessage}
+                  onChange={(e) => setStoreClosedMessage(e.target.value)}
+                  rows={2}
+                  className="bg-amber-800/50 border-amber-700 text-amber-100"
+                />
+              </div>
+              <Button onClick={handleSaveStore} disabled={isSavingStore} className="bg-green-600 hover:bg-green-700">
+                <Save className="w-4 h-4 mr-2" />
+                {isSavingStore ? "Saving..." : "Save Store Status"}
+              </Button>
+            </div>
+          </div>
+
+
           {/* WhatsApp Settings */}
           <div className="bg-amber-900/50 rounded-xl border border-amber-800 p-6">
             <h2 className="text-lg font-bold text-amber-100 mb-4 flex items-center gap-2">
