@@ -47,6 +47,7 @@ export const AdminSettings = () => {
   useEffect(() => {
     fetchSettings();
     loadSlotConfig(true).then(setSlots).catch(() => {});
+    loadStoreStatus(true).then((s) => { setStoreOpen(s.isOpen); setStoreClosedMessage(s.closedMessage); }).catch(() => {});
   }, []);
 
   const fetchSettings = async () => {
