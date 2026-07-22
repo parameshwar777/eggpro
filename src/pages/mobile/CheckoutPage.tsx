@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getAvailableDeliverySlots, type DeliverySlot } from "@/lib/deliverySlots";
 import { useSlotConfig } from "@/lib/slotConfig";
+import { useStoreStatus } from "@/lib/storeStatus";
 import {
   AlertDialog,
   AlertDialogAction,
