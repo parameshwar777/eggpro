@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { startupProgress } from "@/lib/startupProgress";
 
 export const SplashPage = () => {
   const navigate = useNavigate();
@@ -36,15 +37,18 @@ export const SplashPage = () => {
   }, []);
 
   useEffect(() => {
-    // Always show map intro animation, then it handles auth redirect
+    if (startupProgress.splashComplete) {
+      navigate(startupProgress.mapComplete ? "/welcome" : "/map-intro", { replace: true });
+      return;
+    }
+
     const navTimer = setTimeout(() => {
+      startupProgress.splashComplete = true;
       navigate("/map-intro", { replace: true });
     }, 3000);
-    const maxTimer = setTimeout(() => navigate("/map-intro", { replace: true }), 8000);
-    
+
     return () => {
       clearTimeout(navTimer);
-      clearTimeout(maxTimer);
     };
   }, [navigate]);
 
