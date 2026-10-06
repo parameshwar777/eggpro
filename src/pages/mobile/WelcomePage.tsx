@@ -1,7 +1,10 @@
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Egg, Drumstick, Coffee, ChevronRight } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const cards = [
   {
@@ -33,6 +36,19 @@ const cards = [
 
 export const WelcomePage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void supabase.from("profiles").select("community").eq("id", user.id).single()
+      .then(({ data }) => {
+        if (!cancelled && data?.community) {
+          localStorage.setItem("selectedCommunity", data.community);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const open = (key: string) => {
     localStorage.setItem("selectedBusiness", key);
