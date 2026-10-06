@@ -7,7 +7,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { EggLogo } from "@/components/EggLogo";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { OffersBanner } from "@/components/mobile/OffersBanner";
 import { useStoreStatus } from "@/lib/storeStatus";
@@ -190,10 +190,11 @@ export const HomePage = () => {
         {/* Brand - Logo & Name + Cart */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <EggLogo size="sm" />
+            <button onClick={() => navigate("/welcome")} aria-label="Switch business"><BrandLogo size={64} /></button>
             <div>
               <h1 className="text-2xl font-bold text-foreground">EggPro</h1>
               <p className="text-xs text-foreground/70">Nature's Immunity Boosters</p>
+              <button onClick={() => navigate("/welcome")} className="text-[11px] font-bold underline text-foreground/80">Switch business</button>
             </div>
           </div>
           <motion.button

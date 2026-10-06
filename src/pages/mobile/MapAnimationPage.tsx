@@ -62,18 +62,18 @@ export const MapAnimationPage = () => {
             .single();
           if (profile?.community) {
             localStorage.setItem("selectedCommunity", profile.community);
-            navigate("/home", { replace: true });
+            navigate("/welcome", { replace: true });
           } else {
-            navigate("/community", { replace: true });
+            navigate("/welcome", { replace: true });
           }
         } else {
           // Guest mode: allow browsing without login
           const savedCommunity = localStorage.getItem("selectedCommunity");
-          navigate(savedCommunity ? "/home" : "/community", { replace: true });
+          navigate("/welcome", { replace: true });
         }
       } catch {
         const savedCommunity = localStorage.getItem("selectedCommunity");
-        navigate(savedCommunity ? "/home" : "/community", { replace: true });
+        navigate("/welcome", { replace: true });
       }
     }, 300 + communities.length * 250 + 4500);
 
@@ -277,14 +277,14 @@ export const MapAnimationPage = () => {
             const { supabase } = await import("@/integrations/supabase/client");
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-              navigate("/home", { replace: true });
+              navigate("/welcome", { replace: true });
             } else {
               const savedCommunity = localStorage.getItem("selectedCommunity");
-              navigate(savedCommunity ? "/home" : "/community", { replace: true });
+              navigate("/welcome", { replace: true });
             }
           } catch {
             const savedCommunity = localStorage.getItem("selectedCommunity");
-            navigate(savedCommunity ? "/home" : "/community", { replace: true });
+            navigate("/welcome", { replace: true });
           }
         }}
       >

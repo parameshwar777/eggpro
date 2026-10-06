@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json | null
+          entity: string
+          entity_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          entity: string
+          entity_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          entity?: string
+          entity_id?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       admin_settings: {
         Row: {
           created_at: string
@@ -35,6 +65,42 @@ export type Database = {
           key?: string
           updated_at?: string
           value?: string
+        }
+        Relationships: []
+      }
+      cafe_locations: {
+        Row: {
+          active: boolean
+          address: string
+          created_at: string
+          display_order: number
+          id: string
+          image_path: string | null
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          address?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_path?: string | null
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          address?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_path?: string | null
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -80,6 +146,171 @@ export type Database = {
           quantity?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      chicken_pickup_centers: {
+        Row: {
+          active: boolean
+          address: string
+          center_code: string | null
+          created_at: string
+          display_order: number
+          google_maps_url: string | null
+          id: string
+          image_path: string | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          pickup_instructions: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          address?: string
+          center_code?: string | null
+          created_at?: string
+          display_order?: number
+          google_maps_url?: string | null
+          id?: string
+          image_path?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          pickup_instructions?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          address?: string
+          center_code?: string | null
+          created_at?: string
+          display_order?: number
+          google_maps_url?: string | null
+          id?: string
+          image_path?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          pickup_instructions?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      chicken_pickup_verifications: {
+        Row: {
+          customer_id: string
+          expires_at: string | null
+          generated_at: string
+          handed_over_at: string | null
+          handed_over_by: string | null
+          id: string
+          order_id: string
+          pickup_center_id: string
+          pickup_code: string
+          pickup_status: string
+          verification_center_id: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          customer_id: string
+          expires_at?: string | null
+          generated_at?: string
+          handed_over_at?: string | null
+          handed_over_by?: string | null
+          id?: string
+          order_id: string
+          pickup_center_id: string
+          pickup_code: string
+          pickup_status?: string
+          verification_center_id?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          customer_id?: string
+          expires_at?: string | null
+          generated_at?: string
+          handed_over_at?: string | null
+          handed_over_by?: string | null
+          id?: string
+          order_id?: string
+          pickup_center_id?: string
+          pickup_code?: string
+          pickup_status?: string
+          verification_center_id?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chicken_pickup_verifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chicken_pickup_verifications_pickup_center_id_fkey"
+            columns: ["pickup_center_id"]
+            isOneToOne: false
+            referencedRelation: "chicken_pickup_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chicken_products: {
+        Row: {
+          active: boolean
+          archived: boolean
+          available: boolean
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          image_path: string | null
+          name: string
+          offer_price: number | null
+          price: number
+          updated_at: string
+          updated_by: string | null
+          weight: string | null
+        }
+        Insert: {
+          active?: boolean
+          archived?: boolean
+          available?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_path?: string | null
+          name: string
+          offer_price?: number | null
+          price: number
+          updated_at?: string
+          updated_by?: string | null
+          weight?: string | null
+        }
+        Update: {
+          active?: boolean
+          archived?: boolean
+          available?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_path?: string | null
+          name?: string
+          offer_price?: number | null
+          price?: number
+          updated_at?: string
+          updated_by?: string | null
+          weight?: string | null
         }
         Relationships: []
       }
@@ -218,10 +449,12 @@ export type Database = {
       orders: {
         Row: {
           address: string
+          business: string
           community: string
           created_at: string
           customer_name: string | null
           delivery_slot: string | null
+          fulfillment_type: string
           id: string
           is_paused: boolean | null
           items: Json
@@ -230,6 +463,7 @@ export type Database = {
           payment_id: string | null
           payment_status: string | null
           phone: string
+          pickup_center_id: string | null
           resume_at: string | null
           subscription_end_date: string | null
           total_amount: number
@@ -238,10 +472,12 @@ export type Database = {
         }
         Insert: {
           address: string
+          business?: string
           community: string
           created_at?: string
           customer_name?: string | null
           delivery_slot?: string | null
+          fulfillment_type?: string
           id?: string
           is_paused?: boolean | null
           items: Json
@@ -250,6 +486,7 @@ export type Database = {
           payment_id?: string | null
           payment_status?: string | null
           phone: string
+          pickup_center_id?: string | null
           resume_at?: string | null
           subscription_end_date?: string | null
           total_amount: number
@@ -258,10 +495,12 @@ export type Database = {
         }
         Update: {
           address?: string
+          business?: string
           community?: string
           created_at?: string
           customer_name?: string | null
           delivery_slot?: string | null
+          fulfillment_type?: string
           id?: string
           is_paused?: boolean | null
           items?: Json
@@ -270,13 +509,22 @@ export type Database = {
           payment_id?: string | null
           payment_status?: string | null
           phone?: string
+          pickup_center_id?: string | null
           resume_at?: string | null
           subscription_end_date?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_pickup_center_fk"
+            columns: ["pickup_center_id"]
+            isOneToOne: false
+            referencedRelation: "chicken_pickup_centers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_issues: {
         Row: {
@@ -500,6 +748,32 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_centers: {
+        Row: {
+          created_at: string
+          pickup_center_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          pickup_center_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          pickup_center_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_centers_pickup_center_id_fkey"
+            columns: ["pickup_center_id"]
+            isOneToOne: false
+            referencedRelation: "chicken_pickup_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_addresses: {
         Row: {
           address_line1: string
@@ -640,7 +914,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user" | "merchant"
+      app_role: "admin" | "user" | "merchant" | "chicken_staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -768,7 +1042,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "merchant"],
+      app_role: ["admin", "user", "merchant", "chicken_staff"],
     },
   },
 } as const

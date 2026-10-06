@@ -18,9 +18,9 @@ export interface SlotDefinition {
 }
 
 export const DEFAULT_SLOT_CONFIG: SlotDefinition[] = [
-  { id: "slot1", orderStart: 18, orderEnd: 9,  deliveryLabel: "10 AM - 12 PM" },
-  { id: "slot2", orderStart: 9,  orderEnd: 14, deliveryLabel: "3 PM - 5 PM" },
-  { id: "slot3", orderStart: 14, orderEnd: 18, deliveryLabel: "7 PM - 8:30 PM" },
+  { id: "slot1", orderStart: 19, orderEnd: 9,  deliveryLabel: "10 AM - 12 PM" },
+  { id: "slot2", orderStart: 9,  orderEnd: 19, deliveryLabel: "Before 9 PM" },
+  { id: "slot3", orderStart: 0,  orderEnd: 0,  deliveryLabel: "Disabled" },
 ];
 
 const ADMIN_SETTING_KEY = "delivery_slots";
@@ -123,6 +123,16 @@ const isInOrderWindow = (hour: number, s: SlotDefinition): boolean => {
   return hour >= s.orderStart || hour < s.orderEnd;
 };
 
+/** Hour of day in India Standard Time, independent of device timezone. */
+export const istHour = (d: Date = new Date()): number =>
+  parseInt(new Intl.DateTimeFormat("en-GB", { hour: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }).format(d), 10) % 24;
+
+/** A slot with orderStart === orderEnd is treated as disabled. */
+const activeSlots = (config: SlotDefinition[]) => {
+  const a = config.filter((s) => s.orderStart !== s.orderEnd);
+  return a.length ? a : config;
+};
+
 const findCurrentSlotIndex = (hour: number, config: SlotDefinition[]): number => {
   for (let i = 0; i < config.length; i++) {
     if (isInOrderWindow(hour, config[i])) return i;
@@ -138,9 +148,9 @@ const formatDay = (offset: number): string => {
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 };
 
-export function computeAvailableSlots(config: SlotDefinition[] = getSlotConfig()): AvailableSlot[] {
-  const now = new Date();
-  const hour = now.getHours();
+export function computeAvailableSlots(fullConfig: SlotDefinition[] = getSlotConfig()): AvailableSlot[] {
+  const config = activeSlots(fullConfig);
+  const hour = istHour();
   const curIdx = findCurrentSlotIndex(hour, config);
   const cur = config[curIdx];
 
@@ -166,9 +176,10 @@ export function computeAvailableSlots(config: SlotDefinition[] = getSlotConfig()
   return results;
 }
 
-export function computeDeliveryLabel(orderDate?: string | Date, config: SlotDefinition[] = getSlotConfig()): string {
+export function computeDeliveryLabel(orderDate?: string | Date, fullConfig: SlotDefinition[] = getSlotConfig()): string {
+  const config = activeSlots(fullConfig);
   const d = orderDate ? new Date(orderDate) : new Date();
-  const hour = d.getHours();
+  const hour = istHour(d);
   const slot = config[findCurrentSlotIndex(hour, config)];
   return slot.deliveryLabel;
 }

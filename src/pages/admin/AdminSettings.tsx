@@ -408,7 +408,7 @@ export const AdminSettings = () => {
               Delivery Slots
             </h2>
             <p className="text-xs text-amber-400 mb-4">
-              Edit the three delivery windows. The <strong>Order Start / End</strong> hours are 24-hour values that decide which slot an order is placed in and which
+              Edit the delivery windows (set Order Start = Order End to switch a slot off). The <strong>Order Start / End</strong> hours are 24-hour values that decide which slot an order is placed in and which
               slots the user sees in checkout. The <strong>Delivery Label</strong> is the text shown everywhere (checkout, merchant orders, WhatsApp alerts).
               Slot 1 supports crossing midnight (e.g. Start 18, End 9 = 6 PM to 9 AM next morning).
             </p>
