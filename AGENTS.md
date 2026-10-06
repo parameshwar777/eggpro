@@ -3,3 +3,4 @@
 - Orders table is shared across businesses via `orders.business` ('eggs' default) and `fulfillment_type`; egg flows must ignore chicken rows' pickup fields. Why: additive, backward-compatible expansion.
 - Admin-uploaded business images go to the `product-images` bucket under chicken/…, cafe/… folders and DB stores the path; render with `mediaUrl` + `SafeImage`. Why: public buckets can't be created in this workspace and placeholders must never break.
 - Egg delivery slot hours are evaluated in Asia/Kolkata; a slot with orderStart === orderEnd is disabled. Why: device timezone must not affect cutoffs.
+- Automated Twilio order alerts use an approved Content template, load paid-order details server-side, and accept only service or admin callers. Why: outbound WhatsApp sessions expire and client payloads must not trigger arbitrary alerts.

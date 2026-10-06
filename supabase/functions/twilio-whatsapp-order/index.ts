@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 function normalizePhone(input: string): string {
   let p = String(input || "").trim().replace(/[\s\-()]/g, "");
@@ -25,7 +21,7 @@ interface WhatsAppMessagePayload {
   ContentVariables?: string;
 }
 
-async function sendWhatsAppMessage(toPhone: string, body: string) {
+async function sendWhatsAppMessage(toPhone: string, templateSid: string, variables: Record<string, string>) {
   const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const FROM = Deno.env.get("TWILIO_WHATSAPP_FROM");
@@ -34,13 +30,11 @@ async function sendWhatsAppMessage(toPhone: string, body: string) {
     throw new Error("Twilio WhatsApp not configured");
   }
 
-  // Note: the eggpro_admin_order Content Template is currently rejected by WhatsApp
-  // (too many variables). We rely on free-form text within the 24-hr session window;
-  // WATI handles the templated/out-of-window path.
   const payload: WhatsAppMessagePayload = {
     To: `whatsapp:${toPhone}`,
     From: `whatsapp:${FROM}`,
-    Body: body,
+    ContentSid: templateSid,
+    ContentVariables: JSON.stringify(variables),
   };
 
   const params = new URLSearchParams();
@@ -57,12 +51,16 @@ async function sendWhatsAppMessage(toPhone: string, body: string) {
     },
     body: params,
   });
-  const data = await res.json().catch(() => ({}));
+  const responseBody = await res.text();
   if (!res.ok) {
-    console.error("Twilio order WA error:", res.status, data);
-    throw new Error(data?.message || `Twilio error ${res.status}`);
+    console.error("Twilio order WA error:", res.status, responseBody);
+    throw new Error(`Twilio [${res.status}]: ${responseBody}`);
   }
-  console.log("Twilio order WA sent, sid:", data?.sid, "to:", toPhone);
+  const data = JSON.parse(responseBody);
+  if (data.error_code || ["failed", "undelivered"].includes(data.status)) {
+    throw new Error(`Twilio delivery failed: ${data.error_code || data.status}`);
+  }
+  console.log("Twilio order WA accepted, sid:", data?.sid, "status:", data?.status);
   return data;
 }
 
@@ -71,12 +69,38 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { orderId, customerName, phone, community, address, items, totalAmount, deliverySlot } = await req.json();
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const url = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !serviceKey) throw new Error("Order alerts are not configured");
+    const supabase = createClient(url, serviceKey);
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    if (token !== serviceKey) {
+      const { data } = await supabase.auth.getUser(token);
+      const { data: role } = data.user ? await supabase.from("user_roles").select("id").eq("user_id", data.user.id).eq("role", "admin").maybeSingle() : { data: null };
+      if (!role) return new Response(JSON.stringify({ error: "Not authorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const input = await req.json();
+    if (typeof input.orderId !== "string" || !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(input.orderId)) {
+      return new Response(JSON.stringify({ error: "A valid order ID is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { data: order, error: orderError } = await supabase.from("orders").select("*").eq("id", input.orderId).maybeSingle();
+    if (orderError) throw orderError;
+    if (!order || order.payment_status !== "completed") return new Response(JSON.stringify({ error: "Paid order not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const orderId = order.id;
+    const { customer_name: customerName, phone, community, address, items, total_amount: totalAmount, delivery_slot: deliverySlot } = order;
+    const { data: templateSetting } = await supabase.from("admin_settings").select("value").eq("key", "twilio_order_template_sid").maybeSingle();
+    const templateSid = templateSetting?.value;
+    if (!templateSid || !/^HX[0-9a-f]{32}$/i.test(templateSid)) throw new Error("Configure an approved WhatsApp order template");
+    const approvalResponse = await fetch(`https://connector-gateway.lovable.dev/twilio/content/v1/Content/${templateSid}/ApprovalRequests`, {
+      headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "X-Connection-Api-Key": Deno.env.get("TWILIO_API_KEY") || "" },
+    });
+    const approvalText = await approvalResponse.text();
+    if (!approvalResponse.ok) throw new Error(`Twilio [${approvalResponse.status}]: ${approvalText}`);
+    const approval = JSON.parse(approvalText);
+    if (approval.whatsapp?.status !== "approved") {
+      console.warn("Order WhatsApp alert blocked by template review:", approval.whatsapp?.status);
+      return new Response(JSON.stringify({ ok: false, sent: 0, error: "WhatsApp order template is awaiting approval", templateStatus: approval.whatsapp?.status }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // Collect admin phone numbers
     const recipients = new Set<string>();
@@ -110,17 +134,20 @@ serve(async (req: Request) => {
     }).join("\n");
     const addressWithSlot = deliverySlot ? `${address}\n*Delivery Slot:* ${deliverySlot}` : address;
     const orderTime = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-    const body = `🥚 *New EggPro Order!*\n\n*Order:* ${String(orderId).slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${addressWithSlot}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n*Time:* ${orderTime}`;
+    // WhatsApp template variables cannot contain newlines or tabs.
+    const clean = (value: unknown) => String(value ?? "Not provided").replace(/\s+/g, " ").trim().slice(0, 1000) || "Not provided";
+    const variables = { "1": `${order.business === "chicken" ? "CHICKEN" : "EGGS"}-${String(orderId).slice(0, 8)}`, "2": clean(customerName), "3": clean(phone), "4": clean(community), "5": clean(addressWithSlot), "6": clean(itemsList), "7": clean(totalAmount), "8": clean(orderTime) };
 
     let sent = 0;
     const errors: string[] = [];
     for (const to of recipients) {
-      try { await sendWhatsAppMessage(to, body); sent++; }
+       try { await sendWhatsAppMessage(to, templateSid, variables); sent++; }
       catch (e: any) { errors.push(`${to}: ${e.message}`); }
     }
 
 
-    return new Response(JSON.stringify({ ok: true, sent, errors }), {
+    return new Response(JSON.stringify({ ok: errors.length === 0, accepted: sent, sent, errors, note: "Accepted messages are not confirmed delivered" }), {
+      status: errors.length ? 502 : 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
