@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BackButtonHandler } from "@/components/BackButtonHandler";
@@ -11,7 +11,6 @@ import { AppUpdateChecker } from "@/components/AppUpdateChecker";
 
 // Mobile Pages
 import { SplashPage } from "./pages/mobile/SplashPage";
-import { MapAnimationPage } from "./pages/mobile/MapAnimationPage";
 import { CommunitySelectPage } from "./pages/mobile/CommunitySelectPage";
 import { HomePage } from "./pages/mobile/HomePage";
 import { OrdersPage } from "./pages/mobile/OrdersPage";
@@ -77,7 +76,7 @@ const App = () => (
               <Routes>
                 {/* Mobile User Routes */}
                 <Route path="/" element={<SplashPage />} />
-                <Route path="/map-intro" element={<MapAnimationPage />} />
+                <Route path="/map-intro" element={<Navigate to="/welcome" replace />} />
                 <Route path="/community" element={<CommunitySelectPage />} />
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/orders" element={<OrdersPage />} />

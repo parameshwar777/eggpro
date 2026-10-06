@@ -38,13 +38,13 @@ export const SplashPage = () => {
 
   useEffect(() => {
     if (startupProgress.splashComplete) {
-      navigate(startupProgress.mapComplete ? "/welcome" : "/map-intro", { replace: true });
+      navigate("/welcome", { replace: true });
       return;
     }
 
     const navTimer = setTimeout(() => {
       startupProgress.splashComplete = true;
-      navigate("/map-intro", { replace: true });
+      navigate("/welcome", { replace: true });
     }, 3000);
 
     return () => {
