@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import mapBg from "@/assets/hyderabad-map-bg.jpg";
+import { startupProgress } from "@/lib/startupProgress";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const communities = [
   { name: "Maple Town Villas", lat: 17.35148, lng: 78.4012961 },
@@ -34,8 +37,30 @@ export const MapAnimationPage = () => {
   const [visiblePins, setVisiblePins] = useState(0);
   const [showBranding, setShowBranding] = useState(false);
   const [showLabel, setShowLabel] = useState(-1);
+  const { user } = useAuth();
+
+  const finishIntro = () => {
+    startupProgress.splashComplete = true;
+    startupProgress.mapComplete = true;
+    navigate("/welcome", { replace: true });
+  };
+
+  // Restore the saved community independently; it must not delay navigation
+  // or redirect a screen after the user has already left it.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void supabase.from("profiles").select("community").eq("id", user.id).single()
+      .then(({ data }) => {
+        if (!cancelled && data?.community) {
+          localStorage.setItem("selectedCommunity", data.community);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   useEffect(() => {
+    if (startupProgress.mapComplete) return;
     const pinTimers: ReturnType<typeof setTimeout>[] = [];
     communities.forEach((_, i) => {
       pinTimers.push(
@@ -50,31 +75,10 @@ export const MapAnimationPage = () => {
       setShowBranding(true);
     }, 300 + communities.length * 250 + 400);
 
-    const navTimer = setTimeout(async () => {
-      try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("community")
-            .eq("id", session.user.id)
-            .single();
-          if (profile?.community) {
-            localStorage.setItem("selectedCommunity", profile.community);
-            navigate("/welcome", { replace: true });
-          } else {
-            navigate("/welcome", { replace: true });
-          }
-        } else {
-          // Guest mode: allow browsing without login
-          const savedCommunity = localStorage.getItem("selectedCommunity");
-          navigate("/welcome", { replace: true });
-        }
-      } catch {
-        const savedCommunity = localStorage.getItem("selectedCommunity");
-        navigate("/welcome", { replace: true });
-      }
+    const navTimer = setTimeout(() => {
+      startupProgress.splashComplete = true;
+      startupProgress.mapComplete = true;
+      navigate("/welcome", { replace: true });
     }, 300 + communities.length * 250 + 4500);
 
     return () => {
@@ -86,6 +90,10 @@ export const MapAnimationPage = () => {
 
   const w = 390;
   const h = 754;
+
+  if (startupProgress.mapComplete) {
+    return <Navigate to="/welcome" replace />;
+  }
 
   return (
     <div className="min-h-[100dvh] w-full relative overflow-hidden bg-background">
@@ -272,21 +280,7 @@ export const MapAnimationPage = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        onClick={async () => {
-          try {
-            const { supabase } = await import("@/integrations/supabase/client");
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-              navigate("/welcome", { replace: true });
-            } else {
-              const savedCommunity = localStorage.getItem("selectedCommunity");
-              navigate("/welcome", { replace: true });
-            }
-          } catch {
-            const savedCommunity = localStorage.getItem("selectedCommunity");
-            navigate("/welcome", { replace: true });
-          }
-        }}
+        onClick={finishIntro}
       >
         Skip →
       </motion.button>
