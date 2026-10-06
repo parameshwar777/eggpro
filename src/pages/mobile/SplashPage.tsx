@@ -36,8 +36,10 @@ export const SplashPage = () => {
     fetchWallpaper();
   }, []);
 
+  const alreadyShown = startupProgress.splashComplete;
+
   useEffect(() => {
-    if (startupProgress.splashComplete) {
+    if (alreadyShown) {
       navigate("/welcome", { replace: true });
       return;
     }
@@ -50,7 +52,10 @@ export const SplashPage = () => {
     return () => {
       clearTimeout(navTimer);
     };
-  }, [navigate]);
+  }, [navigate, alreadyShown]);
+
+  // Never flash the splash a second time in the same launch
+  if (alreadyShown) return null;
 
   // Show gradient background immediately, then fade in wallpaper when ready
   return (
