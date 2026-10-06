@@ -229,19 +229,20 @@ serve(async (req: Request) => {
           if (adminRoles) adminRoles.forEach(r => allRecipientIds.add(r.user_id));
           if (merchantRoles) merchantRoles.forEach(r => allRecipientIds.add(r.user_id));
 
-          if (allRecipientIds.size > 0) {
-            const { data: recipientProfiles } = await supabase.from("profiles").select("phone, full_name").in("id", Array.from(allRecipientIds));
-            const { data: settingsData } = await supabase.from("admin_settings").select("value").eq("key", "admin_whatsapp").single();
+          {
+            const { data: recipientProfiles } = allRecipientIds.size ? await supabase.from("profiles").select("phone, full_name").in("id", Array.from(allRecipientIds)) : { data: [] };
+            const { data: settingsData } = await supabase.from("admin_settings").select("value").eq("key", "admin_whatsapp").maybeSingle();
 
             const recipientPhones = new Set<string>();
-            if (settingsData?.value) recipientPhones.add(settingsData.value);
+            if (settingsData?.value) String(settingsData.value).split(/[,;\s]+/).filter(Boolean).forEach(p => recipientPhones.add(p));
             if (recipientProfiles) { for (const p of recipientProfiles) { if (p.phone) recipientPhones.add(p.phone); } }
 
             const adminMessage = `🥚 *New Order Received!*\n\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${customerName}\n*Phone:* ${phone}\n*Community:* ${community}\n*Address:* ${addressWithSlot}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalAmount}\n\n_${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}_`;
 
             for (const recipientPhone of recipientPhones) {
               try {
-                const cleanPhone = recipientPhone.replace(/^\+/, "");
+                const digits = recipientPhone.replace(/\D/g, "");
+                const cleanPhone = digits.length === 10 ? `91${digits}` : digits;
                 const res = await fetch(
                   `${baseUrl}/api/v1/sendSessionMessage/${cleanPhone}?messageText=${encodeURIComponent(adminMessage)}`,
                   { method: "POST", headers: { "Authorization": WATI_ACCESS_TOKEN, "Content-Type": "application/json" } }
@@ -281,7 +282,7 @@ serve(async (req: Request) => {
 
     // --- Twilio WhatsApp order alert to admin (free-form text) ---
     try {
-      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-whatsapp-order`, {
+      const alertResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-whatsapp-order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -289,7 +290,9 @@ serve(async (req: Request) => {
         },
         body: JSON.stringify({ orderId, customerName, phone, community, address, items, totalAmount, deliverySlot }),
       });
-      console.log("Twilio WhatsApp order alert dispatched");
+      const alertResult = await alertResponse.text();
+      if (!alertResponse.ok) console.error("Twilio order alert failed:", alertResponse.status, alertResult);
+      else console.log("Twilio order alert accepted:", alertResult);
     } catch (e) {
       console.error("Twilio WhatsApp order alert error:", e);
     }
