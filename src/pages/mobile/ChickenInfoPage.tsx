@@ -71,21 +71,22 @@ export const ChickenInfoPage = () => {
 
         <section className="mx-4 mt-4">
           <h2 className="text-lg font-extrabold mb-2 text-foreground">MEAT CHARACTERISTICS</h2>
-          <div className="overflow-x-auto rounded-2xl shadow-soft bg-card">
-            <table className="min-w-[520px] w-full text-sm">
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <table className="w-full table-fixed text-[11px] leading-snug">
+              <colgroup><col className="w-[40%]" /><col className="w-[30%]" /><col className="w-[30%]" /></colgroup>
               <thead>
                 <tr className="text-left">
-                  <th className="sticky left-0 z-10 bg-stone-900 text-white p-3 text-xs font-extrabold w-44">MEAT CHARACTERISTICS</th>
-                  <th className="bg-stone-200 text-stone-800 p-3 text-xs font-extrabold text-center">NORMAL BROILER CHICKEN</th>
-                  <th className="bg-orange-500 text-white p-3 text-xs font-extrabold text-center">EGG PRO BROILER CHICKEN</th>
+                  <th className="bg-foreground text-background px-2 py-3 font-extrabold break-words">MEAT CHARACTERISTICS</th>
+                  <th className="bg-muted text-foreground px-1 py-3 font-extrabold text-center">NORMAL<br />BROILER<br />CHICKEN</th>
+                  <th className="bg-primary text-primary-foreground px-1 py-3 font-extrabold text-center">EGG PRO<br />BROILER<br />CHICKEN</th>
                 </tr>
               </thead>
               <tbody>
                 {ROWS.map(([k, n, e], i) => (
-                  <tr key={k} className={i % 2 ? "bg-amber-50" : "bg-card"}>
-                    <td className={`sticky left-0 z-10 p-3 text-xs font-bold text-foreground ${i % 2 ? "bg-amber-50" : "bg-card"}`}>{k}</td>
-                    <td className="p-3 text-center font-semibold text-muted-foreground">{n}</td>
-                    <td className="p-3 text-center font-extrabold text-orange-700 bg-orange-100/70">{e}</td>
+                  <tr key={k} className={i % 2 ? "bg-secondary" : "bg-card"}>
+                    <td className="px-2 py-2 font-bold text-foreground break-words">{k}</td>
+                    <td className="px-1 py-2 text-center font-semibold text-muted-foreground">{n}</td>
+                    <td className="px-1 py-2 text-center font-extrabold text-foreground bg-primary/15">{e}</td>
                   </tr>
                 ))}
               </tbody>
