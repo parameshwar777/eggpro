@@ -31,6 +31,14 @@ import { PrivacyPolicyPage } from "./pages/mobile/PrivacyPolicyPage";
 import { TermsPage } from "./pages/mobile/TermsPage";
 import { AboutPage } from "./pages/mobile/AboutPage";
 import { PaymentIssuePage } from "./pages/mobile/PaymentIssuePage";
+import { WelcomePage } from "./pages/mobile/WelcomePage";
+import { ChickenInfoPage } from "./pages/mobile/ChickenInfoPage";
+import { ChickenOrderPage } from "./pages/mobile/ChickenOrderPage";
+import { ChickenPickupCodePage } from "./pages/mobile/ChickenPickupCodePage";
+import { CafePage } from "./pages/mobile/CafePage";
+import { StaffPickupPage } from "./pages/staff/StaffPickupPage";
+import { AdminChickenProducts, AdminPickupCenters, AdminCafeLocations, AdminChickenSchedule, AdminChickenOrders, AdminPickupVerification } from "./pages/admin/AdminChicken";
+import { AdminChickenStaff } from "./pages/admin/AdminChickenStaff";
 
 
 // Admin Pages
@@ -89,6 +97,12 @@ const App = () => (
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/payment-issue" element={<PaymentIssuePage />} />
+                <Route path="/welcome" element={<WelcomePage />} />
+                <Route path="/chicken" element={<ChickenInfoPage />} />
+                <Route path="/chicken/order" element={<ChickenOrderPage />} />
+                <Route path="/chicken/pickup/:orderId" element={<ChickenPickupCodePage />} />
+                <Route path="/cafe" element={<CafePage />} />
+                <Route path="/staff/pickup" element={<StaffPickupPage />} />
 
 
                 {/* Admin Routes */}
@@ -103,6 +117,13 @@ const App = () => (
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/payment-issues" element={<AdminPaymentIssues />} />
+                <Route path="/admin/chicken/products" element={<AdminChickenProducts />} />
+                <Route path="/admin/chicken/centers" element={<AdminPickupCenters />} />
+                <Route path="/admin/chicken/schedule" element={<AdminChickenSchedule />} />
+                <Route path="/admin/chicken/orders" element={<AdminChickenOrders />} />
+                <Route path="/admin/chicken/verify" element={<AdminPickupVerification />} />
+                <Route path="/admin/chicken/staff" element={<AdminChickenStaff />} />
+                <Route path="/admin/cafe" element={<AdminCafeLocations />} />
 
 
                 {/* Merchant Routes */}
