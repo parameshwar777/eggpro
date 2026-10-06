@@ -1,5 +1,6 @@
 import { useState } from "react";
-import logoAsset from "@/assets/eggpro-logo.jpg.asset.json";
+import logoSrc from "@/assets/eggpro-logo-local.jpg";
+const logoAsset = { url: logoSrc };
 
 export const BRAND_LOGO_URL = logoAsset.url;
 

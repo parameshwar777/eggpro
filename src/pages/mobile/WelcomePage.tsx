@@ -59,7 +59,7 @@ export const WelcomePage = () => {
   };
 
   return (
-    <div className="page-scroll bg-[#FFF8E7] w-full">
+    <div className="page-scroll bg-[#FFF8E7] w-full animate-[fade-in_0.8s_ease-out]">
       <div className="max-w-lg mx-auto px-5 pb-10 safe-top">
         <motion.div
           initial={{ opacity: 0, y: -10 }}

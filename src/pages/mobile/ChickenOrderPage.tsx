@@ -104,7 +104,7 @@ export const ChickenOrderPage = () => {
 
   return (
     <div className="page-scroll bg-[#FFF8E7] w-full">
-      <div className="max-w-lg mx-auto pb-40">
+      <div className="max-w-lg mx-auto pb-52">
         <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white px-5 pt-4 pb-6 rounded-b-[2rem] safe-top">
           <button onClick={() => navigate("/chicken")} className="h-11 w-11 -ml-2 flex items-center justify-center" aria-label="Back"><ArrowLeft className="w-6 h-6" /></button>
           <h1 className="text-2xl font-extrabold">Order Chicken</h1>
@@ -205,7 +205,7 @@ export const ChickenOrderPage = () => {
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 p-4 bg-card border-t border-border safe-bottom">
+      <div className="fixed bottom-0 inset-x-0 px-4 pt-3 pb-12 bg-card border-t border-border safe-bottom">
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <div>
             <p className="text-xs text-muted-foreground font-semibold">Total</p>

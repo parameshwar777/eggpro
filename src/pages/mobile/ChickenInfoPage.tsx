@@ -26,7 +26,7 @@ export const ChickenInfoPage = () => {
   const navigate = useNavigate();
   return (
     <div className="page-scroll bg-[#FFF8E7] w-full">
-      <div className="max-w-lg mx-auto pb-32">
+      <div className="max-w-lg mx-auto pb-44">
         <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white px-5 pt-4 pb-8 rounded-b-[2rem] safe-top">
           <button onClick={() => navigate("/welcome")} className="h-11 w-11 -ml-2 flex items-center justify-center" aria-label="Back">
             <ArrowLeft className="w-6 h-6" />
@@ -96,7 +96,7 @@ export const ChickenInfoPage = () => {
         </section>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 p-4 bg-[#FFF8E7]/95 backdrop-blur safe-bottom">
+      <div className="fixed bottom-0 inset-x-0 px-4 pt-3 pb-12 bg-[#FFF8E7]/95 backdrop-blur safe-bottom">
         <div className="max-w-lg mx-auto">
           <button
             onClick={() => navigate("/chicken/order")}

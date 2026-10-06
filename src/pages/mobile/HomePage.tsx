@@ -49,17 +49,24 @@ interface GroupedProduct {
   variantPrices: Record<number, { price: number; originalPrice: number }>;
 }
 
+// In-memory cache so returning to Home is instant and banners don't flicker
+const homeCache: {
+  products: DBProduct[] | null;
+  firstOrder: Record<string, boolean>;
+  discount: { pct: number; enabled: boolean } | null;
+} = { products: null, firstOrder: {}, discount: null };
+
 export const HomePage = () => {
   const { totalItems } = useCart();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const store = useStoreStatus();
   const [selectedCommunity, setSelectedCommunity] = useState(
     localStorage.getItem("selectedCommunity") || "Select Community"
   );
   const [communities, setCommunities] = useState<{ id: string; name: string }[]>([]);
-  const [dbProducts, setDbProducts] = useState<DBProduct[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [dbProducts, setDbProducts] = useState<DBProduct[]>(homeCache.products || []);
+  const [isLoading, setIsLoading] = useState(!homeCache.products);
 
   // Fetch communities
   useEffect(() => {
@@ -92,6 +99,7 @@ export const HomePage = () => {
       try {
         const { data, error } = await supabase.from("products").select("*").eq("in_stock", true).order("name");
         if (error) throw error;
+        homeCache.products = data || [];
         setDbProducts(data || []);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -102,35 +110,43 @@ export const HomePage = () => {
     fetchProducts();
   }, []);
 
-  // First-order eligibility (discount banner)
-  const [isFirstOrder, setIsFirstOrder] = useState(false);
-  const [firstOrderDiscountPercent, setFirstOrderDiscountPercent] = useState(50);
-  const [firstOrderEnabled, setFirstOrderEnabled] = useState(true);
+  // First-order eligibility (discount banner) — hidden until known, cached per user
+  const cacheKey = user?.id || "guest";
+  const [isFirstOrder, setIsFirstOrder] = useState<boolean>(homeCache.firstOrder[cacheKey] ?? false);
+  const [firstOrderDiscountPercent, setFirstOrderDiscountPercent] = useState(homeCache.discount?.pct ?? 50);
+  const [firstOrderEnabled, setFirstOrderEnabled] = useState(homeCache.discount?.enabled ?? false);
   useEffect(() => {
+    if (authLoading) return;
+    let cancelled = false;
+    const key = user?.id || "guest";
+    if (homeCache.firstOrder[key] !== undefined) setIsFirstOrder(homeCache.firstOrder[key]);
     const checkFirstOrder = async () => {
-      if (!user) { setIsFirstOrder(true); } else {
-        const { count } = await supabase
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("payment_status", "completed");
-        setIsFirstOrder((count || 0) === 0);
-      }
-      const { data: settings } = await supabase
-        .from("admin_settings")
-        .select("key,value")
+      const ordersPromise = user
+        ? supabase.from("orders").select("id", { count: "exact", head: true })
+            .eq("user_id", user.id).eq("payment_status", "completed")
+        : Promise.resolve({ count: 0 } as { count: number | null });
+      const settingsPromise = supabase.from("admin_settings").select("key,value")
         .in("key", ["first_order_discount_percent", "first_order_discount_enabled"]);
-      const pct = settings?.find(s => s.key === "first_order_discount_percent")?.value;
-      const enabled = settings?.find(s => s.key === "first_order_discount_enabled")?.value;
-      if (pct) {
-        const parsed = parseFloat(pct);
-        if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) setFirstOrderDiscountPercent(parsed);
+      const [{ count }, { data: settings }] = await Promise.all([ordersPromise, settingsPromise]);
+      if (cancelled) return;
+      const first = (count || 0) === 0;
+      homeCache.firstOrder[key] = first;
+      setIsFirstOrder(first);
+      const pctRaw = settings?.find(s => s.key === "first_order_discount_percent")?.value;
+      const enabledRaw = settings?.find(s => s.key === "first_order_discount_enabled")?.value;
+      let pct = 50;
+      if (pctRaw) {
+        const parsed = parseFloat(pctRaw);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) pct = parsed;
       }
-      if (enabled !== undefined) setFirstOrderEnabled(enabled === "true");
+      const enabled = enabledRaw === undefined ? true : enabledRaw === "true";
+      homeCache.discount = { pct, enabled };
+      setFirstOrderDiscountPercent(pct);
+      setFirstOrderEnabled(enabled);
     };
     checkFirstOrder();
-  }, [user]);
-
+    return () => { cancelled = true; };
+  }, [user, authLoading]);
 
   // Group products by name and extract pack sizes
   const products = useMemo<GroupedProduct[]>(() => {

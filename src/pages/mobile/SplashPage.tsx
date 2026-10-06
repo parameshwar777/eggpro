@@ -7,6 +7,7 @@ export const SplashPage = () => {
   const navigate = useNavigate();
   const [wallpaper, setWallpaper] = useState<string | null>(null);
   const [imageReady, setImageReady] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     const fetchWallpaper = async () => {
@@ -44,12 +45,15 @@ export const SplashPage = () => {
       return;
     }
 
+    // Visible for 4s, with a slow 1s fade-out at the end
+    const fadeTimer = setTimeout(() => setLeaving(true), 3000);
     const navTimer = setTimeout(() => {
       startupProgress.splashComplete = true;
       navigate("/welcome", { replace: true });
-    }, 3000);
+    }, 4000);
 
     return () => {
+      clearTimeout(fadeTimer);
       clearTimeout(navTimer);
     };
   }, [navigate, alreadyShown]);
@@ -65,7 +69,8 @@ export const SplashPage = () => {
         background: wallpaper && imageReady 
           ? `url(${wallpaper}) center/cover no-repeat` 
           : 'linear-gradient(135deg, hsl(38 92% 55%) 0%, hsl(24 95% 53%) 100%)',
-        transition: 'background 0.3s ease-in',
+        opacity: leaving ? 0 : 1,
+        transition: 'background 0.6s ease-in, opacity 1s ease-in-out',
       }}
     />
   );
