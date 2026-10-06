@@ -1,3 +1,4 @@
+import { useState } from "react";
 import logoAsset from "@/assets/eggpro-logo.jpg.asset.json";
 
 export const BRAND_LOGO_URL = logoAsset.url;
@@ -29,7 +30,6 @@ export const BrandPlaceholder = ({ className = "", label }: { className?: string
 );
 
 /** Image with automatic branded fallback on missing/broken source. */
-import { useState } from "react";
 export const SafeImage = ({ src, alt, className = "", label }: { src: string | null | undefined; alt: string; className?: string; label?: string }) => {
   const [broken, setBroken] = useState(false);
   if (!src || broken) return <BrandPlaceholder className={className} label={label} />;
