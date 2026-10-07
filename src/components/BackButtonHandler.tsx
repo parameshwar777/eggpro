@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { App } from "@capacitor/app";
 import type { PluginListenerHandle } from "@capacitor/core";
 
-const ROOT_ROUTES = ["/", "/map-intro", "/welcome", "/home", "/orders", "/refer", "/account"];
+const ROOT_ROUTES = ["/", "/map-intro", "/welcome", "/orders", "/refer", "/account"];
 
 export const BackButtonHandler = () => {
   const navigate = useNavigate();

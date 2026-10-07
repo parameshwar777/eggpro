@@ -32,7 +32,7 @@ export const BrandPlaceholder = ({ className = "", label }: { className?: string
 
 /** Image with automatic branded fallback on missing/broken source. */
 export const SafeImage = ({ src, alt, className = "", label, fit = "cover" }: { src: string | null | undefined; alt: string; className?: string; label?: string; fit?: "cover" | "contain" }) => {
-  const [broken, setBroken] = useState(false);
-  if (!src || broken) return <BrandPlaceholder className={className} label={label} />;
-  return <img key={src} src={src} alt={alt} className={`${fit === "contain" ? "object-contain bg-muted" : "object-cover"} ${className}`} onError={() => setBroken(true)} onLoad={() => setBroken(false)} loading="lazy" />;
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
+  if (!src || brokenSrc === src) return <BrandPlaceholder className={className} label={label} />;
+  return <img key={src} src={src} alt={alt} className={`${fit === "contain" ? "object-contain bg-muted" : "object-cover"} ${className}`} onError={() => setBrokenSrc(src)} loading="lazy" />;
 };
