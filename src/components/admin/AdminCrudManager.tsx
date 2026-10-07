@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Pencil, Upload, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Upload, Trash2, Loader2, Eye, EyeOff, Crop } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { SafeImage } from "@/components/BrandLogo";
 import { uploadBusinessImage, removeBusinessImage, mediaUrl, logAdminAction } from "@/lib/media";
+import { BusinessImageCropDialog } from "@/components/admin/BusinessImageCropDialog";
 
 export type FieldType = "text" | "textarea" | "number" | "boolean" | "image";
 export interface FieldDef { key: string; label: string; type: FieldType; required?: boolean; placeholder?: string; help?: string }
@@ -38,6 +39,22 @@ export const AdminCrudManager = ({ table, entityLabel, addLabel, imageFolder, im
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const imageAspect = table === "chicken_products" ? 1 : 16 / 9;
+
+  const cropExisting = async () => {
+    const url = mediaUrl(form.image_path);
+    if (!url) return;
+    setUploading(true);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Could not open photo");
+      const blob = await response.blob();
+      setCropFile(new File([blob], "photo", { type: blob.type }));
+    } catch (e) {
+      toast({ title: "Could not open photo", description: e instanceof Error ? e.message : "Try replacing the photo", variant: "destructive" });
+    } finally { setUploading(false); }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -59,6 +76,7 @@ export const AdminCrudManager = ({ table, entityLabel, addLabel, imageFolder, im
       setForm((s) => ({ ...s, image_path: path }));
     } catch (e: any) {
       toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+      throw e;
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -114,7 +132,7 @@ export const AdminCrudManager = ({ table, entityLabel, addLabel, imageFolder, im
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((r) => (
             <div key={r.id} className="bg-amber-900/50 border border-amber-800 rounded-xl overflow-hidden">
-              <SafeImage src={mediaUrl(r.image_path)} alt={r.name} className="w-full h-36" label="No image" />
+              <SafeImage src={mediaUrl(r.image_path)} alt={r.name} fit="contain" className={`w-full ${table === "chicken_products" ? "aspect-square max-h-72" : "aspect-video"}`} label="No image" />
               <div className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-bold text-amber-100">{r.name}</p>
@@ -147,8 +165,8 @@ export const AdminCrudManager = ({ table, entityLabel, addLabel, imageFolder, im
                 {f.type === "boolean" && <div className="flex items-center gap-3 h-12"><Switch checked={!!form[f.key]} onCheckedChange={(v) => setForm({ ...form, [f.key]: v })} /><span className="text-sm">{form[f.key] ? "Yes" : "No"}</span></div>}
                 {f.type === "image" && (
                   <div className="space-y-2">
-                    <SafeImage src={mediaUrl(form.image_path)} alt="" className="w-full h-40 rounded-lg" label="No image (optional)" />
-                    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
+                    <SafeImage src={mediaUrl(form.image_path)} alt="Photo preview" fit="contain" className={`w-full rounded-lg ${table === "chicken_products" ? "aspect-square max-h-72" : "aspect-video"}`} label="No image (optional)" />
+                    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) setCropFile(file); e.target.value = ""; }} />
                     <div className="flex gap-2">
                       <Button type="button" variant="secondary" className="h-12 flex-1" disabled={uploading} onClick={() => fileRef.current?.click()}>
                         {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
@@ -156,6 +174,7 @@ export const AdminCrudManager = ({ table, entityLabel, addLabel, imageFolder, im
                       </Button>
                       {form.image_path && <Button type="button" variant="destructive" className="h-12" onClick={() => setForm({ ...form, image_path: null })}><Trash2 className="w-4 h-4" /></Button>}
                     </div>
+                    {form.image_path && <Button type="button" variant="outline" className="h-12 w-full" disabled={uploading} onClick={() => void cropExisting()}><Crop />CROP IMAGE</Button>}
                   </div>
                 )}
                 {f.help && <p className="text-xs text-muted-foreground mt-1">{f.help}</p>}
@@ -170,6 +189,7 @@ export const AdminCrudManager = ({ table, entityLabel, addLabel, imageFolder, im
           </div>
         </DialogContent>
       </Dialog>
+      <BusinessImageCropDialog file={cropFile} aspect={imageAspect} onClose={() => setCropFile(null)} onSelect={onFile} />
     </div>
   );
 };

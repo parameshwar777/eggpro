@@ -58,3 +58,14 @@ export function istWeekday(): number {
   const name = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).format(new Date());
   return DAY_NAMES.indexOf(name);
 }
+
+/** Upcoming pickup date, mirrored for display only; the server enforces expiry. */
+export function upcomingPickupDeadline(settings: ChickenPickupSettings, now = new Date()): Date {
+  const offset = 330 * 60 * 1000;
+  const india = new Date(now.getTime() + offset);
+  let days = (settings.pickup_day - india.getUTCDay() + 7) % 7;
+  const [hour, minute] = settings.cutoff_time.split(":").map(Number);
+  const deadline = () => Date.UTC(india.getUTCFullYear(), india.getUTCMonth(), india.getUTCDate() + days, hour, minute || 0) - offset;
+  if (deadline() <= now.getTime()) days += 7;
+  return new Date(deadline());
+}

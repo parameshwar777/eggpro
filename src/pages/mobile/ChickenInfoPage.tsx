@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ChevronRight, Leaf, HeartPulse } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { Button } from "@/components/ui/button";
 
 const ROWS: [string, string, string][] = [
   ["BREAST MEAT", "29.15%", "22.94%"],
@@ -96,14 +97,14 @@ export const ChickenInfoPage = () => {
         </section>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 px-4 pt-3 pb-12 bg-[#FFF8E7]/95 backdrop-blur safe-bottom">
+       <div className="chicken-action-bar">
         <div className="max-w-lg mx-auto">
-          <button
+           <Button variant="gradient"
             onClick={() => navigate("/chicken/order")}
-            className="w-full h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-lg"
+             className="w-full h-14 rounded-lg font-extrabold text-base"
           >
             NEXT <ChevronRight className="w-5 h-5" />
-          </button>
+           </Button>
         </div>
       </div>
     </div>
