@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { SafeImage } from "@/components/BrandLogo";
 import { mediaUrl } from "@/lib/media";
-import { useChickenSettings, DAY_NAMES, fmtTime, istWeekday } from "@/lib/chickenSettings";
+import { useChickenSettings, DAY_NAMES, fmtTime, istWeekday, upcomingPickupDeadline } from "@/lib/chickenSettings";
 import { openRazorpayCheckout } from "@/lib/capacitorPayment";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface Product { id: string; name: string; description: string | null; weight: string | null; price: number; offer_price: number | null; image_path: string | null; available: boolean }
 interface Center { id: string; name: string; address: string; google_maps_url: string | null; image_path: string | null; pickup_instructions: string | null }
@@ -62,6 +63,7 @@ export const ChickenOrderPage = () => {
   const total = useMemo(() => products.reduce((s, p) => s + unitPrice(p) * (qty[p.id] || 0), 0), [products, qty]);
   const bookingOpen = settings.booking_days.includes(istWeekday());
   const bookingDays = settings.booking_days.map((d) => DAY_NAMES[d].slice(0, 3)).join(", ");
+  const pickupDate = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "short", year: "numeric" }).format(upcomingPickupDeadline(settings));
 
   const change = (id: string, d: number) => setQty((q) => ({ ...q, [id]: Math.max(0, Math.min(50, (q[id] || 0) + d)) }));
 
@@ -103,16 +105,19 @@ export const ChickenOrderPage = () => {
   };
 
   return (
-    <div className="page-scroll bg-[#FFF8E7] w-full">
-      <div className="max-w-lg mx-auto pb-52">
+     <div className="page-scroll bg-secondary w-full">
+       <div className="max-w-lg mx-auto pb-64">
         <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white px-5 pt-4 pb-6 rounded-b-[2rem] safe-top">
           <button onClick={() => navigate("/chicken")} className="h-11 w-11 -ml-2 flex items-center justify-center" aria-label="Back"><ArrowLeft className="w-6 h-6" /></button>
           <h1 className="text-2xl font-extrabold">Order Chicken</h1>
-          <p className="text-sm font-semibold opacity-90">Weekly supply • Book on {bookingDays || "—"}</p>
-          <p className="text-xs font-semibold opacity-90 mt-1">
-            Pickup on {DAY_NAMES[settings.pickup_day]} {fmtTime(settings.pickup_start_time)} – {fmtTime(settings.pickup_end_time)} • Collect before {fmtTime(settings.cutoff_time)}
-          </p>
         </div>
+
+         <section aria-label="Weekly pickup schedule" className="mx-4 mt-4 rounded-lg border-2 border-primary bg-primary/10 p-4 space-y-2">
+           <p className="font-extrabold text-foreground flex items-start gap-2"><CalendarDays className="w-5 h-5 shrink-0 mt-0.5" />Weekly supply</p>
+           <p className="text-sm font-bold text-foreground">Book on {bookingDays || "—"}</p>
+           <p className="text-sm text-foreground">Pickup on {DAY_NAMES[settings.pickup_day]} {fmtTime(settings.pickup_start_time)} – {fmtTime(settings.pickup_end_time)}</p>
+           <p className="text-sm font-extrabold text-foreground">Collect before {fmtTime(settings.cutoff_time)} (IST)</p>
+         </section>
 
         {!bookingOpen && (
           <div className="mx-4 mt-4 p-4 rounded-2xl bg-red-50 border-2 border-red-200 text-red-800 text-sm font-semibold">
@@ -127,7 +132,7 @@ export const ChickenOrderPage = () => {
           {!loading && !prodErr && products.length === 0 && <p className="text-sm text-muted-foreground font-semibold">Chicken products are currently unavailable. Please try again later.</p>}
           {products.map((p) => (
             <div key={p.id} className="bg-card rounded-2xl shadow-soft overflow-hidden flex">
-              <SafeImage src={mediaUrl(p.image_path)} alt={p.name} className="w-28 h-28 shrink-0" />
+               <SafeImage src={mediaUrl(p.image_path)} alt={p.name} fit="contain" className="w-28 h-28 shrink-0" />
               <div className="flex-1 p-3 min-w-0">
                 <p className="font-extrabold text-foreground truncate">{p.name}</p>
                 {p.weight && <p className="text-xs font-semibold text-muted-foreground">{p.weight}</p>}
@@ -166,7 +171,7 @@ export const ChickenOrderPage = () => {
               {!centerErr && !loading && centers.length === 0 && <p className="text-sm text-muted-foreground font-semibold">Pickup locations are currently unavailable. Please try again shortly.</p>}
               {centers.map((c) => (
                 <button key={c.id} onClick={() => setCenterId(c.id)} className={`w-full text-left rounded-2xl overflow-hidden border-2 bg-card ${centerId === c.id ? "border-orange-500" : "border-transparent"} shadow-soft`}>
-                  <SafeImage src={mediaUrl(c.image_path)} alt={c.name} className="w-full h-32" label="EggPro Pickup Center" />
+                   <SafeImage src={mediaUrl(c.image_path)} alt={c.name} fit="contain" className="w-full aspect-video" label="EggPro Pickup Center" />
                   <div className="p-4">
                     <p className="font-extrabold text-foreground">{c.name}</p>
                     {c.address && <p className="text-sm text-muted-foreground flex gap-1 mt-1"><MapPin className="w-4 h-4 mt-0.5 shrink-0" />{c.address}</p>}
@@ -205,15 +210,20 @@ export const ChickenOrderPage = () => {
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 px-4 pt-3 pb-12 bg-card border-t border-border safe-bottom">
+       <div className="chicken-action-bar">
+         {mode === "pickup" && <div aria-label="This week's pickup" className="max-w-lg mx-auto mb-3 border-l-4 border-primary pl-3">
+           <p className="text-sm font-extrabold text-foreground">Pickup: {pickupDate}</p>
+           <p className="text-xs text-muted-foreground">{fmtTime(settings.pickup_start_time)} – {fmtTime(settings.pickup_end_time)} • IST</p>
+           <p className="text-xs font-extrabold text-foreground">Deadline: {fmtTime(settings.cutoff_time)} on {pickupDate}</p>
+         </div>}
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <div>
             <p className="text-xs text-muted-foreground font-semibold">Total</p>
             <p className="text-xl font-extrabold text-foreground">₹{total.toFixed(0)}</p>
           </div>
-          <button onClick={pay} disabled={paying || total <= 0 || !bookingOpen} className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-extrabold disabled:opacity-50 flex items-center justify-center gap-2">
+           <Button variant="gradient" onClick={pay} disabled={paying || total <= 0 || !bookingOpen} className="flex-1 h-14 min-w-0 px-3 rounded-lg font-extrabold">
             {paying && <Loader2 className="w-5 h-5 animate-spin" />} PAY & PLACE ORDER
-          </button>
+           </Button>
         </div>
       </div>
     </div>

@@ -17,7 +17,9 @@ export const BackButtonHandler = () => {
       try {
         const handle = await App.addListener("backButton", () => {
           if (disposed) return;
-          if (ROOT_ROUTES.includes(location.pathname)) {
+           if (location.pathname === "/home") {
+             navigate("/welcome", { replace: true });
+           } else if (ROOT_ROUTES.includes(location.pathname)) {
             App.exitApp();
           } else {
             navigate(-1);

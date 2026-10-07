@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/mobile/ProductCard";
 import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
@@ -210,11 +211,11 @@ export const HomePage = () => {
             <div>
               <h1 className="text-2xl font-bold text-foreground">EggPro</h1>
               <p className="text-xs text-foreground/70">Nature's Immunity Boosters</p>
-              <button onClick={() => navigate("/welcome")} className="text-[11px] font-bold underline text-foreground/80">Switch business</button>
             </div>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
+           <div className="flex items-center gap-2 shrink-0">
+             <Button variant="secondary" size="icon" onClick={() => navigate("/welcome")} aria-label="Choose business" title="Choose business" className="h-11 w-11 p-1 bg-card shadow-soft"><BrandLogo size={34} /></Button>
+           <Button variant="secondary" size="icon" aria-label="Cart"
             onClick={() => navigate("/cart")}
             className="relative p-2.5 bg-card rounded-xl shadow-soft flex-shrink-0"
           >
@@ -228,7 +229,8 @@ export const HomePage = () => {
                 {totalItems}
               </motion.span>
             )}
-          </motion.button>
+           </Button>
+           </div>
         </div>
 
         {/* Location dropdown */}
