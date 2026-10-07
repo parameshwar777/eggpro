@@ -1,4 +1,7 @@
 # Tasks
+- [ ] Return egg Home Back to Welcome and replace switch-business text with a picture beside Cart.
+- [ ] Explain chicken staff, add optional admin photo cropping, and show portrait photos without excessive trimming.
+- [ ] Raise chicken NEXT and payment buttons; highlight weekly schedule and show upcoming date/deadline before payment.
 - [x] Remove map intro; verified Splash opens Welcome directly and old map links redirect to Welcome.
 - [x] Prevent repeated splash/community-map intro; verified one pass to Welcome, repeat prevention, and Skip timer cleanup.
 - [x] Fit the chicken meat comparison on phone screens without horizontal scrolling (360px table, no overflow).
