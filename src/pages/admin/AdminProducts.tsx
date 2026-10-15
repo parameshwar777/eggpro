@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
 
 interface Product {
   id: string;
@@ -131,6 +132,16 @@ export const AdminProducts = () => {
     setDialogOpen(true);
   };
 
+  const toggleLive = async (product: Product, live: boolean) => {
+    setProducts((list) => list.map((p) => (p.id === product.id ? { ...p, in_stock: live } : p)));
+    const { error } = await supabase.from("products").update({ in_stock: live }).eq("id", product.id);
+    if (error) {
+      setProducts((list) => list.map((p) => (p.id === product.id ? { ...p, in_stock: !live } : p)));
+      return toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+    toast({ title: live ? "Product is live in app" : "Product hidden from app" });
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     
@@ -246,6 +257,10 @@ export const AdminProducts = () => {
                     <div>
                       <p className="text-amber-100 font-semibold text-sm">{product.name}</p>
                       <p className="text-amber-400 text-xs mt-0.5">{product.unit}</p>
+                      <label className="flex items-center gap-2 mt-2 min-h-10 cursor-pointer">
+                        <Switch checked={!!product.in_stock} onCheckedChange={(v) => toggleLive(product, v)} aria-label="Show in app" />
+                        <span className={`text-xs font-bold ${product.in_stock ? "text-green-400" : "text-stone-400"}`}>{product.in_stock ? "LIVE IN APP" : "HIDDEN"}</span>
+                      </label>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-amber-300 hover:text-amber-100 hover:bg-amber-800" onClick={() => handleEdit(product)}>
