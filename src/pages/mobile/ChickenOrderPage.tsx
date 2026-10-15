@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,7 @@ export const ChickenOrderPage = () => {
   const [addressId, setAddressId] = useState("");
   const [phone, setPhone] = useState("");
   const [paying, setPaying] = useState(false);
+  const [detail, setDetail] = useState<Product | null>(null);
   const community = localStorage.getItem("selectedCommunity") || "";
 
   useEffect(() => {
@@ -132,10 +133,14 @@ export const ChickenOrderPage = () => {
           {!loading && !prodErr && products.length === 0 && <p className="text-sm text-muted-foreground font-semibold">Chicken products are currently unavailable. Please try again later.</p>}
           {products.map((p) => (
             <div key={p.id} className="bg-card rounded-2xl shadow-soft overflow-hidden flex">
-               <SafeImage src={mediaUrl(p.image_path)} alt={p.name} fit="contain" className="w-28 h-28 shrink-0" />
+               <button onClick={() => setDetail(p)} className="shrink-0" aria-label={`View ${p.name} details`}>
+                 <SafeImage src={mediaUrl(p.image_path)} alt={p.name} fit="contain" className="w-28 h-28" />
+               </button>
               <div className="flex-1 p-3 min-w-0">
-                <p className="font-extrabold text-foreground truncate">{p.name}</p>
-                {p.weight && <p className="text-xs font-semibold text-muted-foreground">{p.weight}</p>}
+                <button onClick={() => setDetail(p)} className="text-left w-full" aria-label={`View ${p.name} details`}>
+                  <p className="font-extrabold text-foreground truncate">{p.name}</p>
+                  {p.weight && <p className="text-xs font-semibold text-muted-foreground">{p.weight}</p>}
+                </button>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-lg font-extrabold text-orange-700">₹{unitPrice(p)}</span>
                   {p.offer_price && p.offer_price > 0 && p.offer_price < p.price && <span className="text-xs line-through text-muted-foreground">₹{p.price}</span>}
@@ -209,6 +214,27 @@ export const ChickenOrderPage = () => {
           {settings.refund_policy && <p className="text-xs text-muted-foreground mt-4 font-semibold">{settings.refund_policy}</p>}
         </div>
       </div>
+
+      {detail && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setDetail(null)}>
+          <div className="bg-card w-full max-w-lg rounded-t-3xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="relative">
+              <SafeImage src={mediaUrl(detail.image_path)} alt={detail.name} fit="contain" className="w-full aspect-square bg-muted" />
+              <button onClick={() => setDetail(null)} className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center" aria-label="Close"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-5 pb-10 space-y-2">
+              <p className="text-xl font-extrabold text-foreground">{detail.name}</p>
+              {detail.weight && <p className="text-sm font-semibold text-muted-foreground">{detail.weight}</p>}
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-extrabold text-orange-700">₹{unitPrice(detail)}</span>
+                {detail.offer_price && detail.offer_price > 0 && detail.offer_price < detail.price && <span className="text-sm line-through text-muted-foreground">₹{detail.price}</span>}
+              </div>
+              {detail.description && <p className="text-sm text-foreground leading-relaxed pt-1">{detail.description}</p>}
+              {!detail.available && <p className="text-sm font-bold text-red-600">Out of stock</p>}
+            </div>
+          </div>
+        </div>
+      )}
 
        <div className="chicken-action-bar">
          {mode === "pickup" && <div aria-label="This week's pickup" className="max-w-lg mx-auto mb-3 border-l-4 border-primary pl-3">
