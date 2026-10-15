@@ -11,7 +11,7 @@ import { SafeImage } from "@/components/BrandLogo";
 import { uploadBusinessImage, removeBusinessImage, mediaUrl, logAdminAction } from "@/lib/media";
 import { BusinessImageCropDialog } from "@/components/admin/BusinessImageCropDialog";
 
-export type FieldType = "text" | "textarea" | "number" | "boolean" | "image";
+export type FieldType = "text" | "textarea" | "number" | "boolean" | "image" | "gallery";
 export interface FieldDef { key: string; label: string; type: FieldType; required?: boolean; placeholder?: string; help?: string }
 
 interface Props {
@@ -177,6 +177,36 @@ export const AdminCrudManager = ({ table, entityLabel, addLabel, imageFolder, im
                     {form.image_path && <Button type="button" variant="outline" className="h-12 w-full" disabled={uploading} onClick={() => void cropExisting()}><Crop />CROP IMAGE</Button>}
                   </div>
                 )}
+                {f.type === "gallery" && (() => {
+                  const list: string[] = Array.isArray(form[f.key]) ? form[f.key] : [];
+                  return (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-3 gap-2">
+                        {list.map((p, i) => (
+                          <div key={p} className="relative">
+                            <SafeImage src={mediaUrl(p)} alt={`Photo ${i + 1}`} className="w-full aspect-square rounded-lg" label="Photo" />
+                            <button type="button" aria-label="Remove photo" className="absolute top-1 right-1 h-8 w-8 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center" onClick={() => setForm((s) => ({ ...s, [f.key]: list.filter((x) => x !== p) }))}><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        ))}
+                      </div>
+                      {list.length < 3 && (
+                        <label className="flex h-12 items-center justify-center rounded-md bg-secondary text-secondary-foreground font-semibold cursor-pointer">
+                          {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}ADD PHOTO
+                          <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={uploading} onChange={async (e) => {
+                            const file = e.target.files?.[0]; e.target.value = "";
+                            if (!file) return;
+                            setUploading(true);
+                            try {
+                              const path = await uploadBusinessImage(file, imageFolder);
+                              setForm((s) => ({ ...s, [f.key]: [...(Array.isArray(s[f.key]) ? s[f.key] : []), path].slice(0, 3) }));
+                            } catch (err: any) { toast({ title: "Upload failed", description: err.message, variant: "destructive" }); }
+                            finally { setUploading(false); }
+                          }} />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })()}
                 {f.help && <p className="text-xs text-muted-foreground mt-1">{f.help}</p>}
               </div>
             ))}

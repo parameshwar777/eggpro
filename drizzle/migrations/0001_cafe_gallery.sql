@@ -1,0 +1,1 @@
+ALTER TABLE public.cafe_locations ADD COLUMN IF NOT EXISTS gallery_paths text[] NOT NULL DEFAULT '{}';
