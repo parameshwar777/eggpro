@@ -74,6 +74,7 @@ export type Database = {
           address: string
           created_at: string
           display_order: number
+          gallery_paths: string[]
           id: string
           image_path: string | null
           name: string
@@ -85,6 +86,7 @@ export type Database = {
           address?: string
           created_at?: string
           display_order?: number
+          gallery_paths?: string[]
           id?: string
           image_path?: string | null
           name: string
@@ -96,6 +98,7 @@ export type Database = {
           address?: string
           created_at?: string
           display_order?: number
+          gallery_paths?: string[]
           id?: string
           image_path?: string | null
           name?: string
