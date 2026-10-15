@@ -133,10 +133,14 @@ export const ChickenOrderPage = () => {
           {!loading && !prodErr && products.length === 0 && <p className="text-sm text-muted-foreground font-semibold">Chicken products are currently unavailable. Please try again later.</p>}
           {products.map((p) => (
             <div key={p.id} className="bg-card rounded-2xl shadow-soft overflow-hidden flex">
-               <SafeImage src={mediaUrl(p.image_path)} alt={p.name} fit="contain" className="w-28 h-28 shrink-0" />
+               <button onClick={() => setDetail(p)} className="shrink-0" aria-label={`View ${p.name} details`}>
+                 <SafeImage src={mediaUrl(p.image_path)} alt={p.name} fit="contain" className="w-28 h-28" />
+               </button>
               <div className="flex-1 p-3 min-w-0">
-                <p className="font-extrabold text-foreground truncate">{p.name}</p>
-                {p.weight && <p className="text-xs font-semibold text-muted-foreground">{p.weight}</p>}
+                <button onClick={() => setDetail(p)} className="text-left w-full" aria-label={`View ${p.name} details`}>
+                  <p className="font-extrabold text-foreground truncate">{p.name}</p>
+                  {p.weight && <p className="text-xs font-semibold text-muted-foreground">{p.weight}</p>}
+                </button>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-lg font-extrabold text-orange-700">₹{unitPrice(p)}</span>
                   {p.offer_price && p.offer_price > 0 && p.offer_price < p.price && <span className="text-xs line-through text-muted-foreground">₹{p.price}</span>}
