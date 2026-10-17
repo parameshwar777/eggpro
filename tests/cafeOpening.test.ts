@@ -1,7 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { CAFE_OPENING_AT, timeLeft } from "./cafeOpening";
-import { cafeMapLink } from "./cafeMaps";
+import { CAFE_OPENING_AT, timeLeft } from "../src/lib/cafeOpening";
+import { cafeMapLink } from "../src/lib/cafeMaps";
 
 describe("Café opening", () => {
   test("opens on 16 October 2026 at midnight IST", () => {
