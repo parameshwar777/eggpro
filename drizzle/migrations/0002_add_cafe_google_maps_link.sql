@@ -1,0 +1,1 @@
+ALTER TABLE public.cafe_locations ADD COLUMN IF NOT EXISTS google_maps_url text;
