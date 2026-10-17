@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Egg, Drumstick, Coffee, ChevronRight } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { timeLeft } from "@/lib/cafeOpening";
 
 const cards = [
   {
@@ -37,6 +38,14 @@ const cards = [
 export const WelcomePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [now, setNow] = useState(Date.now());
+  const cafeComingSoon = timeLeft(now) !== null;
+
+  useEffect(() => {
+    if (!cafeComingSoon) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [cafeComingSoon]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -83,7 +92,7 @@ export const WelcomePage = () => {
               className={`w-full text-left rounded-3xl p-5 bg-gradient-to-br ${c.tone} text-white shadow-xl relative overflow-hidden`}
             >
               <c.icon className="absolute -right-4 -bottom-4 w-32 h-32 opacity-15" />
-              {c.soon && (
+              {c.soon && cafeComingSoon && (
                 <span className="absolute top-4 right-4 text-[10px] font-extrabold tracking-widest bg-white/20 px-2.5 py-1 rounded-full">
                   COMING SOON
                 </span>
@@ -96,8 +105,8 @@ export const WelcomePage = () => {
                 <p key={s} className="text-sm font-semibold opacity-90 leading-snug">{s}</p>
               ))}
               <div className="mt-4 inline-flex items-center gap-1 bg-white text-stone-900 font-extrabold text-sm px-4 h-11 rounded-xl">
-                {c.cta}
-                {!c.soon && <ChevronRight className="w-4 h-4" />}
+                {c.key === "cafe" && !cafeComingSoon ? "EXPLORE CAFÉ" : c.cta}
+                {(!c.soon || !cafeComingSoon) && <ChevronRight className="w-4 h-4" />}
               </div>
             </motion.button>
           ))}

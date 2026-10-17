@@ -96,15 +96,16 @@ export const AdminCafeLocations = () => (
       addLabel="+ ADD LOCATION"
       imageFolder="cafe/locations"
       imageButton="UPLOAD PHOTO"
-      defaults={{ name: "", address: "", image_path: null, gallery_paths: [], active: true }}
+      defaults={{ name: "", address: "", google_maps_url: "", image_path: null, gallery_paths: [], active: true }}
       fields={[
         { key: "name", label: "Café Name", type: "text", required: true },
         { key: "address", label: "Address", type: "textarea" },
+        { key: "google_maps_url", label: "Google Maps Location (link)", type: "text", placeholder: "Paste the Google Maps share link", help: "Use an https:// Google Maps link for customer directions." },
         { key: "image_path", label: "Main Photo (optional)", type: "image" },
         { key: "gallery_paths", label: "More Photos (up to 3)", type: "gallery", help: "Shown below the café address after opening." },
         { key: "active", label: "Show in app", type: "boolean" },
       ]}
-      summary={(r) => <p>{r.address || "No address"}</p>}
+      summary={(r) => <><p>{r.address || "No address"}</p><p>{r.google_maps_url ? "Map link set" : "No map link yet"}</p></>}
     />
   </AdminLayout>
 );
