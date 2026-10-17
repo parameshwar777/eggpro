@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Remove expired Café Coming Soon labels on Welcome and add admin-managed café map links with customer directions.
+- [x] Remove expired Café Coming Soon labels on Welcome and add admin-managed café map links with customer directions; opening and links tested, customer screen checked, admin save not verified because available session did not open admin.
 - [x] Return egg Home native Back to Welcome and replace switch-business text with a picture beside Cart; picture navigation checked in browser, native Back needs device verification.
 - [x] Explain chicken staff, add optional admin photo cropping, and show portrait photos without excessive trimming; crop and zoom tested independently without uploading or changing live records.
 - [x] Raise chicken NEXT and payment buttons; highlight weekly schedule and show upcoming date/deadline before payment; checked at phone and desktop sizes.
