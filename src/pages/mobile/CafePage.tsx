@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Dumbbell, Leaf, Sparkles, UtensilsCrossed, MapPin } from "lucide-react";
+import { ArrowLeft, Dumbbell, Leaf, Sparkles, UtensilsCrossed, MapPin, Navigation } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo, SafeImage } from "@/components/BrandLogo";
 import { mediaUrl } from "@/lib/media";
-import { CAFE_OPENING_AT, timeLeft } from "@/lib/cafeOpening";
+import { timeLeft } from "@/lib/cafeOpening";
+import { cafeMapLink } from "@/lib/cafeMaps";
+import { Button } from "@/components/ui/button";
 
-interface Cafe { id: string; name: string; address: string; image_path: string | null; gallery_paths: string[] | null }
+interface Cafe { id: string; name: string; address: string; image_path: string | null; gallery_paths: string[] | null; google_maps_url: string | null }
 
 const points = [
   { icon: Dumbbell, t: "High Protein" },
@@ -23,7 +25,7 @@ export const CafePage = () => {
   const isOpen = left === null;
 
   useEffect(() => {
-    supabase.from("cafe_locations").select("id,name,address,image_path,gallery_paths").eq("active", true).order("display_order")
+    supabase.from("cafe_locations").select("id,name,address,image_path,gallery_paths,google_maps_url").eq("active", true).order("display_order")
       .then(({ data }) => setCafes((data as Cafe[]) || []));
   }, []);
 
@@ -78,9 +80,16 @@ export const CafePage = () => {
                   <div className="p-4">
                     <p className="font-bold">{c.name}</p>
                     {c.address && <p className="text-sm text-stone-400 flex gap-1 mt-1"><MapPin className="w-4 h-4 mt-0.5 shrink-0" />{c.address}</p>}
+                    {cafeMapLink(c.google_maps_url) && (
+                      <Button asChild className="w-full h-12 mt-3 font-bold">
+                        <a href={cafeMapLink(c.google_maps_url) ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={`Get directions to ${c.name}`}>
+                          <Navigation className="w-4 h-4" />GET DIRECTIONS
+                        </a>
+                      </Button>
+                    )}
                     {(c.gallery_paths?.length ?? 0) > 0 && (
                       <div className="grid grid-cols-3 gap-2 mt-3">
-                        {c.gallery_paths!.slice(0, 3).map((p, i) => (
+                        {c.gallery_paths?.slice(0, 3).map((p, i) => (
                           <SafeImage key={p} src={mediaUrl(p)} alt={`${c.name} photo ${i + 1}`} className="w-full aspect-square rounded-lg" label="Café" />
                         ))}
                       </div>

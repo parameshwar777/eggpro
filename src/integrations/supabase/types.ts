@@ -75,6 +75,7 @@ export type Database = {
           created_at: string
           display_order: number
           gallery_paths: string[]
+          google_maps_url: string | null
           id: string
           image_path: string | null
           name: string
@@ -87,6 +88,7 @@ export type Database = {
           created_at?: string
           display_order?: number
           gallery_paths?: string[]
+          google_maps_url?: string | null
           id?: string
           image_path?: string | null
           name: string
@@ -99,6 +101,7 @@ export type Database = {
           created_at?: string
           display_order?: number
           gallery_paths?: string[]
+          google_maps_url?: string | null
           id?: string
           image_path?: string | null
           name?: string

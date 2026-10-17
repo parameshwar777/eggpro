@@ -8,3 +8,4 @@
 - Business image editing uses react-easy-crop before the existing upload flow, with square product and 16:9 location crops and contain-fit previews. Why: portrait photos stay visible and optional crops match customer frames.
 - Chicken fixed actions share an additive safe-area spacer; pickup dates mirror the server's IST deadline for display only. Why: avoid clipped actions and misleading dates without moving validation to the client.
 - Native Back from egg Home explicitly replace-navigates to Welcome. Why: Home is a business entry screen, not the app exit screen.
+- Welcome and Café use the shared café opening clock; café directions use each location's stored map link, allowing only HTTPS links. Why: keep launch labels consistent and prevent unsafe navigation from admin-entered URLs.

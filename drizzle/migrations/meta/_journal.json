@@ -15,6 +15,13 @@
       "when": 1792046872151,
       "tag": "0001_cafe_gallery",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792262164705,
+      "tag": "0002_add_cafe_google_maps_link",
+      "breakpoints": true
     }
   ]
 }
