@@ -10,9 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { SafeImage } from "@/components/BrandLogo";
 import { uploadBusinessImage, removeBusinessImage, mediaUrl, logAdminAction } from "@/lib/media";
 import { BusinessImageCropDialog } from "@/components/admin/BusinessImageCropDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type FieldType = "text" | "textarea" | "number" | "boolean" | "image" | "gallery";
-export interface FieldDef { key: string; label: string; type: FieldType; required?: boolean; placeholder?: string; help?: string }
+export interface FieldDef { key: string; label: string; type: FieldType; required?: boolean; placeholder?: string; help?: string; options?: readonly { value: string; label: string }[] }
 
 interface Props {
   table: "chicken_products" | "chicken_pickup_centers" | "cafe_locations";
@@ -159,7 +160,8 @@ export const AdminCrudManager = ({ table, entityLabel, addLabel, imageFolder, im
             {fields.map((f) => (
               <div key={f.key}>
                 <label className="text-sm font-bold block mb-1">{f.label}{f.required && " *"}</label>
-                {f.type === "text" && <Input className="h-12" value={form[f.key] ?? ""} placeholder={f.placeholder} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
+                {f.type === "text" && f.options && <Select value={f.options.some((option) => option.value === form[f.key]) ? form[f.key] : "custom"} onValueChange={(value) => setForm({ ...form, [f.key]: value === "custom" ? "" : value })}><SelectTrigger className="h-12" aria-label={f.label}><SelectValue /></SelectTrigger><SelectContent>{f.options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}<SelectItem value="custom">Custom weight / quantity</SelectItem></SelectContent></Select>}
+                {f.type === "text" && (!f.options || !f.options.some((option) => option.value === form[f.key])) && <Input className="h-12" value={form[f.key] ?? ""} placeholder={f.placeholder} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
                 {f.type === "number" && <Input className="h-12" type="number" inputMode="decimal" value={form[f.key] ?? ""} placeholder={f.placeholder} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
                 {f.type === "textarea" && <Textarea value={form[f.key] ?? ""} placeholder={f.placeholder} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
                 {f.type === "boolean" && <div className="flex items-center gap-3 h-12"><Switch checked={!!form[f.key]} onCheckedChange={(v) => setForm({ ...form, [f.key]: v })} /><span className="text-sm">{form[f.key] ? "Yes" : "No"}</span></div>}

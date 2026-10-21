@@ -9,3 +9,4 @@
 - Chicken fixed actions share an additive safe-area spacer; pickup dates mirror the server's IST deadline for display only. Why: avoid clipped actions and misleading dates without moving validation to the client.
 - Native Back from egg Home explicitly replace-navigates to Welcome. Why: Home is a business entry screen, not the app exit screen.
 - Welcome and Café use the shared café opening clock; café directions use each location's stored map link, allowing only HTTPS links. Why: keep launch labels consistent and prevent unsafe navigation from admin-entered URLs.
+- Chicken detail and checkout pages share a separate session cart; weight variants remain individual chicken_products rows grouped by exact name, each with an admin-set price. Why: preserve server-side product-ID pricing and isolate egg carts without new payment logic.

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/media";
+import { CHICKEN_WEIGHTS } from "@/lib/chickenProducts";
 import { DAY_NAMES, fetchChickenSettings, SETTINGS_KEY, type ChickenPickupSettings, DEFAULT_CHICKEN_SETTINGS } from "@/lib/chickenSettings";
 
 /* ---------------- PRODUCTS ---------------- */
@@ -27,7 +28,7 @@ export const AdminChickenProducts = () => {
         fields={[
           { key: "name", label: "Name", type: "text", required: true, placeholder: "e.g. Whole Chicken" },
           { key: "description", label: "Description", type: "textarea" },
-          { key: "weight", label: "Weight / Quantity", type: "text", placeholder: "e.g. 1 kg" },
+          { key: "weight", label: "Weight / Quantity", type: "text", options: CHICKEN_WEIGHTS, placeholder: "Custom weight", help: "Add each weight with its own price. Use the same product name to show weights together in the app." },
           { key: "price", label: "Price (₹)", type: "number", required: true },
           { key: "offer_price", label: "Offer Price (₹)", type: "number", help: "Optional. If set, customers pay this price." },
           { key: "image_path", label: "Image", type: "image" },

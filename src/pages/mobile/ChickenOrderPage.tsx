@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, X } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -10,12 +10,14 @@ import { useChickenSettings, DAY_NAMES, fmtTime, istWeekday, upcomingPickupDeadl
 import { openRazorpayCheckout } from "@/lib/capacitorPayment";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useChickenCart } from "@/contexts/ChickenCartContext";
+import { chickenUnitPrice, type ChickenProduct } from "@/lib/chickenProducts";
 
-interface Product { id: string; name: string; description: string | null; weight: string | null; price: number; offer_price: number | null; image_path: string | null; available: boolean }
+type Product = ChickenProduct;
 interface Center { id: string; name: string; address: string; google_maps_url: string | null; image_path: string | null; pickup_instructions: string | null }
 interface Address { id: string; label: string; address_line1: string; address_line2: string | null; city: string; pincode: string; phone: string; community: string | null }
 
-const unitPrice = (p: Product) => (p.offer_price && p.offer_price > 0 ? p.offer_price : p.price);
+const unitPrice = chickenUnitPrice;
 
 export const ChickenOrderPage = () => {
   const navigate = useNavigate();
@@ -29,13 +31,12 @@ export const ChickenOrderPage = () => {
   const [prodErr, setProdErr] = useState(false);
   const [centerErr, setCenterErr] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [qty, setQty] = useState<Record<string, number>>({});
+  const { qty, change, clear } = useChickenCart();
   const [mode, setMode] = useState<"delivery" | "pickup">("pickup");
   const [centerId, setCenterId] = useState("");
   const [addressId, setAddressId] = useState("");
   const [phone, setPhone] = useState("");
   const [paying, setPaying] = useState(false);
-  const [detail, setDetail] = useState<Product | null>(null);
   const community = localStorage.getItem("selectedCommunity") || "";
 
   useEffect(() => {
@@ -66,16 +67,15 @@ export const ChickenOrderPage = () => {
   const bookingDays = settings.booking_days.map((d) => DAY_NAMES[d].slice(0, 3)).join(", ");
   const pickupDate = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "short", year: "numeric" }).format(upcomingPickupDeadline(settings));
 
-  const change = (id: string, d: number) => setQty((q) => ({ ...q, [id]: Math.max(0, Math.min(50, (q[id] || 0) + d)) }));
 
   const pay = async () => {
     if (!user) { navigate("/auth"); return; }
-    const items = Object.entries(qty).filter(([, n]) => n > 0).map(([productId, quantity]) => ({ productId, quantity }));
+    const items = Object.entries(qty).filter(([id, n]) => n > 0 && products.some((p) => p.id === id && p.available)).map(([productId, quantity]) => ({ productId, quantity }));
     if (!items.length) return toast({ title: "Select a product", variant: "destructive" });
     if (!/^\d{10}$/.test(phone)) return toast({ title: "Enter a valid 10-digit phone number", variant: "destructive" });
     let body: any = { action: "create", items, fulfillment: mode, phone };
     if (mode === "pickup") {
-      if (!centerId) return toast({ title: "Select a pickup center", variant: "destructive" });
+      if (!centerId) return toast({ title: "Select a pickup outlet", variant: "destructive" });
       body.pickupCenterId = centerId;
     } else {
       const a = addresses.find((x) => x.id === addressId);
@@ -97,6 +97,7 @@ export const ChickenOrderPage = () => {
       });
       if (cErr || conf?.error) throw new Error(conf?.error || "Payment verification failed");
       toast({ title: "Order placed!" });
+      clear();
       navigate(mode === "pickup" ? `/chicken/pickup/${data.orderId}` : "/orders", { replace: true });
     } catch (e: any) {
       toast({ title: e?.message === "Payment cancelled" ? "Payment cancelled" : "Payment failed", description: e?.message, variant: "destructive" });
@@ -133,11 +134,11 @@ export const ChickenOrderPage = () => {
           {!loading && !prodErr && products.length === 0 && <p className="text-sm text-muted-foreground font-semibold">Chicken products are currently unavailable. Please try again later.</p>}
           {products.map((p) => (
             <div key={p.id} className="bg-card rounded-2xl shadow-soft overflow-hidden flex">
-               <button onClick={() => setDetail(p)} className="shrink-0" aria-label={`View ${p.name} details`}>
+               <button onClick={() => navigate(`/chicken/product/${p.id}`)} className="shrink-0" aria-label={`View ${p.name} details`}>
                  <SafeImage src={mediaUrl(p.image_path)} alt={p.name} fit="contain" className="w-28 h-28" />
                </button>
               <div className="flex-1 p-3 min-w-0">
-                <button onClick={() => setDetail(p)} className="text-left w-full" aria-label={`View ${p.name} details`}>
+                <button onClick={() => navigate(`/chicken/product/${p.id}`)} className="text-left w-full" aria-label={`View ${p.name} details`}>
                   <p className="font-extrabold text-foreground truncate">{p.name}</p>
                   {p.weight && <p className="text-xs font-semibold text-muted-foreground">{p.weight}</p>}
                 </button>
@@ -166,7 +167,7 @@ export const ChickenOrderPage = () => {
               </button>
             )}
             <button onClick={() => setMode("pickup")} className={`h-20 rounded-2xl border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "pickup" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"} ${settings.delivery_enabled ? "" : "col-span-2"}`}>
-              <Store className="w-6 h-6" /> PICK UP AT CENTER
+              <Store className="w-6 h-6" /> PICK UP AT OUTLETS
             </button>
           </div>
 
@@ -176,7 +177,7 @@ export const ChickenOrderPage = () => {
               {!centerErr && !loading && centers.length === 0 && <p className="text-sm text-muted-foreground font-semibold">Pickup locations are currently unavailable. Please try again shortly.</p>}
               {centers.map((c) => (
                 <button key={c.id} onClick={() => setCenterId(c.id)} className={`w-full text-left rounded-2xl overflow-hidden border-2 bg-card ${centerId === c.id ? "border-orange-500" : "border-transparent"} shadow-soft`}>
-                   <SafeImage src={mediaUrl(c.image_path)} alt={c.name} fit="contain" className="w-full aspect-video" label="EggPro Pickup Center" />
+                   <SafeImage src={mediaUrl(c.image_path)} alt={c.name} fit="contain" className="w-full aspect-video" label="EggPro Pickup Outlet" />
                   <div className="p-4">
                     <p className="font-extrabold text-foreground">{c.name}</p>
                     {c.address && <p className="text-sm text-muted-foreground flex gap-1 mt-1"><MapPin className="w-4 h-4 mt-0.5 shrink-0" />{c.address}</p>}
@@ -214,27 +215,6 @@ export const ChickenOrderPage = () => {
           {settings.refund_policy && <p className="text-xs text-muted-foreground mt-4 font-semibold">{settings.refund_policy}</p>}
         </div>
       </div>
-
-      {detail && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setDetail(null)}>
-          <div className="bg-card w-full max-w-lg rounded-t-3xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="relative">
-              <SafeImage src={mediaUrl(detail.image_path)} alt={detail.name} fit="contain" className="w-full aspect-square bg-muted" />
-              <button onClick={() => setDetail(null)} className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center" aria-label="Close"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-5 pb-10 space-y-2">
-              <p className="text-xl font-extrabold text-foreground">{detail.name}</p>
-              {detail.weight && <p className="text-sm font-semibold text-muted-foreground">{detail.weight}</p>}
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-extrabold text-orange-700">₹{unitPrice(detail)}</span>
-                {detail.offer_price && detail.offer_price > 0 && detail.offer_price < detail.price && <span className="text-sm line-through text-muted-foreground">₹{detail.price}</span>}
-              </div>
-              {detail.description && <p className="text-sm text-foreground leading-relaxed pt-1">{detail.description}</p>}
-              {!detail.available && <p className="text-sm font-bold text-red-600">Out of stock</p>}
-            </div>
-          </div>
-        </div>
-      )}
 
        <div className="chicken-action-bar">
          {mode === "pickup" && <div aria-label="This week's pickup" className="max-w-lg mx-auto mb-3 border-l-4 border-primary pl-3">
