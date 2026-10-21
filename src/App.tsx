@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
+import { ChickenCartProvider } from "@/contexts/ChickenCartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BackButtonHandler } from "@/components/BackButtonHandler";
 import { PlatformGuard } from "@/components/PlatformGuard";
@@ -33,6 +34,7 @@ import { PaymentIssuePage } from "./pages/mobile/PaymentIssuePage";
 import { WelcomePage } from "./pages/mobile/WelcomePage";
 import { ChickenInfoPage } from "./pages/mobile/ChickenInfoPage";
 import { ChickenOrderPage } from "./pages/mobile/ChickenOrderPage";
+import { ChickenProductDetailPage } from "./pages/mobile/ChickenProductDetailPage";
 import { ChickenPickupCodePage } from "./pages/mobile/ChickenPickupCodePage";
 import { CafePage } from "./pages/mobile/CafePage";
 import { StaffPickupPage } from "./pages/staff/StaffPickupPage";
@@ -66,6 +68,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <CartProvider>
+        <ChickenCartProvider>
         <TooltipProvider>
           <PlatformGuard>
             <AppUpdateChecker />
@@ -99,6 +102,7 @@ const App = () => (
                 <Route path="/welcome" element={<WelcomePage />} />
                 <Route path="/chicken" element={<ChickenInfoPage />} />
                 <Route path="/chicken/order" element={<ChickenOrderPage />} />
+                <Route path="/chicken/product/:id" element={<ChickenProductDetailPage />} />
                 <Route path="/chicken/pickup/:orderId" element={<ChickenPickupCodePage />} />
                 <Route path="/cafe" element={<CafePage />} />
                 <Route path="/staff/pickup" element={<StaffPickupPage />} />
@@ -134,6 +138,7 @@ const App = () => (
             </BrowserRouter>
           </PlatformGuard>
         </TooltipProvider>
+        </ChickenCartProvider>
       </CartProvider>
     </AuthProvider>
   </QueryClientProvider>
