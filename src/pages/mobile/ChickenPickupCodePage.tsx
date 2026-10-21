@@ -22,7 +22,8 @@ export const ChickenPickupCodePage = () => {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("chicken_pickup_verifications").select("*").eq("order_id", orderId!).maybeSingle();
+      if (!orderId) { setLoading(false); return; }
+      const { data } = await supabase.from("chicken_pickup_verifications").select("*").eq("order_id", orderId).maybeSingle();
       setV(data);
       if (data?.pickup_center_id) {
         const { data: c } = await supabase.from("chicken_pickup_centers").select("name").eq("id", data.pickup_center_id).maybeSingle();
@@ -58,11 +59,11 @@ export const ChickenPickupCodePage = () => {
             </div>
             {showQr && <div className="mt-5 flex justify-center bg-white p-4 rounded-2xl"><QRCodeSVG value={v.pickup_code} size={200} /></div>}
             <div className="mt-6 text-left space-y-2 text-sm">
-              <p><span className="font-bold">Pickup Center: </span>{center || "—"}</p>
+              <p><span className="font-bold">Pickup Outlet: </span>{center || "—"}</p>
               <p className="break-all"><span className="font-bold">Order ID: </span>{orderId}</p>
               {v.expires_at && <p><span className="font-bold">Pickup Deadline: </span>{new Date(v.expires_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>}
             </div>
-            <p className="mt-5 text-sm font-semibold text-foreground bg-amber-50 rounded-xl p-3">Show this pickup code at the selected EggPro pickup center.</p>
+            <p className="mt-5 text-sm font-semibold text-foreground bg-amber-50 rounded-xl p-3">Show this pickup code at the selected EggPro pickup outlet.</p>
           </div>
         )}
         <button onClick={() => navigate("/orders")} className="mt-6 w-full h-12 rounded-xl border-2 border-border font-bold">Go to My Orders</button>

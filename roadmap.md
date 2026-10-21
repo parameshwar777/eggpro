@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Add separate chicken product ordering pages with shared cart quantities, prominent early comparison, outlet wording, admin half/quarter kg options, and no chicken info header logo; verify customer ordering navigation.
+- [x] Add separate chicken product ordering pages with shared cart quantities, prominent early comparison, outlet wording, admin half/quarter kg options, and no chicken info header logo; real product → add two → checkout ₹918 → reload verified; weight tests passed. Admin save and payment not tested without a signed-in account.
 - [x] Remove expired Café Coming Soon labels on Welcome and add admin-managed café map links with customer directions; opening and links tested, customer screen checked, admin save not verified because available session did not open admin.
 - [x] Return egg Home native Back to Welcome and replace switch-business text with a picture beside Cart; picture navigation checked in browser, native Back needs device verification.
 - [x] Explain chicken staff, add optional admin photo cropping, and show portrait photos without excessive trimming; crop and zoom tested independently without uploading or changing live records.
