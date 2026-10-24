@@ -1,5 +1,5 @@
 
-- Chicken ordering, pickup codes and staff verification run through the `chicken-order` edge function (actions: create/confirm/verify/handover/expire); never validate prices or pickups on the client. Why: server-side trust for payments and handovers.
+- Chicken ordering and admin/merchant outlet reads run through `chicken-order`; outlet collection uses the role-checked atomic `complete_chicken_outlet_order` RPC, and legacy staff pages redirect to outlet lists. Why: prices, permissions and handover state must remain server-trusted.
 - Orders table is shared across businesses via `orders.business` ('eggs' default) and `fulfillment_type`; egg flows must ignore chicken rows' pickup fields. Why: additive, backward-compatible expansion.
 - Admin-uploaded business images go to the `product-images` bucket under chicken/…, cafe/… folders and DB stores the path; render with `mediaUrl` + `SafeImage`. Why: public buckets can't be created in this workspace and placeholders must never break.
 - Egg delivery slot hours are evaluated in Asia/Kolkata; a slot with orderStart === orderEnd is disabled. Why: device timezone must not affect cutoffs.
@@ -10,3 +10,6 @@
 - Native Back from egg Home explicitly replace-navigates to Welcome. Why: Home is a business entry screen, not the app exit screen.
 - Welcome and Café use the shared café opening clock; café directions use each location's stored map link, allowing only HTTPS links. Why: keep launch labels consistent and prevent unsafe navigation from admin-entered URLs.
 - Chicken detail and checkout pages share a separate session cart; weight variants remain individual chicken_products rows grouped by exact name, each with an admin-set price. Why: preserve server-side product-ID pricing and isolate egg carts without new payment logic.
+- Chicken admin uses a grouped weight editor and retains existing variant IDs; customer cards group by the same exact name. Why: one product presentation without changing historical order pricing or IDs.
+- Chicken bookings use a shared IST schedule module and store the supply deadline on order creation; Sunday evening goes to the following supply week. Why: payment completion timing must not shift the booked week.
+- Outlet PNG sheets use paginated canvas rendering from server-returned paid pickup orders. Why: include complete outlet lists without exposing customer data in public files or exceeding mobile canvas limits.
