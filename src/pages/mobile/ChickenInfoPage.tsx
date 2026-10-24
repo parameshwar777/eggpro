@@ -41,7 +41,7 @@ export const ChickenInfoPage = () => {
         <section className="px-4 py-5 bg-secondary border-b border-border" aria-label="Chicken meat comparison">
           <h2 className="text-lg font-extrabold mb-2 text-foreground">MEAT CHARACTERISTICS</h2>
           <div className="rounded-lg border-2 border-primary bg-card overflow-hidden shadow-soft">
-            <table className="w-full table-fixed text-[11px] leading-snug">
+            <table className="w-full table-fixed text-xs leading-snug">
               <colgroup><col className="w-[40%]" /><col className="w-[30%]" /><col className="w-[30%]" /></colgroup>
               <thead>
                 <tr className="text-left">
@@ -53,9 +53,9 @@ export const ChickenInfoPage = () => {
               <tbody>
                 {ROWS.map(([k, n, e], i) => (
                   <tr key={k} className={i % 2 ? "bg-secondary" : "bg-card"}>
-                    <td className="px-2 py-2 font-bold text-foreground break-words">{k}</td>
-                    <td className="px-1 py-2 text-center font-semibold text-muted-foreground">{n}</td>
-                    <td className="px-1 py-2 text-center font-extrabold text-foreground bg-primary/20 border-l-2 border-primary">{e}</td>
+                    <td className="px-2 py-2.5 font-bold text-foreground break-words">{k}</td>
+                    <td className="px-1 py-2.5 text-center font-bold text-muted-foreground">{n}</td>
+                    <td className="px-1 py-2.5 text-center font-extrabold text-foreground bg-primary/20 border-l-2 border-primary">{e}</td>
                   </tr>
                 ))}
               </tbody>
