@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { mediaUrl } from "@/lib/media";
 import { chickenUnitPrice, type ChickenProduct } from "@/lib/chickenProducts";
 import { useChickenCart } from "@/contexts/ChickenCartContext";
-import { useChickenSettings, istWeekday } from "@/lib/chickenSettings";
+import { useChickenSettings, chickenBookingOpen } from "@/lib/chickenSettings";
 
 export function ChickenProductDetailPage() {
   const { id } = useParams();
@@ -36,7 +36,7 @@ export function ChickenProductDetailPage() {
     return () => { cancelled = true; };
   }, [id]);
   const product = variants.find((variant) => variant.id === selectedId);
-  const bookingOpen = settings.booking_days.includes(istWeekday());
+  const bookingOpen = chickenBookingOpen(settings);
   const count = product ? qty[product.id] || 0 : 0;
   return (
     <div className="page-scroll bg-background">
@@ -54,7 +54,7 @@ export function ChickenProductDetailPage() {
             <div><h1 className="text-2xl font-extrabold text-foreground">{product.name}</h1><p className="mt-1 text-muted-foreground">{product.weight}</p></div>
             <div className="flex items-baseline gap-3"><span className="text-2xl font-extrabold text-accent">₹{chickenUnitPrice(product)}</span>{product.offer_price && product.offer_price > 0 && product.offer_price < product.price ? <span className="line-through text-muted-foreground">₹{product.price}</span> : null}</div>
             {variants.length > 1 && <section><h2 className="text-base mb-3">Choose weight</h2><div className="flex flex-wrap gap-2">{variants.map((variant) => <Button key={variant.id} variant={variant.id === product.id ? "default" : "outline"} className="min-h-12" onClick={() => setSelectedId(variant.id)}>{variant.weight || variant.name}</Button>)}</div></section>}
-            <section className="border-t border-border pt-5"><h2 className="text-lg mb-2">About this product</h2>{product.description && <p className="text-sm leading-relaxed whitespace-pre-line text-foreground">{product.description}</p>}</section>
+            <section className="border-t border-border pt-5"><h2 className="text-lg mb-2">About this product</h2>{product.description && <p className="text-sm leading-relaxed whitespace-pre-line text-justify text-foreground">{product.description}</p>}</section>
             {!product.available && <p className="text-destructive font-bold">Out of stock</p>}
             {!bookingOpen && <p className="text-muted-foreground font-bold">Chicken booking is closed today.</p>}
           </div>
