@@ -1,9 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { z } from "npm:zod@3";
+import { chickenBookingOpen, chickenSupplyDeadline, canManageChicken } from "../_shared/chickenSchedule.ts";
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -12,7 +10,7 @@ const istNow = () => new Date(Date.now() + IST_OFFSET_MS); // use getUTC* for IS
 
 interface PickupSettings {
   booking_days: number[]; pickup_day: number; pickup_start_time: string;
-  pickup_end_time: string; cutoff_time: string; refund_policy: string; delivery_enabled?: boolean;
+    pickup_end_time: string; cutoff_time: string; refund_policy: string; delivery_enabled?: boolean; sunday_evening_start?: string;
 }
 
 async function getSettings(sb: any): Promise<PickupSettings> {
@@ -23,12 +21,7 @@ async function getSettings(sb: any): Promise<PickupSettings> {
 
 /** Next pickup-day at cutoff (IST) as a UTC Date. */
 function pickupDeadline(s: PickupSettings): Date {
-  const n = istNow();
-  let add = (s.pickup_day - n.getUTCDay() + 7) % 7;
-  const [h, m] = (s.cutoff_time || "10:00").split(":").map(Number);
-  const cand = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + add, h, m || 0) - IST_OFFSET_MS;
-  if (cand <= Date.now()) add += 7;
-  return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + add, h, m || 0) - IST_OFFSET_MS);
+  return chickenSupplyDeadline(s);
 }
 
 function genCode() {
@@ -62,6 +55,48 @@ Deno.serve(async (req) => {
       return !!data;
     };
 
+    if (action === "outlet-list" || action === "outlet-done") {
+      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
+      if (!canManageChicken((roles || []).map((r: any) => r.role))) return json({ error: "Admin or merchant access required" }, 403);
+      if (action === "outlet-done") {
+        const parsed = z.object({ orderId: z.string().uuid(), outletId: z.string().uuid() }).safeParse(body);
+        if (!parsed.success) return json({ error: "Select a valid order and outlet" }, 400);
+        const caller = createClient(url, Deno.env.get("SUPABASE_ANON_KEY") || "", { global: { headers: { Authorization: authHeader } } });
+        const { data, error } = await caller.rpc("complete_chicken_outlet_order", { p_order_id: parsed.data.orderId, p_outlet_id: parsed.data.outletId });
+        if (error) return json({ error: error.message }, 400);
+        return json(data);
+      }
+      const parsed = z.object({ week: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), outletId: z.string().uuid().optional() }).safeParse(body);
+      if (!parsed.success) return json({ error: "Select a valid supply date and outlet" }, 400);
+      const start = new Date(`${parsed.data.week}T00:00:00+05:30`);
+      if (!Number.isFinite(start.getTime())) return json({ error: "Invalid supply date" }, 400);
+      const end = new Date(start.getTime() + 86400000);
+      const settings = await getSettings(admin);
+      const { data: centers, error: centerError } = await admin.from("chicken_pickup_centers").select("id,name,active").order("display_order");
+      if (centerError) throw centerError;
+      const all: any[] = [];
+      for (let from = 0; ; from += 500) {
+        let query = admin.from("orders").select("id,customer_name,phone,items,total_amount,order_status,pickup_center_id,chicken_supply_at,created_at").eq("business", "chicken").eq("fulfillment_type", "pickup").eq("payment_status", "completed")
+          .or(`and(chicken_supply_at.gte.${start.toISOString()},chicken_supply_at.lt.${end.toISOString()}),and(chicken_supply_at.is.null,created_at.gte.${new Date(start.getTime()-7*86400000).toISOString()},created_at.lt.${end.toISOString()})`).order("created_at").order("id").range(from, from + 499);
+        if (parsed.data.outletId) query = query.eq("pickup_center_id", parsed.data.outletId);
+        const { data, error } = await query;
+        if (error) throw error;
+        all.push(...(data || []));
+        if ((data || []).length < 500) break;
+      }
+      const orders = all.filter(o => {
+        const supply = o.chicken_supply_at ? new Date(o.chicken_supply_at) : chickenSupplyDeadline(settings, new Date(o.created_at));
+        return supply >= start && supply < end;
+      });
+      const pickups: any[] = [];
+      for (let i = 0; i < orders.length; i += 100) {
+        const { data, error } = await admin.from("chicken_pickup_verifications").select("order_id,pickup_status,handed_over_at,expires_at").in("order_id", orders.slice(i,i+100).map(o => o.id));
+        if (error) throw error;
+        pickups.push(...(data || []));
+      }
+      return json({ centers: centers || [], orders: orders.map(o => ({ ...o, pickup: pickups.find(p => p.order_id === o.id) || null })) });
+    }
+
     // ---------- CREATE ----------
     if (action === "create") {
       const items = Array.isArray(body.items) ? body.items.slice(0, 20) : [];
@@ -71,8 +106,7 @@ Deno.serve(async (req) => {
       if (!/^\d{10}$/.test(phone)) return json({ error: "Enter a valid 10-digit phone number" }, 400);
 
       const settings = await getSettings(admin);
-      const today = istNow().getUTCDay();
-      if (!settings.booking_days.includes(today)) return json({ error: "Chicken booking is closed today. Please book on an allowed booking day." }, 400);
+      if (!chickenBookingOpen(settings)) return json({ error: "Chicken booking is closed. Sunday evening bookings open at " + (settings.sunday_evening_start || "18:00") + " IST for the following week." }, 400);
 
       const ids = items.map((i: any) => String(i.productId));
       const { data: prods } = await admin.from("chicken_products").select("*").in("id", ids);
@@ -107,6 +141,7 @@ Deno.serve(async (req) => {
         community, address, phone, customer_name: profile?.full_name || user.email?.split("@")[0] || "Customer",
         items: lines, total_amount: total, payment_status: "pending", order_status: "pending",
         delivery_slot: fulfillment === "pickup" ? "Pickup" : "Weekly chicken delivery",
+        chicken_supply_at: pickupDeadline(settings).toISOString(),
       }).select().single();
       if (error) throw error;
 
@@ -141,7 +176,7 @@ Deno.serve(async (req) => {
           for (let i = 0; i < 5 && !pickup; i++) {
             const { data, error } = await admin.from("chicken_pickup_verifications").insert({
               order_id: order.id, customer_id: user.id, pickup_center_id: order.pickup_center_id,
-              pickup_code: genCode(), expires_at: pickupDeadline(settings).toISOString(),
+              pickup_code: genCode(), expires_at: order.chicken_supply_at || chickenSupplyDeadline(settings, new Date(order.created_at)).toISOString(),
             }).select().single();
             if (!error) pickup = data;
           }

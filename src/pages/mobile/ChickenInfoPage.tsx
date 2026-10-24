@@ -65,30 +65,30 @@ export const ChickenInfoPage = () => {
         </section>
 
         <section className="px-5 py-5 space-y-3">
-          <p className="text-sm leading-relaxed text-foreground">
+          <p className="text-sm leading-relaxed text-justify text-foreground">
             Today's fast-growing white broilers are generally slaughtered at an increasingly younger age. Their rapid growth can result in compact meat with comparatively lower water-holding capacity, particularly in the large breast muscles. This may affect the eating quality and natural taste.
           </p>
-          <p className="text-sm leading-relaxed text-foreground">
+          <p className="text-sm leading-relaxed text-justify text-foreground">
             EGG PRO Slow-Growing Broiler is a coloured broiler developed for a more natural, slower growth pattern. These birds can be reared under open-housing conditions with comparatively lower input requirements, making them suitable for farmers looking for an alternative to conventional fast-growing broilers.
           </p>
         </section>
 
         <section className="px-5 py-5 border-t border-border">
           <h2 className="text-lg font-extrabold flex items-center gap-2 text-foreground"><Leaf className="w-5 h-5 text-accent" /> Naturally Tasty Meat</h2>
-          <p className="text-sm leading-relaxed mt-2 text-foreground">
+          <p className="text-sm leading-relaxed text-justify mt-2 text-foreground">
             A comparative study conducted by the National Research Centre on Meat (NRCM), an ICAR organization, evaluated the meat quality of coloured broilers against fast-growing white broilers.
           </p>
-          <p className="text-sm leading-relaxed mt-2 text-foreground">
+          <p className="text-sm leading-relaxed text-justify mt-2 text-foreground">
             The study indicated that the slow-growing coloured broiler meat had better water-holding capacity and desirable meat-quality characteristics, contributing to a more appealing and distinctly tasty eating experience.
           </p>
         </section>
 
         <section className="px-5 py-5 border-t border-border">
           <h2 className="text-lg font-extrabold flex items-center gap-2 text-foreground"><HeartPulse className="w-5 h-5 text-accent" /> A Better Choice for Health-Conscious Consumers</h2>
-          <p className="text-sm leading-relaxed mt-2 text-foreground">
+          <p className="text-sm leading-relaxed text-justify mt-2 text-foreground">
             Analysis of the meat, including fatty-acid profiling and chemical composition, showed favourable nutritional characteristics in the slow-growing coloured chicken.
           </p>
-          <p className="text-sm leading-relaxed mt-2 text-foreground">
+          <p className="text-sm leading-relaxed text-justify mt-2 text-foreground">
             With its slower growth pattern, coloured appearance, and quality meat characteristics, EGG PRO Broiler offers a compelling choice for farmers, retailers, and consumers seeking tasty, quality and nutritionally desirable chicken.
           </p>
         </section>

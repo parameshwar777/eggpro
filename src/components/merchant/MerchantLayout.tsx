@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { ShoppingCart, LogOut, Menu, X } from "lucide-react";
+import { ShoppingCart, Drumstick, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationManager } from "@/components/NotificationManager";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,6 +30,7 @@ export const MerchantLayout = ({ children, title, headerActions }: MerchantLayou
 
   const menuItems = [
     { icon: ShoppingCart, label: "Orders", path: "/merchant/orders" },
+    { icon: Drumstick, label: "Chicken Outlet Orders", path: "/merchant/chicken/orders" },
   ];
 
   if (isLoading) {

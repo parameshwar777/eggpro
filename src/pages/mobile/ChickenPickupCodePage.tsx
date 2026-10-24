@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
+import { Button } from "@/components/ui/button";
 import { Copy, QrCode, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +18,7 @@ export const ChickenPickupCodePage = () => {
   const [v, setV] = useState<any>(null);
   const [center, setCenter] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [showQr, setShowQr] = useState(false);
+
 
   useEffect(() => {
     (async () => {
@@ -53,17 +53,13 @@ export const ChickenPickupCodePage = () => {
             <p className="text-xs font-extrabold tracking-widest text-muted-foreground">YOUR CHICKEN PICKUP CODE</p>
             <p className="mt-3 text-4xl font-black tracking-wider text-orange-700 select-all">{v.pickup_code}</p>
             <p className="mt-1 text-xs font-bold text-muted-foreground">{STATUS_LABEL[v.pickup_status] || v.pickup_status}</p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button onClick={copy} className="h-12 rounded-xl bg-stone-900 text-white font-extrabold text-sm flex items-center justify-center gap-2"><Copy className="w-4 h-4" /> COPY CODE</button>
-              <button onClick={() => setShowQr((s) => !s)} className="h-12 rounded-xl bg-orange-500 text-white font-extrabold text-sm flex items-center justify-center gap-2"><QrCode className="w-4 h-4" /> {showQr ? "HIDE QR" : "SHOW QR CODE"}</button>
-            </div>
-            {showQr && <div className="mt-5 flex justify-center bg-white p-4 rounded-2xl"><QRCodeSVG value={v.pickup_code} size={200} /></div>}
+            <Button variant="secondary" onClick={copy} className="mt-5 h-12 w-full"><Copy />COPY CODE</Button>
             <div className="mt-6 text-left space-y-2 text-sm">
               <p><span className="font-bold">Pickup Outlet: </span>{center || "—"}</p>
               <p className="break-all"><span className="font-bold">Order ID: </span>{orderId}</p>
               {v.expires_at && <p><span className="font-bold">Pickup Deadline: </span>{new Date(v.expires_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>}
             </div>
-            <p className="mt-5 text-sm font-semibold text-foreground bg-amber-50 rounded-xl p-3">Show this pickup code at the selected EggPro pickup outlet.</p>
+            <p className="mt-5 text-sm font-semibold text-foreground bg-amber-50 rounded-xl p-3">Give your name, phone number or order code at your selected outlet. The outlet will mark your order collected.</p>
           </div>
         )}
         <button onClick={() => navigate("/orders")} className="mt-6 w-full h-12 rounded-xl border-2 border-border font-bold">Go to My Orders</button>

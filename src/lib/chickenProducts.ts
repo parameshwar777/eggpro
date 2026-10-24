@@ -17,3 +17,13 @@ export const CHICKEN_WEIGHTS = [
 
 export const chickenUnitPrice = (product: ChickenProduct) =>
   product.offer_price && product.offer_price > 0 ? product.offer_price : product.price;
+
+export function groupChickenProducts<T extends { name: string }>(products: T[]): T[][] {
+  const groups = new Map<string, T[]>();
+  for (const product of products) {
+    const group = groups.get(product.name) || [];
+    group.push(product);
+    groups.set(product.name, group);
+  }
+  return [...groups.values()];
+}

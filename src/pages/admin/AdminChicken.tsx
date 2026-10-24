@@ -1,3 +1,5 @@
+import { ChickenProductManager } from "@/components/admin/ChickenProductManager";
+import { ChickenOutletOrders } from "@/components/ChickenOutletOrders";
 import { useEffect, useState } from "react";
 import { Archive, Loader2, CheckCircle2, XCircle, AlertTriangle, PackageCheck } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -13,48 +15,7 @@ import { CHICKEN_WEIGHTS } from "@/lib/chickenProducts";
 import { DAY_NAMES, fetchChickenSettings, SETTINGS_KEY, type ChickenPickupSettings, DEFAULT_CHICKEN_SETTINGS } from "@/lib/chickenSettings";
 
 /* ---------------- PRODUCTS ---------------- */
-export const AdminChickenProducts = () => {
-  const { toast } = useToast();
-  return (
-    <AdminLayout title="Chicken Products">
-      <AdminCrudManager
-        table="chicken_products"
-        entityLabel="Chicken Product"
-        addLabel="+ ADD CHICKEN"
-        imageFolder="chicken/products"
-        imageButton="UPLOAD IMAGE"
-        defaults={{ name: "", description: "", weight: "", price: "", offer_price: "", image_path: null, active: true, available: true }}
-        hideRow={(r) => r.archived}
-        fields={[
-          { key: "name", label: "Name", type: "text", required: true, placeholder: "e.g. Whole Chicken" },
-          { key: "description", label: "Description", type: "textarea" },
-          { key: "weight", label: "Weight / Quantity", type: "text", options: CHICKEN_WEIGHTS, placeholder: "Custom weight", help: "Add each weight with its own price. Use the same product name to show weights together in the app." },
-          { key: "price", label: "Price (₹)", type: "number", required: true },
-          { key: "offer_price", label: "Offer Price (₹)", type: "number", help: "Optional. If set, customers pay this price." },
-          { key: "image_path", label: "Image", type: "image" },
-          { key: "active", label: "Active (visible in app)", type: "boolean" },
-          { key: "available", label: "Available (in stock)", type: "boolean" },
-        ]}
-        summary={(r) => (
-          <>
-            {r.weight && <p>Weight: {r.weight}</p>}
-            <p>Price: ₹{r.price}{r.offer_price ? ` • Offer ₹${r.offer_price}` : ""}</p>
-            <p>{r.available ? "Available" : "Out of stock"}</p>
-          </>
-        )}
-        extraActions={(r, reload) => (
-          <Button size="sm" variant="outline" className="h-10" onClick={async () => {
-            if (!confirm(`Archive ${r.name}? It will be hidden from customers and admin list.`)) return;
-            const { error } = await supabase.from("chicken_products").update({ archived: true, active: false }).eq("id", r.id);
-            if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
-            logAdminAction("chicken_products", r.id, "archive");
-            reload();
-          }}><Archive className="w-4 h-4 mr-1" />ARCHIVE</Button>
-        )}
-      />
-    </AdminLayout>
-  );
-};
+export const AdminChickenProducts = () => <AdminLayout title="Chicken Products"><ChickenProductManager /></AdminLayout>;
 
 /* ---------------- PICKUP CENTERS ---------------- */
 export const AdminPickupCenters = () => (
@@ -152,6 +113,7 @@ export const AdminChickenSchedule = () => {
           <div><span className={label}>Pickup End</span><Input type="time" className="h-12" value={s.pickup_end_time} onChange={(e) => setS({ ...s, pickup_end_time: e.target.value })} /></div>
           <div><span className={label}>Cutoff</span><Input type="time" className="h-12" value={s.cutoff_time} onChange={(e) => setS({ ...s, cutoff_time: e.target.value })} /></div>
         </div>
+        <div><span className={label}>Sunday evening bookings open (IST)</span><Input type="time" aria-label="Sunday evening bookings open" className="h-12" value={s.sunday_evening_start} onChange={e => setS({ ...s, sunday_evening_start: e.target.value })} /></div>
         <p className="text-xs text-amber-300">All times are India Standard Time. Orders not collected by the cutoff on the pickup day are marked expired.</p>
         <div><span className={label}>Refund Policy (shown to customers)</span><Textarea value={s.refund_policy} onChange={(e) => setS({ ...s, refund_policy: e.target.value })} /></div>
         <div className="flex items-center gap-3"><Switch checked={s.delivery_enabled} onCheckedChange={(v) => setS({ ...s, delivery_enabled: v })} /><span className="text-amber-100 font-semibold">Allow chicken home delivery (communities)</span></div>
@@ -162,82 +124,7 @@ export const AdminChickenSchedule = () => {
 };
 
 /* ---------------- ORDERS ---------------- */
-const STATUSES = ["ALL", "PENDING_PICKUP", "READY_FOR_PICKUP", "VERIFIED", "HANDED_OVER", "EXPIRED", "CANCELLED"];
-export const AdminChickenOrders = () => {
-  const { toast } = useToast();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [pickups, setPickups] = useState<Record<string, any>>({});
-  const [centers, setCenters] = useState<Record<string, string>>({});
-  const [filter, setFilter] = useState("ALL");
-  const [loading, setLoading] = useState(true);
-
-  const load = async () => {
-    setLoading(true);
-    const [o, p, c] = await Promise.all([
-      supabase.from("orders").select("*").eq("business", "chicken").eq("payment_status", "completed").order("created_at", { ascending: false }).limit(300),
-      supabase.from("chicken_pickup_verifications").select("*"),
-      supabase.from("chicken_pickup_centers").select("id,name"),
-    ]);
-    setOrders(o.data || []);
-    setPickups(Object.fromEntries((p.data || []).map((x: any) => [x.order_id, x])));
-    setCenters(Object.fromEntries((c.data || []).map((x: any) => [x.id, x.name])));
-    setLoading(false);
-  };
-  useEffect(() => { load(); }, []);
-
-  const setStatus = async (pid: string, status: string) => {
-    const { error } = await supabase.from("chicken_pickup_verifications").update({ pickup_status: status }).eq("id", pid);
-    if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
-    logAdminAction("chicken_pickup", pid, `status:${status}`);
-    load();
-  };
-  const expireOverdue = async () => {
-    const { data, error } = await supabase.functions.invoke("chicken-order", { body: { action: "expire" } });
-    if (error || data?.error) return toast({ title: "Failed", variant: "destructive" });
-    toast({ title: `${data.expired} overdue pickups marked expired` });
-    load();
-  };
-
-  const shown = orders.filter((o) => filter === "ALL" || pickups[o.id]?.pickup_status === filter);
-
-  return (
-    <AdminLayout title="Chicken Orders">
-      <div className="flex flex-wrap gap-2 mb-4">
-        {STATUSES.map((s) => (
-          <button key={s} onClick={() => setFilter(s)} className={`h-10 px-3 rounded-lg text-xs font-bold ${filter === s ? "bg-primary text-primary-foreground" : "bg-amber-800 text-amber-200"}`}>{s.replace(/_/g, " ")}</button>
-        ))}
-        <Button variant="outline" className="h-10" onClick={expireOverdue}>Expire overdue</Button>
-      </div>
-      {loading ? <Loader2 className="w-6 h-6 animate-spin text-amber-300" /> : shown.length === 0 ? <p className="text-amber-300">No chicken orders.</p> : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {shown.map((o) => {
-            const p = pickups[o.id];
-            return (
-              <div key={o.id} className="bg-amber-900/50 border border-amber-800 rounded-xl p-4 text-amber-100 space-y-1">
-                <div className="flex justify-between gap-2">
-                  <p className="font-bold">{o.customer_name}</p>
-                  <span className="text-xs font-extrabold bg-amber-700 px-2 py-1 rounded-full">{o.fulfillment_type === "pickup" ? (p?.pickup_status || "PENDING").replace(/_/g, " ") : "DELIVERY"}</span>
-                </div>
-                <p className="text-xs text-amber-300">{new Date(o.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} • {o.phone}</p>
-                <p className="text-sm">{(o.items || []).map((i: any) => `${i.name} × ${i.quantity}`).join(", ")}</p>
-                <p className="text-sm font-bold">₹{o.total_amount}</p>
-                {o.fulfillment_type === "pickup" ? (
-                  <p className="text-sm">Center: {centers[o.pickup_center_id] || "—"} • Code: <span className="font-mono font-bold">{p?.pickup_code || "—"}</span></p>
-                ) : <p className="text-sm">{o.community} — {o.address}</p>}
-                {p && ["PENDING_PICKUP"].includes(p.pickup_status) && (
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" className="h-10" onClick={() => setStatus(p.id, "READY_FOR_PICKUP")}>Mark ready</Button>
-                    <Button size="sm" variant="destructive" className="h-10" onClick={() => confirm("Cancel this pickup?") && setStatus(p.id, "CANCELLED")}>Cancel</Button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </AdminLayout>
-  );
-};
+export const AdminChickenOrders = () => <AdminLayout title="Chicken Outlet Orders"><ChickenOutletOrders /></AdminLayout>;
 
 /* ---------------- VERIFICATION (shared by admin and staff) ---------------- */
 export const PickupVerificationPanel = ({ isAdmin }: { isAdmin: boolean }) => {

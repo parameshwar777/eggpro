@@ -44,9 +44,7 @@ export const AdminLayout = ({ children, title, headerActions }: AdminLayoutProps
     { section: "Chicken", icon: Drumstick, label: "Products & Pricing", path: "/admin/chicken/products" },
     { icon: MapPin, label: "Pickup Centers", path: "/admin/chicken/centers" },
     { icon: CalendarClock, label: "Pickup Schedule", path: "/admin/chicken/schedule" },
-    { icon: ClipboardList, label: "Chicken Orders", path: "/admin/chicken/orders" },
-    { icon: ScanLine, label: "Pickup Verification", path: "/admin/chicken/verify" },
-    { icon: UserCog, label: "Chicken Staff", path: "/admin/chicken/staff" },
+    { icon: ClipboardList, label: "Outlet Orders", path: "/admin/chicken/orders" },
     { section: "Café", icon: Coffee, label: "Café Locations", path: "/admin/cafe" },
     { section: "Settings", icon: Settings, label: "Settings", path: "/admin/settings" },
   ];

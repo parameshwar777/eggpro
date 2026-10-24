@@ -6,12 +6,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { SafeImage } from "@/components/BrandLogo";
 import { mediaUrl } from "@/lib/media";
-import { useChickenSettings, DAY_NAMES, fmtTime, istWeekday, upcomingPickupDeadline } from "@/lib/chickenSettings";
+import { useChickenSettings, DAY_NAMES, fmtTime, chickenBookingOpen, upcomingPickupDeadline } from "@/lib/chickenSettings";
 import { openRazorpayCheckout } from "@/lib/capacitorPayment";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useChickenCart } from "@/contexts/ChickenCartContext";
-import { chickenUnitPrice, type ChickenProduct } from "@/lib/chickenProducts";
+import { chickenUnitPrice, groupChickenProducts, type ChickenProduct } from "@/lib/chickenProducts";
 
 type Product = ChickenProduct;
 interface Center { id: string; name: string; address: string; google_maps_url: string | null; image_path: string | null; pickup_instructions: string | null }
@@ -33,6 +33,7 @@ export const ChickenOrderPage = () => {
   const [loading, setLoading] = useState(true);
   const { qty, change, clear } = useChickenCart();
   const [mode, setMode] = useState<"delivery" | "pickup">("pickup");
+  const [selectedWeights, setSelectedWeights] = useState<Record<string, string>>({});
   const [centerId, setCenterId] = useState("");
   const [addressId, setAddressId] = useState("");
   const [phone, setPhone] = useState("");
@@ -63,7 +64,7 @@ export const ChickenOrderPage = () => {
   }, [user, community]);
 
   const total = useMemo(() => products.reduce((s, p) => s + unitPrice(p) * (qty[p.id] || 0), 0), [products, qty]);
-  const bookingOpen = settings.booking_days.includes(istWeekday());
+  const bookingOpen = chickenBookingOpen(settings);
   const bookingDays = settings.booking_days.map((d) => DAY_NAMES[d].slice(0, 3)).join(", ");
   const pickupDate = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "short", year: "numeric" }).format(upcomingPickupDeadline(settings));
 
@@ -116,14 +117,15 @@ export const ChickenOrderPage = () => {
 
          <section aria-label="Weekly pickup schedule" className="mx-4 mt-4 rounded-lg border-2 border-primary bg-primary/10 p-4 space-y-2">
            <p className="font-extrabold text-foreground flex items-start gap-2"><CalendarDays className="w-5 h-5 shrink-0 mt-0.5" />Weekly supply</p>
-           <p className="text-sm font-bold text-foreground">Book on {bookingDays || "—"}</p>
+           <p className="text-lg font-extrabold text-accent">We supply chicken only on {DAY_NAMES[settings.pickup_day]}.</p>
+           <p className="text-sm font-bold text-foreground">Book on {bookingDays || "—"} or {DAY_NAMES[settings.pickup_day]} from {fmtTime(settings.sunday_evening_start)} for the following week.</p>
            <p className="text-sm text-foreground">Pickup on {DAY_NAMES[settings.pickup_day]} {fmtTime(settings.pickup_start_time)} – {fmtTime(settings.pickup_end_time)}</p>
            <p className="text-sm font-extrabold text-foreground">Collect before {fmtTime(settings.cutoff_time)} (IST)</p>
          </section>
 
         {!bookingOpen && (
           <div className="mx-4 mt-4 p-4 rounded-2xl bg-red-50 border-2 border-red-200 text-red-800 text-sm font-semibold">
-            Chicken booking is closed today. You can book on {bookingDays}.
+            Booking opens on {DAY_NAMES[settings.pickup_day]} at {fmtTime(settings.sunday_evening_start)} for next {DAY_NAMES[settings.pickup_day]}. You can also book on {bookingDays}.
           </div>
         )}
 
@@ -132,16 +134,20 @@ export const ChickenOrderPage = () => {
           {loading && <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}
           {prodErr && <p className="text-sm text-red-700 font-semibold">Chicken products are currently unavailable. Please try again later.</p>}
           {!loading && !prodErr && products.length === 0 && <p className="text-sm text-muted-foreground font-semibold">Chicken products are currently unavailable. Please try again later.</p>}
-          {products.map((p) => (
-            <div key={p.id} className="bg-card rounded-2xl shadow-soft overflow-hidden flex">
+          {groupChickenProducts(products).map((variants) => {
+            const first = variants[0];
+            const p = variants.find(v => v.id === selectedWeights[first.name]) || first;
+            return (
+            <div key={first.name} className="bg-card rounded-2xl shadow-soft overflow-hidden flex">
                <button onClick={() => navigate(`/chicken/product/${p.id}`)} className="shrink-0" aria-label={`View ${p.name} details`}>
                  <SafeImage src={mediaUrl(p.image_path)} alt={p.name} fit="contain" className="w-28 h-28" />
                </button>
               <div className="flex-1 p-3 min-w-0">
                 <button onClick={() => navigate(`/chicken/product/${p.id}`)} className="text-left w-full" aria-label={`View ${p.name} details`}>
-                  <p className="font-extrabold text-foreground truncate">{p.name}</p>
+                  <p className="font-extrabold text-foreground leading-snug">{p.name}</p>
                   {p.weight && <p className="text-xs font-semibold text-muted-foreground">{p.weight}</p>}
                 </button>
+                {variants.length > 1 && <select aria-label={`Weight for ${p.name}`} value={p.id} onChange={e => setSelectedWeights(prev => ({ ...prev, [first.name]: e.target.value }))} className="h-12 w-full mt-2 rounded-lg border border-input bg-background text-foreground px-2 text-sm">{variants.map(v => <option key={v.id} value={v.id}>{v.weight || "Standard"} — ₹{unitPrice(v)}</option>)}</select>}
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-lg font-extrabold text-orange-700">₹{unitPrice(p)}</span>
                   {p.offer_price && p.offer_price > 0 && p.offer_price < p.price && <span className="text-xs line-through text-muted-foreground">₹{p.price}</span>}
@@ -155,18 +161,18 @@ export const ChickenOrderPage = () => {
                 ) : <p className="text-xs font-bold text-red-600 mt-2">Out of stock</p>}
               </div>
             </div>
-          ))}
+          ); })}
         </div>
 
         <div className="px-4 mt-6">
           <h2 className="text-lg font-extrabold text-foreground mb-2">How would you like it?</h2>
           <div className="grid grid-cols-2 gap-3">
             {settings.delivery_enabled && (
-              <button onClick={() => setMode("delivery")} className={`h-20 rounded-2xl border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "delivery" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"}`}>
-                <Truck className="w-6 h-6" /> DELIVERY
+              <button onClick={() => setMode("delivery")} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "delivery" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"}`}>
+                <Truck className="w-6 h-6 shrink-0" /> <span className="text-[13px] leading-tight text-center">DELIVERY TO SPECIFIC COMMUNITIES</span>
               </button>
             )}
-            <button onClick={() => setMode("pickup")} className={`h-20 rounded-2xl border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "pickup" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"} ${settings.delivery_enabled ? "" : "col-span-2"}`}>
+            <button onClick={() => setMode("pickup")} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "pickup" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"} ${settings.delivery_enabled ? "" : "col-span-2"}`}>
               <Store className="w-6 h-6" /> PICK UP AT OUTLETS
             </button>
           </div>
