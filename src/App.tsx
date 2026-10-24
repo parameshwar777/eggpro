@@ -37,9 +37,9 @@ import { ChickenOrderPage } from "./pages/mobile/ChickenOrderPage";
 import { ChickenProductDetailPage } from "./pages/mobile/ChickenProductDetailPage";
 import { ChickenPickupCodePage } from "./pages/mobile/ChickenPickupCodePage";
 import { CafePage } from "./pages/mobile/CafePage";
-import { StaffPickupPage } from "./pages/staff/StaffPickupPage";
+import { MerchantChickenOrders } from "./pages/merchant/MerchantChickenOrders";
 import { AdminChickenProducts, AdminPickupCenters, AdminCafeLocations, AdminChickenSchedule, AdminChickenOrders, AdminPickupVerification } from "./pages/admin/AdminChicken";
-import { AdminChickenStaff } from "./pages/admin/AdminChickenStaff";
+
 
 
 // Admin Pages
@@ -105,7 +105,7 @@ const App = () => (
                 <Route path="/chicken/product/:id" element={<ChickenProductDetailPage />} />
                 <Route path="/chicken/pickup/:orderId" element={<ChickenPickupCodePage />} />
                 <Route path="/cafe" element={<CafePage />} />
-                <Route path="/staff/pickup" element={<StaffPickupPage />} />
+                <Route path="/staff/pickup" element={<Navigate to="/merchant/chicken/orders" replace />} />
 
 
                 {/* Admin Routes */}
@@ -124,14 +124,15 @@ const App = () => (
                 <Route path="/admin/chicken/centers" element={<AdminPickupCenters />} />
                 <Route path="/admin/chicken/schedule" element={<AdminChickenSchedule />} />
                 <Route path="/admin/chicken/orders" element={<AdminChickenOrders />} />
-                <Route path="/admin/chicken/verify" element={<AdminPickupVerification />} />
-                <Route path="/admin/chicken/staff" element={<AdminChickenStaff />} />
+                <Route path="/admin/chicken/verify" element={<Navigate to="/admin/chicken/orders" replace />} />
+                <Route path="/admin/chicken/staff" element={<Navigate to="/admin/chicken/orders" replace />} />
                 <Route path="/admin/cafe" element={<AdminCafeLocations />} />
 
 
                 {/* Merchant Routes */}
                 <Route path="/merchant/login" element={<MerchantLogin />} />
                 <Route path="/merchant/orders" element={<MerchantOrders />} />
+                <Route path="/merchant/chicken/orders" element={<MerchantChickenOrders />} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
