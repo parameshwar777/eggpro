@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, ChevronDown, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,37 @@ interface Center { id: string; name: string; address: string; google_maps_url: s
 interface Address { id: string; label: string; address_line1: string; address_line2: string | null; city: string; pincode: string; phone: string; community: string | null }
 
 const unitPrice = chickenUnitPrice;
+
+function WeightPicker({ variants, value, onChange }: { variants: Product[]; value: string; onChange: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = variants.find(v => v.id === value) || variants[0];
+  return (
+    <div className="relative mt-2">
+      <button type="button" onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}
+        className="h-12 w-full rounded-xl border-2 border-border bg-card px-3 flex items-center justify-between gap-2 text-sm font-extrabold text-foreground shadow-soft">
+        <span className="truncate">{selected.weight || "Standard"} — ₹{unitPrice(selected)}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <>
+          <button type="button" aria-label="Close weight options" className="fixed inset-0 z-20 cursor-default" onClick={() => setOpen(false)} />
+          <ul role="listbox" className="absolute z-30 left-0 right-0 mt-1 rounded-xl border-2 border-border bg-card shadow-elevated overflow-hidden">
+            {variants.map(v => (
+              <li key={v.id}>
+                <button type="button" role="option" aria-selected={v.id === value}
+                  onClick={() => { onChange(v.id); setOpen(false); }}
+                  className={`w-full px-3 h-12 flex items-center justify-between gap-2 text-sm font-bold ${v.id === value ? "bg-primary/10 text-primary" : "text-foreground"}`}>
+                  <span>{v.weight || "Standard"} — ₹{unitPrice(v)}</span>
+                  {v.id === value && <Check className="w-4 h-4 shrink-0" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
 
 export const ChickenOrderPage = () => {
   const navigate = useNavigate();
@@ -147,7 +178,7 @@ export const ChickenOrderPage = () => {
                   <p className="font-extrabold text-foreground leading-snug">{p.name}</p>
                   {p.weight && <p className="text-xs font-semibold text-muted-foreground">{p.weight}</p>}
                 </button>
-                {variants.length > 1 && <select aria-label={`Weight for ${p.name}`} value={p.id} onChange={e => setSelectedWeights(prev => ({ ...prev, [first.name]: e.target.value }))} className="h-12 w-full mt-2 rounded-lg border border-input bg-background text-foreground px-2 text-sm">{variants.map(v => <option key={v.id} value={v.id}>{v.weight || "Standard"} — ₹{unitPrice(v)}</option>)}</select>}
+                {variants.length > 1 && <WeightPicker variants={variants} value={p.id} onChange={(id) => setSelectedWeights(prev => ({ ...prev, [first.name]: id }))} />}
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-lg font-extrabold text-orange-700">₹{unitPrice(p)}</span>
                   {p.offer_price && p.offer_price > 0 && p.offer_price < p.price && <span className="text-xs line-through text-muted-foreground">₹{p.price}</span>}
@@ -169,11 +200,11 @@ export const ChickenOrderPage = () => {
           <div className="grid grid-cols-2 gap-3">
             {settings.delivery_enabled && (
               <button onClick={() => setMode("delivery")} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "delivery" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"}`}>
-                <Truck className="w-6 h-6 shrink-0" /> <span className="text-[13px] leading-tight text-center">DELIVERY TO SPECIFIC COMMUNITIES</span>
+                <Truck className="w-6 h-6 shrink-0" /> <span className="text-[13px] leading-tight text-center font-extrabold">DELIVERY TO SPECIFIC COMMUNITIES</span>
               </button>
             )}
             <button onClick={() => setMode("pickup")} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "pickup" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"} ${settings.delivery_enabled ? "" : "col-span-2"}`}>
-              <Store className="w-6 h-6" /> PICK UP AT OUTLETS
+              <Store className="w-6 h-6" /> <span className="text-[13px] leading-tight text-center font-extrabold">PICK UP AT OUTLETS</span>
             </button>
           </div>
 

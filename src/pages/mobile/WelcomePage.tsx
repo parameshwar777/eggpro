@@ -91,18 +91,18 @@ export const WelcomePage = () => {
               whileTap={{ scale: 0.98 }}
                             className={`min-w-0 text-left rounded-lg p-4 ${c.tone} text-accent-foreground shadow-card relative overflow-hidden flex flex-col ${c.key === "cafe" ? "col-span-2 min-h-44" : "min-h-64"}`}
             >
-              <c.icon className="absolute -right-4 -bottom-4 w-32 h-32 opacity-15" />
+              <c.icon className={`absolute opacity-10 pointer-events-none ${c.key === "cafe" ? "-right-6 -bottom-8 w-36 h-36" : "-right-4 -bottom-4 w-32 h-32"}`} />
               {c.soon && cafeComingSoon && (
                 <span className="absolute top-4 right-4 text-[10px] font-extrabold tracking-widest bg-background/20 px-2.5 py-1 rounded-full">
                   COMING SOON
                 </span>
               )}
-              <div className="w-11 h-11 rounded-2xl bg-background/20 flex items-center justify-center mb-3">
+              <div className="w-11 h-11 rounded-2xl bg-background/20 flex items-center justify-center mb-3 relative z-10">
                 <c.icon className="w-6 h-6" />
               </div>
-              <h2 className="text-lg font-extrabold tracking-normal leading-tight min-h-12">{c.title}</h2>
+              <h2 className="text-lg font-extrabold tracking-normal leading-tight min-h-12 relative z-10">{c.title}</h2>
               {c.subtitle.map((s) => (
-                <p key={s} className="text-[13px] font-semibold opacity-90 leading-snug mt-1">{s}</p>
+                <p key={s} className={`text-[13px] font-semibold opacity-90 leading-snug mt-1 relative z-10 ${c.key === "cafe" ? "max-w-[65%]" : ""}`}>{s}</p>
               ))}
               <Button variant="secondary" onClick={() => open(c.key)} className="mt-auto pt-2 h-12 w-full min-w-0 px-2 text-[12px] whitespace-normal leading-tight font-extrabold relative z-10">
                 {c.key === "cafe" && !cafeComingSoon ? "EXPLORE CAFÉ" : c.cta}
