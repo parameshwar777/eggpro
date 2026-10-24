@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { chickenSupplyDeadline } from "../../supabase/functions/_shared/chickenSchedule";
+export { chickenBookingOpen } from "../../supabase/functions/_shared/chickenSchedule";
 
 export interface ChickenPickupSettings {
   booking_days: number[];
@@ -9,6 +11,7 @@ export interface ChickenPickupSettings {
   cutoff_time: string;
   refund_policy: string;
   delivery_enabled: boolean;
+  sunday_evening_start: string;
 }
 
 export const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -21,6 +24,7 @@ export const DEFAULT_CHICKEN_SETTINGS: ChickenPickupSettings = {
   cutoff_time: "10:00",
   refund_policy: "",
   delivery_enabled: true,
+  sunday_evening_start: "18:00",
 };
 
 export const SETTINGS_KEY = "chicken_pickup_settings";
@@ -61,11 +65,5 @@ export function istWeekday(): number {
 
 /** Upcoming pickup date, mirrored for display only; the server enforces expiry. */
 export function upcomingPickupDeadline(settings: ChickenPickupSettings, now = new Date()): Date {
-  const offset = 330 * 60 * 1000;
-  const india = new Date(now.getTime() + offset);
-  let days = (settings.pickup_day - india.getUTCDay() + 7) % 7;
-  const [hour, minute] = settings.cutoff_time.split(":").map(Number);
-  const deadline = () => Date.UTC(india.getUTCFullYear(), india.getUTCMonth(), india.getUTCDate() + days, hour, minute || 0) - offset;
-  if (deadline() <= now.getTime()) days += 7;
-  return new Date(deadline());
+  return chickenSupplyDeadline(settings, now);
 }
