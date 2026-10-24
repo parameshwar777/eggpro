@@ -1,14 +1,27 @@
-import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Download, Loader2, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Download, Loader2, RefreshCw, Search } from "lucide-react";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useChickenSettings, upcomingPickupDeadline } from "@/lib/chickenSettings";
+import { useChickenSettings, upcomingPickupDeadline, DAY_NAMES } from "@/lib/chickenSettings";
 import { downloadOutletSheet, type OutletOrder } from "@/lib/outletSheet";
 const indiaDate = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+const sundayLabel = (iso: string) => new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(new Date(`${iso}T00:00:00+05:30`));
+/** Upcoming pickup day plus the previous 8 pickup days, newest first. */
+function supplyDates(pickupDay: number): string[] {
+  const now = new Date(Date.now() + 330 * 60 * 1000);
+  let diff = (pickupDay - now.getUTCDay() + 7) % 7;
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + diff));
+  const dates: string[] = [];
+  for (let i = 0; i < 9; i++) {
+    const d = new Date(next.getTime() - i * 7 * 86400000);
+    dates.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`);
+  }
+  return dates;
+}
 export function ChickenOutletOrders() {
   const { user, isAdmin, isMerchant } = useAuth();
   const { settings, loaded } = useChickenSettings();
@@ -21,6 +34,8 @@ export function ChickenOutletOrders() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const dateOptions = useMemo(() => supplyDates(settings.pickup_day), [settings.pickup_day]);
   useEffect(() => { if (loaded && !week) setWeek(indiaDate(upcomingPickupDeadline(settings))); }, [loaded,settings,week]);
   const invoke = async (body: Record<string, unknown>) => {
     const result = await supabase.functions.invoke("chicken-order", { body });
@@ -47,7 +62,9 @@ export function ChickenOutletOrders() {
   }, [load,user,isAdmin,isMerchant]);
   const done = (o: OutletOrder) => o.order_status === "delivered" || o.pickup?.pickup_status === "HANDED_OVER";
   const outletOrders = orders.filter(o => !outlet || o.pickup_center_id === outlet);
-  const shown = outletOrders.filter(o => filter === "all" || (filter === "done" ? done(o) : !done(o)));
+  const term = search.trim().toLowerCase();
+  const searched = term ? outletOrders.filter(o => (o.customer_name || "").toLowerCase().includes(term) || (o.phone || "").replace(/\D/g, "").includes(term.replace(/\D/g, ""))) : outletOrders;
+  const shown = searched.filter(o => filter === "all" || (filter === "done" ? done(o) : !done(o)));
   async function markDone(o: OutletOrder) {
     if (!confirm(`Confirm ${o.customer_name || "this customer"} has collected this order?`)) return;
     setBusy(o.id);
@@ -62,7 +79,8 @@ export function ChickenOutletOrders() {
     } catch (e) { toast({ title: "Download failed", description: e instanceof Error ? e.message : "Try again", variant: "destructive" }); }
   }
   return <div className="space-y-5 text-foreground">
-    <div className="grid gap-3 sm:grid-cols-2"><label className="font-bold text-primary">Supply date<Input aria-label="Supply date" type="date" className="h-12 mt-1" value={week} onChange={e => setWeek(e.target.value)} /></label><label className="font-bold text-primary">Pickup outlet<select aria-label="Pickup outlet" value={outlet} onChange={e => setOutlet(e.target.value)} className="h-12 mt-1 w-full rounded-lg border border-input bg-background text-foreground px-3"><option value="">All outlets</option>{centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label></div>
+    <div className="grid gap-3 sm:grid-cols-2"><label className="font-bold text-primary">Supply date ({DAY_NAMES[settings.pickup_day]}s)<select aria-label="Supply date" value={week} onChange={e => setWeek(e.target.value)} className="h-12 mt-1 w-full rounded-lg border border-input bg-background text-foreground px-3 font-bold">{dateOptions.map(d => <option key={d} value={d}>{sundayLabel(d)}</option>)}</select></label><label className="font-bold text-primary">Pickup outlet<select aria-label="Pickup outlet" value={outlet} onChange={e => setOutlet(e.target.value)} className="h-12 mt-1 w-full rounded-lg border border-input bg-background text-foreground px-3 font-bold"><option value="">All outlets</option>{centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label></div>
+    <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" /><Input aria-label="Search by name or phone" placeholder="Search customer name or phone number" value={search} onChange={e => setSearch(e.target.value)} className="h-12 pl-10 font-semibold" /></div>
     <div className="flex flex-wrap gap-2"><div className="inline-flex" role="group" aria-label="Order status">{["all","pending","done"].map(f => <Button key={f} variant={f === filter ? "default" : "secondary"} className="h-12 capitalize" onClick={() => setFilter(f)}>{f}</Button>)}</div><Button variant="secondary" className="h-12" disabled={loading || !outletOrders.length} onClick={download}><Download />PNG SHEET</Button><Button variant="secondary" size="icon" className="h-12 w-12" aria-label="Refresh orders" disabled={loading} onClick={() => void load()}><RefreshCw /></Button></div>
     <p className="font-extrabold text-primary">{outletOrders.length} orders · {outletOrders.filter(done).length} done · {outletOrders.filter(o => !done(o)).length} remaining</p>
     {loading ? <Loader2 className="animate-spin text-primary" /> : error ? <p role="alert" className="bg-card text-destructive p-4 rounded-lg">{error}</p> : !shown.length ? <p className="text-primary">No paid pickup orders for this date and outlet.</p> : <div className="grid gap-3 xl:grid-cols-2">{shown.map(o => {
