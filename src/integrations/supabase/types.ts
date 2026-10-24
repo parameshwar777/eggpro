@@ -456,6 +456,7 @@ export type Database = {
         Row: {
           address: string
           business: string
+          chicken_supply_at: string | null
           community: string
           created_at: string
           customer_name: string | null
@@ -479,6 +480,7 @@ export type Database = {
         Insert: {
           address: string
           business?: string
+          chicken_supply_at?: string | null
           community: string
           created_at?: string
           customer_name?: string | null
@@ -502,6 +504,7 @@ export type Database = {
         Update: {
           address?: string
           business?: string
+          chicken_supply_at?: string | null
           community?: string
           created_at?: string
           customer_name?: string | null
@@ -911,6 +914,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_chicken_outlet_order: {
+        Args: { p_order_id: string; p_outlet_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
