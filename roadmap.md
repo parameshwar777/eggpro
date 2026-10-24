@@ -3,6 +3,7 @@
 - [x] Highlight Sunday-only supply and allow Sunday evening bookings for next Sunday.
 - [x] Group chicken weight variants into one admin product and customer card; rename community delivery.
 - [x] Replace staff scanning with admin/merchant weekly outlet lists, PNG download and server-validated Mark done; signed-in admin/merchant use still needs checking.
+- [ ] Verify grouped admin save and weekly outlet Mark done using a signed-in admin/merchant account; session minting blocked because the requester has no matching app account and other accounts require an explicit selection.
 - [x] Add separate chicken product ordering pages with shared cart quantities, prominent early comparison, outlet wording, admin half/quarter kg options, and no chicken info header logo; real product → add two → checkout ₹918 → reload verified; weight tests passed. Admin save and payment not tested without a signed-in account.
 - [x] Remove expired Café Coming Soon labels on Welcome and add admin-managed café map links with customer directions; opening and links tested, customer screen checked, admin save not verified because available session did not open admin.
 - [x] Return egg Home native Back to Welcome and replace switch-business text with a picture beside Cart; picture navigation checked in browser, native Back needs device verification.
