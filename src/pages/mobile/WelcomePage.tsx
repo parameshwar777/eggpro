@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Egg, EggFried, ChevronRight } from "lucide-react";
 import { WelcomeHen } from "@/components/WelcomeHen";
-import cafeBadge from "@/assets/eggpro-cafe-badge.png.asset.json";
+import cafeBadge from "@/assets/eggpro-cafe-badge.webp.asset.json";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
