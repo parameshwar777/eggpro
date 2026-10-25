@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, ChevronDown, Check } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, ChevronDown, Check, Copy, Tag } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { fetchChickenOffers, type ChickenOffer } from "@/components/mobile/ChickenOfferPopup";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -69,7 +71,21 @@ export const ChickenOrderPage = () => {
   const [addressId, setAddressId] = useState("");
   const [phone, setPhone] = useState("");
   const [paying, setPaying] = useState(false);
+  const [soonOpen, setSoonOpen] = useState(false);
+  const [coupons, setCoupons] = useState<ChickenOffer[]>([]);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const community = localStorage.getItem("selectedCommunity") || "";
+
+  useEffect(() => { fetchChickenOffers().then(setCoupons); }, []);
+
+  const copyCoupon = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+      toast({ title: "Coupon copied", description: `Use ${code} at checkout` });
+      setTimeout(() => setCopiedCode(null), 1800);
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     (async () => {
@@ -199,8 +215,9 @@ export const ChickenOrderPage = () => {
           <h2 className="text-lg font-extrabold text-foreground mb-2">How would you like it?</h2>
           <div className="grid grid-cols-2 gap-3">
             {settings.delivery_enabled && (
-              <button onClick={() => setMode("delivery")} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "delivery" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"}`}>
-                <Truck className="w-6 h-6 shrink-0" /> <span className="text-[13px] leading-tight text-center font-extrabold">DELIVERY TO SPECIFIC COMMUNITIES</span>
+              <button onClick={() => setSoonOpen(true)} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "delivery" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"}`}>
+                <Truck className="w-6 h-6 shrink-0" /> <span className="text-[13px] leading-tight text-center font-extrabold">DELIVERY TO SELECTED COMMUNITIES</span>
+                <span className="text-[10px] font-extrabold tracking-widest bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">LAUNCHING SOON</span>
               </button>
             )}
             <button onClick={() => setMode("pickup")} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "pickup" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"} ${settings.delivery_enabled ? "" : "col-span-2"}`}>
