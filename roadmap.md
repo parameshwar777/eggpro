@@ -13,4 +13,7 @@
 - [x] Prevent repeated splash/community-map intro; verified one pass to Welcome, repeat prevention, and Skip timer cleanup.
 - [x] Fit the chicken meat comparison on phone screens without horizontal scrolling (360px table, no overflow).
 - [x] Diagnose WhatsApp failures (Twilio 63016), submit revised template, deploy template-based alerts and correct WATI recipient splitting.
-- [ ] Verify recipient delivery after Meta approves the new template (currently pending; blocked by external review).
+- [ ] Verify recipient delivery after Meta approves the new template (currently pending; blocked by external review).- [x] Offers tagged per business (eggs/chicken/café/all); chicken offers pop up with copyable coupon on chicken tab and show at chicken checkout
+- [x] Welcome icons: filled white egg, hen (bird), fried-egg dish — no square boxes
+- [x] Chicken delivery renamed "Delivery to selected communities" + Launching Soon popup
+- [x] Chicken booking days now Mon–Fri (Saturday removed); reopens Sunday 6 PM
