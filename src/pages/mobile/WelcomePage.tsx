@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Egg, EggFried, ChevronRight } from "lucide-react";
 import { WelcomeHen } from "@/components/WelcomeHen";
-import cafeSign from "@/assets/eggpro-cafe-sign.jpg.asset.json";
+import cafeBadge from "@/assets/eggpro-cafe-badge.png.asset.json";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,7 +101,7 @@ export const WelcomePage = () => {
               )}
               {c.key === "cafe" ? (
                 <div className="flex items-center gap-4 mb-6">
-                  <img src={cafeSign.url} alt="EGG PRO CAFÉ egg-shaped sign" className="w-20 h-28 object-contain shrink-0 rounded-lg" />
+                  <img src={cafeBadge.url} alt="EGG PRO CAFÉ logo" className="w-24 h-24 object-cover shrink-0 rounded-2xl shadow-lg ring-1 ring-white/25" />
                   <div className="min-w-0">
                     <h2 className="text-lg font-extrabold tracking-normal leading-tight">{c.title}</h2>
                     <p className="text-sm font-semibold leading-relaxed mt-3">High-Protein Food<br />Fresh Ingredients</p>
