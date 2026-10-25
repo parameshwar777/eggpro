@@ -19,3 +19,4 @@
 - [x] Welcome icons: filled white egg, hen (bird), fried-egg dish — no square boxes
 - [x] Chicken delivery renamed "Delivery to selected communities" + Launching Soon popup
 - [x] Chicken booking days now Mon–Fri (Saturday removed); reopens Sunday 6 PM
+- [x] Welcome Café card shows the uploaded egg-shaped badge logo on a deep wood-brown gradient; logo load and card layout checked at phone size.
