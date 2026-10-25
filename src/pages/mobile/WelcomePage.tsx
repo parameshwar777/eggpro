@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Egg, Bird, EggFried, ChevronRight } from "lucide-react";
+import { Egg, EggFried, ChevronRight } from "lucide-react";
+import { WelcomeHen } from "@/components/WelcomeHen";
+import cafeSign from "@/assets/eggpro-cafe-sign.jpg.asset.json";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +24,7 @@ const cards = [
     title: "EGGPRO CHICKEN",
     subtitle: ["Slow-Growing Broiler", "Tasty • Quality • Naturally Raised"],
     cta: "EXPLORE CHICKEN",
-    icon: Bird,
+    icon: WelcomeHen,
     tone: "welcome-chicken",
   },
   {
@@ -89,20 +91,30 @@ export const WelcomePage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.08 }}
               whileTap={{ scale: 0.98 }}
-                            className={`min-w-0 text-left rounded-lg p-4 ${c.tone} text-accent-foreground shadow-card relative overflow-hidden flex flex-col ${c.key === "cafe" ? "col-span-2 min-h-44" : "min-h-64"}`}
+              className={`min-w-0 text-left rounded-lg p-4 ${c.tone} text-accent-foreground shadow-card relative overflow-hidden flex flex-col ${c.key === "cafe" ? "col-span-2" : "min-h-64"}`}
             >
-              <c.icon className={`absolute opacity-10 pointer-events-none ${c.key === "cafe" ? "-right-6 -bottom-8 w-36 h-36" : "-right-4 -bottom-4 w-32 h-32"}`} />
+              {c.key !== "cafe" && <c.icon className="absolute opacity-10 pointer-events-none -right-4 -bottom-4 w-32 h-32" />}
               {c.soon && cafeComingSoon && (
                 <span className="absolute top-4 right-4 text-[10px] font-extrabold tracking-widest bg-background/20 px-2.5 py-1 rounded-full">
                   COMING SOON
                 </span>
               )}
-              <c.icon className="w-12 h-12 mb-3 relative z-10" fill="currentColor" strokeWidth={1} />
-              <h2 className="text-lg font-extrabold tracking-normal leading-tight min-h-12 relative z-10">{c.title}</h2>
-              {c.subtitle.map((s) => (
-                <p key={s} className={`text-[13px] font-semibold opacity-90 leading-snug mt-1 relative z-10 ${c.key === "cafe" ? "max-w-[65%]" : ""}`}>{s}</p>
-              ))}
-              <Button variant="secondary" onClick={() => open(c.key)} className="mt-auto pt-2 h-12 w-full min-w-0 px-2 text-[12px] whitespace-normal leading-tight font-extrabold relative z-10">
+              {c.key === "cafe" ? (
+                <div className="flex items-center gap-4 mb-6">
+                  <img src={cafeSign.url} alt="EGG PRO CAFÉ egg-shaped sign" className="w-20 h-28 object-contain shrink-0 rounded-lg" />
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-extrabold tracking-normal leading-tight">{c.title}</h2>
+                    <p className="text-sm font-semibold leading-relaxed mt-3">High-Protein Food<br />Fresh Ingredients</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <c.icon className="w-12 h-12 mb-3 relative z-10" fill="currentColor" strokeWidth={1} />
+                  <h2 className="text-lg font-extrabold tracking-normal leading-tight min-h-12 relative z-10">{c.title}</h2>
+                  {c.subtitle.map((s) => <p key={s} className="text-[13px] font-semibold opacity-90 leading-snug mt-1 relative z-10">{s}</p>)}
+                </>
+              )}
+              <Button variant="secondary" onClick={() => open(c.key)} className="mt-auto h-12 w-full min-w-0 px-2 text-[12px] whitespace-normal leading-tight font-extrabold relative z-10">
                 {c.key === "cafe" && !cafeComingSoon ? "EXPLORE CAFÉ" : c.cta}
                 {(!c.soon || !cafeComingSoon) && <ChevronRight className="w-4 h-4 shrink-0" />}
               </Button>

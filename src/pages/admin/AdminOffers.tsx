@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Upload, X, Image as ImageIcon, Pencil } from "lucide-react";
+import { Plus, Trash2, Upload, X, Pencil } from "lucide-react";
+import { offerIsoToInput, offerInputToIso, isOfferWindowValid } from "@/lib/offerValidity";
+import { OfferImage } from "@/components/mobile/OfferImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -93,8 +95,8 @@ export const AdminOffers = () => {
       description: o.description || "",
       discount_percentage: o.discount_percentage?.toString() || "",
       code: o.code || "",
-      valid_from: o.valid_from ? new Date(o.valid_from).toISOString().slice(0, 16) : "",
-      valid_until: o.valid_until ? new Date(o.valid_until).toISOString().slice(0, 16) : "",
+      valid_from: offerIsoToInput(o.valid_from),
+      valid_until: offerIsoToInput(o.valid_until),
       image_url: o.image_url || "",
       business: o.business || "all",
     });
@@ -110,13 +112,19 @@ export const AdminOffers = () => {
       toast({ title: "Discount % is required", variant: "destructive" });
       return;
     }
+    const validFrom = offerInputToIso(formData.valid_from);
+    const validUntil = offerInputToIso(formData.valid_until);
+    if ((formData.valid_from && !validFrom) || (formData.valid_until && !validUntil) || !isOfferWindowValid(validFrom, validUntil)) {
+      toast({ title: "Valid Until must be after Valid From", variant: "destructive" });
+      return;
+    }
     const payload = {
       title: formData.title.trim(),
       description: formData.description.trim() || null,
       discount_percentage: parseInt(formData.discount_percentage),
       code: formData.code.trim().toUpperCase() || null,
-      valid_from: formData.valid_from ? new Date(formData.valid_from).toISOString() : null,
-      valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null,
+      valid_from: validFrom,
+      valid_until: validUntil,
       image_url: formData.image_url || null,
       business: formData.business,
     };
@@ -149,7 +157,7 @@ export const AdminOffers = () => {
     fetchOffers();
   };
 
-  const fmt = (d: string | null) => d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—";
+  const fmt = (d: string | null) => d ? new Date(d).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }) + " IST" : "—";
 
   return (
     <AdminLayout title="Offers & Coupons">
@@ -195,12 +203,12 @@ export const AdminOffers = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="from">Valid From</Label>
+                  <Label htmlFor="from">Valid From (IST)</Label>
                   <p className="text-xs text-muted-foreground mb-1">Offer starts</p>
                   <Input id="from" type="datetime-local" value={formData.valid_from} onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })} />
                 </div>
                 <div>
-                  <Label htmlFor="until">Valid Until</Label>
+                  <Label htmlFor="until">Valid Until (IST)</Label>
                   <p className="text-xs text-muted-foreground mb-1">Offer expires</p>
                   <Input id="until" type="datetime-local" value={formData.valid_until} onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })} />
                 </div>
@@ -255,13 +263,7 @@ export const AdminOffers = () => {
           <div className="grid gap-4 md:grid-cols-2">
             {offers.map((offer) => (
               <div key={offer.id} className="bg-card rounded-xl border overflow-hidden">
-                {offer.image_url ? (
-                  <img src={offer.image_url} alt={offer.title} className="w-full h-36 object-cover" />
-                ) : (
-                  <div className="w-full h-36 bg-muted flex items-center justify-center text-muted-foreground">
-                    <ImageIcon className="w-10 h-10" />
-                  </div>
-                )}
+                <OfferImage src={offer.image_url} alt={offer.title} className="w-full h-36 object-cover" />
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">

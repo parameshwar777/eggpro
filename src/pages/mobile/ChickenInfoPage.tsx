@@ -28,7 +28,7 @@ export const ChickenInfoPage = () => {
     <div className="page-scroll bg-background w-full">
       <ChickenOfferPopup />
       <div className="max-w-lg mx-auto pb-44">
-        <div className="gradient-hero text-accent-foreground px-5 pt-4 pb-8  safe-top">
+        <div className="gradient-hero text-accent-foreground px-5 pt-4 pb-5 safe-top">
           <Button variant="ghost" size="icon" onClick={() => navigate("/welcome")} className="h-12 w-12 -ml-2" aria-label="Back">
             <ArrowLeft className="w-6 h-6" />
           </Button>
@@ -40,16 +40,16 @@ export const ChickenInfoPage = () => {
           </div>
         </div>
 
-        <section className="px-4 py-5 bg-secondary border-b border-border" aria-label="Chicken meat comparison">
+        <section className="px-4 pt-3 pb-5 bg-secondary border-b border-border" aria-label="Chicken meat comparison">
           <h2 className="text-lg font-extrabold mb-2 text-foreground">MEAT CHARACTERISTICS</h2>
           <div className="rounded-lg border-2 border-primary bg-card overflow-hidden shadow-soft">
             <table className="w-full table-fixed text-xs leading-snug">
               <colgroup><col className="w-[40%]" /><col className="w-[30%]" /><col className="w-[30%]" /></colgroup>
               <thead>
                 <tr className="text-left">
-                  <th className="bg-foreground text-background px-2 py-3 font-extrabold break-words">MEAT CHARACTERISTICS</th>
-                  <th className="bg-muted text-foreground px-1 py-3 font-extrabold text-center">NORMAL<br />BROILER<br />CHICKEN</th>
-                  <th className="bg-accent text-accent-foreground px-1 py-3 font-extrabold text-center">EGG PRO<br />BROILER<br />CHICKEN</th>
+                  <th className="bg-primary/20 text-foreground px-2 py-3 font-extrabold break-words">MEAT CHARACTERISTICS</th>
+                  <th className="bg-primary/20 text-foreground px-1 py-3 font-extrabold text-center">NORMAL<br />BROILER<br />CHICKEN</th>
+                  <th className="bg-primary/30 text-foreground px-1 pt-2 pb-3 align-top font-extrabold text-center border-l-2 border-primary">EGG PRO<br />BROILER<br />CHICKEN</th>
                 </tr>
               </thead>
               <tbody>

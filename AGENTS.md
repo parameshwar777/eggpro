@@ -13,3 +13,4 @@
 - Chicken admin uses a grouped weight editor and retains existing variant IDs; customer cards group by the same exact name. Why: one product presentation without changing historical order pricing or IDs.
 - Chicken bookings use a shared IST schedule module and store the supply deadline on order creation; Sunday evening goes to the following supply week. Why: payment completion timing must not shift the booked week.
 - Outlet PNG sheets use paginated canvas rendering from server-returned paid pickup orders. Why: include complete outlet lists without exposing customer data in public files or exceeding mobile canvas limits.
+- Offer date inputs use shared India-time conversion and validity helpers; unavailable offer artwork collapses rather than reserving image space. Why: editing must preserve dates across device timezones and text-only coupons must remain readable.
