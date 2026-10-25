@@ -18,14 +18,14 @@ export interface ChickenOffer {
   valid_until: string | null;
 }
 
-export async function fetchChickenOffers(): Promise<ChickenOffer[]> {
+export async function fetchChickenOffers(includeUpcoming = false): Promise<ChickenOffer[]> {
   const { data } = await supabase
     .from("offers")
     .select("*")
     .eq("is_active", true)
     .in("business", ["chicken", "all"])
     .order("created_at", { ascending: false });
-  return ((data || []) as ChickenOffer[]).filter((o) => o.code && isOfferLive(o));
+  return ((data || []) as ChickenOffer[]).filter((o) => o.code && (includeUpcoming || isOfferLive(o)));
 }
 
 /** One-time-per-launch popup shown when the chicken tab opens and a chicken offer with a coupon code is live. */
@@ -34,23 +34,30 @@ export const ChickenOfferPopup = () => {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [offers, setOffers] = useState<ChickenOffer[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     let cancelled = false;
-    const refresh = () => fetchChickenOffers().then((offers) => {
+    const refresh = () => fetchChickenOffers(true).then((offers) => {
       if (cancelled) return;
-      const unseen = offers.find((o) => sessionStorage.getItem(`chicken-offer-seen-${o.id}`) !== "1");
-      if (unseen) {
-        setOffer(unseen);
-        setOpen(true);
-        sessionStorage.setItem(`chicken-offer-seen-${unseen.id}`, "1");
-      }
+      setOffers(offers);
     });
     refresh();
-    const timer = setInterval(() => { setNow(Date.now()); refresh(); }, 1000);
-    return () => { cancelled = true; clearInterval(timer); };
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const refreshTimer = setInterval(refresh, 60_000);
+    return () => { cancelled = true; clearInterval(timer); clearInterval(refreshTimer); };
   }, []);
+
+  useEffect(() => {
+    if (open && offer && isOfferLive(offer, now)) return;
+    const unseen = offers.find((o) => isOfferLive(o, now) && sessionStorage.getItem(`chicken-offer-seen-${o.id}`) !== "1");
+    if (unseen) {
+      setOffer(unseen);
+      setOpen(true);
+      sessionStorage.setItem(`chicken-offer-seen-${unseen.id}`, "1");
+    }
+  }, [offers, now, open, offer]);
 
   const copy = async () => {
     if (!offer?.code) return;

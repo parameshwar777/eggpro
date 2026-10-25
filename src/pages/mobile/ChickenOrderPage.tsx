@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useChickenCart } from "@/contexts/ChickenCartContext";
 import { chickenUnitPrice, groupChickenProducts, type ChickenProduct } from "@/lib/chickenProducts";
+import { isOfferLive } from "@/lib/offerValidity";
 
 type Product = ChickenProduct;
 interface Center { id: string; name: string; address: string; google_maps_url: string | null; image_path: string | null; pickup_instructions: string | null }
@@ -73,10 +74,18 @@ export const ChickenOrderPage = () => {
   const [paying, setPaying] = useState(false);
   const [soonOpen, setSoonOpen] = useState(false);
   const [coupons, setCoupons] = useState<ChickenOffer[]>([]);
+  const [offerNow, setOfferNow] = useState(Date.now());
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const community = localStorage.getItem("selectedCommunity") || "";
 
-  useEffect(() => { fetchChickenOffers().then(setCoupons); }, []);
+  useEffect(() => {
+    const refresh = () => fetchChickenOffers(true).then(setCoupons);
+    refresh();
+    const clock = setInterval(() => setOfferNow(Date.now()), 1000);
+    const timer = setInterval(refresh, 60_000);
+    return () => { clearInterval(clock); clearInterval(timer); };
+  }, []);
+  const liveCoupons = coupons.filter(o => isOfferLive(o, offerNow));
 
   const copyCoupon = async (code: string) => {
     try {
@@ -266,19 +275,19 @@ export const ChickenOrderPage = () => {
             <Input inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-12 mt-1 font-semibold" placeholder="10-digit mobile number" />
           </div>
 
-          {coupons.length > 0 && (
+          {liveCoupons.length > 0 && (
             <div className="mt-5 rounded-2xl border-2 border-dashed border-orange-300 bg-orange-50 p-4">
               <p className="text-sm font-extrabold text-foreground flex items-center gap-2"><Tag className="w-4 h-4 text-orange-600" />Available coupons</p>
               <div className="mt-2 space-y-2">
-                {coupons.map((o) => (
+                {liveCoupons.map((o) => (
                   <div key={o.id} className="flex items-center justify-between gap-2 bg-card rounded-xl px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-sm font-extrabold text-orange-700 tracking-widest">{o.code}</p>
                       <p className="text-xs font-semibold text-muted-foreground truncate">{o.discount_percentage}% off — {o.title}</p>
                     </div>
-                    <button onClick={() => copyCoupon(o.code!)} className="shrink-0 h-10 px-3 rounded-lg bg-orange-500 text-white text-xs font-extrabold flex items-center gap-1.5">
+                    <Button onClick={() => { if (o.code) void copyCoupon(o.code); }} className="shrink-0 h-10 px-3 rounded-lg text-xs font-extrabold flex items-center gap-1.5">
                       {copiedCode === o.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} COPY
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
