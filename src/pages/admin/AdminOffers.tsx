@@ -20,8 +20,16 @@ interface Offer {
   valid_from: string | null;
   valid_until: string | null;
   image_url: string | null;
+  business: string;
   created_at: string;
 }
+
+const BUSINESS_OPTIONS = [
+  { value: "all", label: "All businesses" },
+  { value: "eggs", label: "EggPro (Eggs)" },
+  { value: "chicken", label: "EggPro Chicken" },
+  { value: "cafe", label: "EggPro Café" },
+];
 
 const emptyForm = {
   title: "",
@@ -31,6 +39,7 @@ const emptyForm = {
   valid_from: "",
   valid_until: "",
   image_url: "",
+  business: "all",
 };
 
 export const AdminOffers = () => {
@@ -87,6 +96,7 @@ export const AdminOffers = () => {
       valid_from: o.valid_from ? new Date(o.valid_from).toISOString().slice(0, 16) : "",
       valid_until: o.valid_until ? new Date(o.valid_until).toISOString().slice(0, 16) : "",
       image_url: o.image_url || "",
+      business: o.business || "all",
     });
     setDialogOpen(true);
   };
@@ -108,6 +118,7 @@ export const AdminOffers = () => {
       valid_from: formData.valid_from ? new Date(formData.valid_from).toISOString() : null,
       valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null,
       image_url: formData.image_url || null,
+      business: formData.business,
     };
     try {
       if (editingId) {
@@ -196,6 +207,19 @@ export const AdminOffers = () => {
               </div>
 
               <div>
+                <Label htmlFor="business">Show this offer in</Label>
+                <p className="text-xs text-muted-foreground mb-1">Chicken offers pop up with the coupon code when customers open the chicken tab</p>
+                <select
+                  id="business"
+                  value={formData.business}
+                  onChange={(e) => setFormData({ ...formData, business: e.target.value })}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {BUSINESS_OPTIONS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                </select>
+              </div>
+
+              <div>
                 <Label>Banner Image</Label>
                 <p className="text-xs text-muted-foreground mb-1">Shown on the home page (recommended 1200×600)</p>
                 {formData.image_url ? (
@@ -244,6 +268,7 @@ export const AdminOffers = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold truncate">{offer.title}</h3>
                         <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{offer.discount_percentage}% OFF</span>
+                        <span className="bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{BUSINESS_OPTIONS.find((b) => b.value === offer.business)?.label || "All businesses"}</span>
                       </div>
                       {offer.description && <p className="text-sm text-muted-foreground mt-1">{offer.description}</p>}
                       {offer.code && <p className="text-primary font-mono text-sm mt-2">Code: {offer.code}</p>}
