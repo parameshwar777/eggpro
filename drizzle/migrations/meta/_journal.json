@@ -29,6 +29,13 @@
       "when": 1792872905859,
       "tag": "0003_chicken_supply_date_and_outlet_completion",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792918885115,
+      "tag": "0004_add_business_to_offers",
+      "breakpoints": true
     }
   ]
 }

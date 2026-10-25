@@ -14,7 +14,7 @@ interface Offer {
   valid_until: string | null;
 }
 
-export const OffersBanner = () => {
+export const OffersBanner = ({ business = "eggs" }: { business?: "eggs" | "chicken" | "cafe" }) => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [index, setIndex] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -27,13 +27,14 @@ export const OffersBanner = () => {
         .from("offers")
         .select("id,title,description,discount_percentage,code,image_url,valid_until")
         .eq("is_active", true)
+        .in("business", [business, "all"])
         .or(`valid_from.is.null,valid_from.lte.${nowIso}`)
         .or(`valid_until.is.null,valid_until.gte.${nowIso}`)
         .order("created_at", { ascending: false });
       setOffers((data || []) as Offer[]);
     };
     fetchOffers();
-  }, []);
+  }, [business]);
 
   useEffect(() => {
     if (offers.length < 2) return;

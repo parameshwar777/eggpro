@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Egg, Drumstick, Coffee, ChevronRight } from "lucide-react";
+import { Egg, Bird, EggFried, ChevronRight } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +22,7 @@ const cards = [
     title: "EGGPRO CHICKEN",
     subtitle: ["Slow-Growing Broiler", "Tasty • Quality • Naturally Raised"],
     cta: "EXPLORE CHICKEN",
-    icon: Drumstick,
+    icon: Bird,
     tone: "welcome-chicken",
   },
   {
@@ -30,7 +30,7 @@ const cards = [
     title: "EGGPRO CAFÉ",
     subtitle: ["High-Protein Food • Fresh Ingredients"],
     cta: "COMING SOON",
-    icon: Coffee,
+    icon: EggFried,
     tone: "welcome-cafe",
     soon: true,
   },
@@ -97,9 +97,7 @@ export const WelcomePage = () => {
                   COMING SOON
                 </span>
               )}
-              <div className="w-11 h-11 rounded-2xl bg-background/20 flex items-center justify-center mb-3 relative z-10">
-                <c.icon className="w-6 h-6" />
-              </div>
+              <c.icon className="w-12 h-12 mb-3 relative z-10" fill="currentColor" strokeWidth={1} />
               <h2 className="text-lg font-extrabold tracking-normal leading-tight min-h-12 relative z-10">{c.title}</h2>
               {c.subtitle.map((s) => (
                 <p key={s} className={`text-[13px] font-semibold opacity-90 leading-snug mt-1 relative z-10 ${c.key === "cafe" ? "max-w-[65%]" : ""}`}>{s}</p>

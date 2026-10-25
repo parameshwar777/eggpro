@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, ChevronDown, Check } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, ChevronDown, Check, Copy, Tag } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { fetchChickenOffers, type ChickenOffer } from "@/components/mobile/ChickenOfferPopup";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -69,7 +71,21 @@ export const ChickenOrderPage = () => {
   const [addressId, setAddressId] = useState("");
   const [phone, setPhone] = useState("");
   const [paying, setPaying] = useState(false);
+  const [soonOpen, setSoonOpen] = useState(false);
+  const [coupons, setCoupons] = useState<ChickenOffer[]>([]);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const community = localStorage.getItem("selectedCommunity") || "";
+
+  useEffect(() => { fetchChickenOffers().then(setCoupons); }, []);
+
+  const copyCoupon = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+      toast({ title: "Coupon copied", description: `Use ${code} at checkout` });
+      setTimeout(() => setCopiedCode(null), 1800);
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     (async () => {
@@ -199,8 +215,9 @@ export const ChickenOrderPage = () => {
           <h2 className="text-lg font-extrabold text-foreground mb-2">How would you like it?</h2>
           <div className="grid grid-cols-2 gap-3">
             {settings.delivery_enabled && (
-              <button onClick={() => setMode("delivery")} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "delivery" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"}`}>
-                <Truck className="w-6 h-6 shrink-0" /> <span className="text-[13px] leading-tight text-center font-extrabold">DELIVERY TO SPECIFIC COMMUNITIES</span>
+              <button onClick={() => setSoonOpen(true)} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "delivery" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"}`}>
+                <Truck className="w-6 h-6 shrink-0" /> <span className="text-[13px] leading-tight text-center font-extrabold">DELIVERY TO SELECTED COMMUNITIES</span>
+                <span className="text-[10px] font-extrabold tracking-widest bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">LAUNCHING SOON</span>
               </button>
             )}
             <button onClick={() => setMode("pickup")} className={`min-h-24 p-2 rounded-lg border-2 font-extrabold flex flex-col items-center justify-center gap-1 ${mode === "pickup" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-border bg-card text-foreground"} ${settings.delivery_enabled ? "" : "col-span-2"}`}>
@@ -249,9 +266,37 @@ export const ChickenOrderPage = () => {
             <Input inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-12 mt-1 font-semibold" placeholder="10-digit mobile number" />
           </div>
 
+          {coupons.length > 0 && (
+            <div className="mt-5 rounded-2xl border-2 border-dashed border-orange-300 bg-orange-50 p-4">
+              <p className="text-sm font-extrabold text-foreground flex items-center gap-2"><Tag className="w-4 h-4 text-orange-600" />Available coupons</p>
+              <div className="mt-2 space-y-2">
+                {coupons.map((o) => (
+                  <div key={o.id} className="flex items-center justify-between gap-2 bg-card rounded-xl px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-extrabold text-orange-700 tracking-widest">{o.code}</p>
+                      <p className="text-xs font-semibold text-muted-foreground truncate">{o.discount_percentage}% off — {o.title}</p>
+                    </div>
+                    <button onClick={() => copyCoupon(o.code!)} className="shrink-0 h-10 px-3 rounded-lg bg-orange-500 text-white text-xs font-extrabold flex items-center gap-1.5">
+                      {copiedCode === o.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} COPY
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {settings.refund_policy && <p className="text-xs text-muted-foreground mt-4 font-semibold">{settings.refund_policy}</p>}
         </div>
       </div>
+
+      <Dialog open={soonOpen} onOpenChange={setSoonOpen}>
+        <DialogContent className="max-w-sm text-center rounded-2xl">
+          <div className="mx-auto w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center"><Truck className="w-7 h-7 text-orange-600" /></div>
+          <h3 className="text-xl font-extrabold text-foreground">Launching Soon</h3>
+          <p className="text-sm font-semibold text-muted-foreground">Home delivery of chicken to selected communities is launching soon. Until then, please choose <span className="font-extrabold text-foreground">Pick Up At Outlets</span> and collect your order from your nearest outlet.</p>
+          <Button variant="gradient" onClick={() => setSoonOpen(false)} className="w-full h-12 font-extrabold">GOT IT</Button>
+        </DialogContent>
+      </Dialog>
 
        <div className="chicken-action-bar">
          {mode === "pickup" && <div aria-label="This week's pickup" className="max-w-lg mx-auto mb-3 border-l-4 border-primary pl-3">

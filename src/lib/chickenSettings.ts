@@ -17,7 +17,7 @@ export interface ChickenPickupSettings {
 export const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export const DEFAULT_CHICKEN_SETTINGS: ChickenPickupSettings = {
-  booking_days: [1, 2, 3, 4, 5, 6],
+  booking_days: [1, 2, 3, 4, 5],
   pickup_day: 0,
   pickup_start_time: "06:00",
   pickup_end_time: "10:00",
