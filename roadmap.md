@@ -1,6 +1,6 @@
 # Tasks
-- [ ] Update warm comparison headers, hen icon, Café sign and button spacing.
-- [ ] Fix offer date editing/visibility and image-free previews; test date boundaries and screens.
+- [x] Update warm comparison headers, hen icon, Café sign and button spacing; phone layout and hosted photo checked.
+- [x] Fix offer date editing/visibility and image-free previews; date tests and controlled popup/copy/checkout checks passed. Live admin save not tested without an admin session.
 - [x] Redesign Welcome with Eggs and Chicken side by side and Café below; align chicken text.
 - [x] Highlight Sunday-only supply and allow Sunday evening bookings for next Sunday.
 - [x] Group chicken weight variants into one admin product and customer card; rename community delivery.
