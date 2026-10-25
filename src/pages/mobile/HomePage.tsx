@@ -308,7 +308,7 @@ export const HomePage = () => {
       )}
 
       {/* Festival / promotional offer banners */}
-      <OffersBanner />
+      <OffersBanner business="eggs" />
 
       {/* Products Section */}
       <div className="px-4 py-5">
