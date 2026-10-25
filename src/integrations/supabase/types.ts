@@ -415,6 +415,7 @@ export type Database = {
       }
       offers: {
         Row: {
+          business: string
           code: string | null
           created_at: string
           description: string | null
@@ -427,6 +428,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          business?: string
           code?: string | null
           created_at?: string
           description?: string | null
@@ -439,6 +441,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          business?: string
           code?: string | null
           created_at?: string
           description?: string | null
