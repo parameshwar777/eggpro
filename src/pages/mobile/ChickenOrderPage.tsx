@@ -146,7 +146,7 @@ export const ChickenOrderPage = () => {
         throw new Error(message);
       }
       setQuote(data);
-      toast({title:'Coupon applied',description:`You save ₹${data.discount.toFixed(2)} on the first 250 g`});
+      toast({title:'Coupon applied',description:`You save ₹${data.discount.toFixed(2)} on your first pack`});
     } catch (error: unknown) { setQuote(null); toast({title:error instanceof Error ? error.message : 'Could not apply coupon',variant:'destructive'}); }
     finally { setApplying(false); }
   };
@@ -334,7 +334,7 @@ export const ChickenOrderPage = () => {
                   <div key={o.id} className="flex items-center justify-between gap-2 bg-card rounded-xl px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-sm font-extrabold text-orange-700 tracking-widest">{o.code}</p>
-                      <p className="text-xs font-semibold text-muted-foreground">{o.discount_percentage === 100 ? 'First 250 g free' : `${o.discount_percentage}% off the first 250 g`} — {o.title}</p>
+                      <p className="text-xs font-semibold text-muted-foreground">{o.discount_percentage === 100 ? 'First pack free' : `${o.discount_percentage}% off the first pack`} — {o.title}</p>
                     </div>
                     <Button onClick={() => { if (o.code) void copyCoupon(o.code); }} className="shrink-0 h-10 px-3 rounded-lg text-xs font-extrabold flex items-center gap-1.5">
                       {copiedCode === o.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} COPY

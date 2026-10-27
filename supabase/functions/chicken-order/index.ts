@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
           if (status !== 'resume') return json({error: status === 'used' ? 'This phone number has already used the chicken coupon' : 'This phone number already has a coupon order in progress'},400);
         }
         discount = chickenCouponDiscount(lines,Number(offer.discount_percentage || 0));
-        if (discount <= 0) return json({error:'This product needs a valid weight of at least 250 g to use the coupon'},400);
+        if (discount <= 0) return json({error:'This coupon does not apply to the selected products'},400);
       }
       const subtotal = total;
       total = Math.round((subtotal-discount)*100)/100;
