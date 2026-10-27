@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronRight, Leaf, HeartPulse, ReceiptText } from "lucide-react";
+import { ArrowLeft, ChevronRight, Leaf, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChickenOfferPopup } from "@/components/mobile/ChickenOfferPopup";
 
