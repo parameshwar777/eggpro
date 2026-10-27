@@ -115,8 +115,8 @@ export const ChickenOrderPage = () => {
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("phone,full_name").eq("id", user.id).maybeSingle().then(({ data }) => {
-      if (data?.phone) setPhone(String(data.phone).replace(/\D/g, "").slice(-10));
-      if (data?.full_name) setCustomerName(data.full_name);
+      if (data?.phone) setPhone(current => current || String(data.phone).replace(/\D/g, "").slice(-10));
+      if (data?.full_name) setCustomerName(current => current || data.full_name || '');
     });
     if (community) {
       supabase.from("user_addresses").select("*").eq("user_id", user.id).eq("community", community)
