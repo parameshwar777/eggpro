@@ -217,11 +217,11 @@ export const ChickenOrderPage = () => {
      <div className="page-scroll bg-secondary w-full">
        <div className="max-w-lg mx-auto pb-64">
         <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white px-5 pt-4 pb-6 rounded-b-[2rem] safe-top">
-          <div className="flex items-center justify-between gap-2">
-            <button onClick={() => navigate("/chicken")} className="h-11 w-11 -ml-2 flex items-center justify-center" aria-label="Back"><ArrowLeft className="w-6 h-6" /></button>
-            <button onClick={() => navigate("/chicken/orders")} className="h-11 px-4 rounded-full bg-white/20 border border-white/40 flex items-center gap-2 font-extrabold text-sm" aria-label="My chicken orders"><ReceiptText className="w-5 h-5" />My Orders</button>
+          <button onClick={() => navigate("/chicken")} className="h-9 w-9 -ml-2 flex items-center justify-center" aria-label="Back"><ArrowLeft className="w-6 h-6" /></button>
+          <div className="flex items-center justify-between gap-3 mt-1">
+            <h1 className="text-2xl font-extrabold">Order Chicken</h1>
+            <button onClick={() => navigate("/chicken/orders")} className="h-9 px-3 rounded-full bg-white/20 border border-white/40 flex items-center gap-1.5 font-extrabold text-xs" aria-label="My chicken orders"><ReceiptText className="w-4 h-4" />My Orders</button>
           </div>
-          <h1 className="text-2xl font-extrabold">Order Chicken</h1>
         </div>
 
          <section aria-label="Weekly pickup schedule" className="mx-4 mt-4 rounded-lg border-2 border-primary bg-primary/10 p-4 space-y-2">
