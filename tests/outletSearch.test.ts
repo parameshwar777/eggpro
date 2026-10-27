@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { matchesOutletSearch, type OutletOrder } from "./outletSheet";
+import { describe, it, expect } from "bun:test";
+import { matchesOutletSearch, type OutletOrder } from "../src/lib/outletSheet";
 
 const o = (name: string, phone: string, code: string): OutletOrder => ({ id: "x", customer_name: name, phone, items: [], total_amount: 1, order_status: "confirmed", pickup_center_id: "c", pickup: { pickup_code: code, pickup_status: "PENDING_PICKUP", expires_at: null, handed_over_at: null } });
 
