@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, ChevronDown, Check, Copy, Tag } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -74,8 +75,7 @@ export const ChickenOrderPage = () => {
   const [phone, setPhone] = useState("");
   const [customerName, setCustomerName] = useState('');
   const [couponCode, setCouponCode] = useState('');
-  const [quote, setQuote] = useState<{subtotal:number;discount:number;total:number} | null>(null);
-  const [applying, setApplying] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{code:string;phone:string;name:string} | null>(null);
   const [paying, setPaying] = useState(false);
   const [soonOpen, setSoonOpen] = useState(false);
   const [coupons, setCoupons] = useState<ChickenOffer[]>([]);
@@ -126,10 +126,30 @@ export const ChickenOrderPage = () => {
   }, [user, community]);
 
   const total = useMemo(() => products.reduce((s, p) => s + unitPrice(p) * (qty[p.id] || 0), 0), [products, qty]);
-  useEffect(() => { setQuote(null); }, [qty,phone,couponCode,customerName,centerId]);
-  const applyCoupon = async () => {
+  const items = useMemo(() => Object.entries(qty).filter(([id,n]) => n > 0 && products.some(p => p.id === id && p.available)).map(([productId,quantity]) => ({productId,quantity})), [qty, products]);
+  const couponActive = !!appliedCoupon && appliedCoupon.code === couponCode.trim() && appliedCoupon.phone === phone && appliedCoupon.name === customerName;
+  const couponQuote = useQuery({
+    queryKey: ['chicken-coupon-quote', user?.id, items, phone, customerName, couponCode.trim(), mode],
+    enabled: couponActive && !!user && items.length > 0,
+    staleTime: 0,
+    retry: false,
+    queryFn: async () => {
+      const {data,error} = await supabase.functions.invoke('chicken-order',{body:{action:'quote',items,phone,customerName,couponCode,fulfillment:mode}});
+      if (error || data?.error) {
+        let message = data?.error || 'Could not apply coupon';
+        if (error?.context) { try { message = (await error.context.json()).error || message; } catch { /* response unavailable */ } }
+        throw new Error(message);
+      }
+      return data as {subtotal:number;discount:number;total:number};
+    },
+  });
+  const applying = couponActive && couponQuote.isFetching;
+  const quote = couponActive && items.length > 0 && couponQuote.isSuccess && !couponQuote.isFetching ? couponQuote.data : null;
+  useEffect(() => {
+    if (couponActive && couponQuote.error) toast({title:couponQuote.error.message,variant:'destructive'});
+  }, [couponActive, couponQuote.error, toast]);
+  const applyCoupon = () => {
     if (!user) { navigate('/auth'); return; }
-    const items = Object.entries(qty).filter(([id,n]) => n > 0 && products.some(p => p.id === id && p.available)).map(([productId,quantity]) => ({productId,quantity}));
     const validation = chickenCheckoutError(customerName,phone,items.length);
     if (validation) {
       toast({title:validation.message,variant:'destructive'});
@@ -137,18 +157,8 @@ export const ChickenOrderPage = () => {
       if (validation.field !== 'items') { input?.scrollIntoView({block:'center'}); input?.focus(); }
       return;
     }
-    setApplying(true);
-    try {
-      const {data,error} = await supabase.functions.invoke('chicken-order',{body:{action:'quote',items,phone,customerName,couponCode,fulfillment:mode}});
-      if (error || data?.error) {
-        let message = data?.error || 'Could not apply coupon';
-        if (error?.context) { try { message = (await error.context.json()).error || message; } catch { /* response unavailable */ } }
-        throw new Error(message);
-      }
-      setQuote(data);
-      toast({title:'Coupon applied',description:`You save ₹${data.discount.toFixed(2)} on your first pack`});
-    } catch (error: unknown) { setQuote(null); toast({title:error instanceof Error ? error.message : 'Could not apply coupon',variant:'destructive'}); }
-    finally { setApplying(false); }
+    if (couponActive) void couponQuote.refetch();
+    else setAppliedCoupon({code:couponCode.trim(),phone,name:customerName});
   };
   const bookingOpen = chickenBookingOpen(settings);
   const bookingDays = settings.booking_days.map((d) => DAY_NAMES[d].slice(0, 3)).join(", ");
@@ -322,8 +332,8 @@ export const ChickenOrderPage = () => {
               <Input id="chicken-coupon" maxLength={80} value={couponCode} onChange={e=>setCouponCode(e.target.value.toUpperCase())} placeholder="Paste coupon code" className="h-12 min-w-0 font-bold" />
               <Button onClick={applyCoupon} disabled={applying || !couponCode.trim() || paying} className="h-12 font-extrabold shrink-0">{applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tag className="w-4 h-4" />} APPLY</Button>
             </div>
-            <p className="text-xs font-bold text-muted-foreground">Offer covers the first 250 g, including in a 500 g or 1 kg pack. Remaining weight and extra packs are paid normally. One use per phone number.</p>
-            {quote && <div className="border-l-4 border-primary pl-3 text-sm font-bold text-foreground"><p>Subtotal: ₹{quote.subtotal.toFixed(2)}</p><p>Coupon savings: −₹{quote.discount.toFixed(2)}</p><p>To pay: ₹{quote.total.toFixed(2)}</p><Button variant="ghost" onClick={()=>{setCouponCode('');setQuote(null);}} className="h-12 px-0">Remove coupon</Button></div>}
+            <p className="text-xs font-bold text-muted-foreground">Offer applies to one full pack. Extra packs are paid normally. One use per phone number.</p>
+            {quote && <div className="border-l-4 border-primary pl-3 text-sm font-bold text-foreground"><p>Subtotal: ₹{quote.subtotal.toFixed(2)}</p><p>Coupon savings: −₹{quote.discount.toFixed(2)}</p><p>To pay: ₹{quote.total.toFixed(2)}</p><Button variant="ghost" onClick={()=>{setCouponCode('');setAppliedCoupon(null);}} className="h-12 px-0">Remove coupon</Button></div>}
           </div>
 
           {liveCoupons.length > 0 && (
@@ -367,9 +377,9 @@ export const ChickenOrderPage = () => {
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <div>
             <p className="text-xs text-muted-foreground font-semibold">Total</p>
-            <p className="text-xl font-extrabold text-foreground">₹{(quote?.total ?? total).toFixed(2)}</p>
+            <p aria-live="polite" className="text-xl font-extrabold text-foreground">{applying ? 'Updating…' : couponActive && !quote && items.length > 0 ? 'Check coupon' : `₹${(quote?.total ?? total).toFixed(2)}`}</p>
           </div>
-           <Button variant="gradient" onClick={pay} disabled={paying || total <= 0 || !bookingOpen} className="flex-1 h-14 min-w-0 px-3 rounded-lg font-extrabold">
+           <Button variant="gradient" onClick={pay} disabled={paying || applying || (couponActive && !quote) || total <= 0 || !bookingOpen} className="flex-1 h-14 min-w-0 px-3 rounded-lg font-extrabold">
             {paying && <Loader2 className="w-5 h-5 animate-spin" />} {quote?.total === 0 ? 'PLACE FREE ORDER' : 'PAY & PLACE ORDER'}
            </Button>
         </div>
