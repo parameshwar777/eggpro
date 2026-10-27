@@ -71,6 +71,10 @@ export const ChickenOrderPage = () => {
   const [centerId, setCenterId] = useState("");
   const [addressId, setAddressId] = useState("");
   const [phone, setPhone] = useState("");
+  const [customerName, setCustomerName] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [quote, setQuote] = useState<{subtotal:number;discount:number;total:number} | null>(null);
+  const [applying, setApplying] = useState(false);
   const [paying, setPaying] = useState(false);
   const [soonOpen, setSoonOpen] = useState(false);
   const [coupons, setCoupons] = useState<ChickenOffer[]>([]);
@@ -110,8 +114,9 @@ export const ChickenOrderPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("phone").eq("id", user.id).maybeSingle().then(({ data }) => {
+    supabase.from("profiles").select("phone,full_name").eq("id", user.id).maybeSingle().then(({ data }) => {
       if (data?.phone) setPhone(String(data.phone).replace(/\D/g, "").slice(-10));
+      if (data?.full_name) setCustomerName(data.full_name);
     });
     if (community) {
       supabase.from("user_addresses").select("*").eq("user_id", user.id).eq("community", community)
@@ -120,6 +125,22 @@ export const ChickenOrderPage = () => {
   }, [user, community]);
 
   const total = useMemo(() => products.reduce((s, p) => s + unitPrice(p) * (qty[p.id] || 0), 0), [products, qty]);
+  useEffect(() => { setQuote(null); }, [qty,phone,couponCode,customerName,centerId]);
+  const applyCoupon = async () => {
+    if (!user) { navigate('/auth'); return; }
+    setApplying(true);
+    try {
+      const {data,error} = await supabase.functions.invoke('chicken-order',{body:{action:'quote',items:Object.entries(qty).filter(([,n])=>n>0).map(([productId,quantity])=>({productId,quantity})),phone,customerName,couponCode,fulfillment:mode}});
+      if (error || data?.error) {
+        let message = data?.error || 'Could not apply coupon';
+        if (error?.context) { try { message = (await error.context.json()).error || message; } catch { /* response unavailable */ } }
+        throw new Error(message);
+      }
+      setQuote(data);
+      toast({title:'Coupon applied',description:`You save ₹${data.discount.toFixed(2)} on one 250 g pack`});
+    } catch (error: unknown) { setQuote(null); toast({title:error instanceof Error ? error.message : 'Could not apply coupon',variant:'destructive'}); }
+    finally { setApplying(false); }
+  };
   const bookingOpen = chickenBookingOpen(settings);
   const bookingDays = settings.booking_days.map((d) => DAY_NAMES[d].slice(0, 3)).join(", ");
   const pickupDate = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "short", year: "numeric" }).format(upcomingPickupDeadline(settings));
@@ -130,7 +151,9 @@ export const ChickenOrderPage = () => {
     const items = Object.entries(qty).filter(([id, n]) => n > 0 && products.some((p) => p.id === id && p.available)).map(([productId, quantity]) => ({ productId, quantity }));
     if (!items.length) return toast({ title: "Select a product", variant: "destructive" });
     if (!/^\d{10}$/.test(phone)) return toast({ title: "Enter a valid 10-digit phone number", variant: "destructive" });
-    let body: any = { action: "create", items, fulfillment: mode, phone };
+    if (customerName.trim().length < 2) return toast({title:'Enter your name',variant:'destructive'});
+    if (couponCode.trim() && !quote) return toast({title:'Apply your coupon before placing the order',variant:'destructive'});
+    let body: any = { action: "create", items, fulfillment: mode, phone, customerName, couponCode };
     if (mode === "pickup") {
       if (!centerId) return toast({ title: "Select a pickup outlet", variant: "destructive" });
       body.pickupCenterId = centerId;
@@ -143,16 +166,22 @@ export const ChickenOrderPage = () => {
     setPaying(true);
     try {
       const { data, error } = await supabase.functions.invoke("chicken-order", { body });
-      if (error || data?.error) throw new Error(data?.error || "Could not start payment");
+      if (error || data?.error) {
+        let message = data?.error || 'Could not start payment';
+        if (error?.context) { try { message = (await error.context.json()).error || message; } catch { /* response unavailable */ } }
+        throw new Error(message);
+      }
+      if (!data.freeOrder) {
       const resp = await openRazorpayCheckout({
         key: data.keyId, amount: data.amount, currency: data.currency, name: "EggPro Chicken",
         description: "Chicken order", order_id: data.razorpayOrderId,
-        prefill: { email: user.email || "", contact: phone }, theme: { color: "#EA580C" },
+        prefill: { name:customerName, email: user.email || "", contact: phone }, theme: { color: "#EA580C" },
       });
       const { data: conf, error: cErr } = await supabase.functions.invoke("chicken-order", {
         body: { action: "confirm", orderId: data.orderId, ...resp },
       });
       if (cErr || conf?.error) throw new Error(conf?.error || "Payment verification failed");
+      }
       toast({ title: "Order placed!" });
       clear();
       navigate(mode === "pickup" ? `/chicken/pickup/${data.orderId}` : "/orders", { replace: true });
@@ -271,8 +300,22 @@ export const ChickenOrderPage = () => {
           )}
 
           <div className="mt-4">
+            <label htmlFor="chicken-name" className="text-sm font-bold text-foreground">Customer name</label>
+            <Input id="chicken-name" autoComplete="name" maxLength={100} value={customerName} onChange={e=>setCustomerName(e.target.value)} className="h-12 mt-1 font-bold" placeholder="Your full name" />
+          </div>
+          <div className="mt-4">
             <label className="text-sm font-bold text-foreground">Phone number</label>
             <Input inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-12 mt-1 font-semibold" placeholder="10-digit mobile number" />
+          </div>
+
+          <div className="mt-5 space-y-2">
+            <label htmlFor="chicken-coupon" className="text-sm font-extrabold text-foreground">Coupon code</label>
+            <div className="flex gap-2">
+              <Input id="chicken-coupon" maxLength={80} value={couponCode} onChange={e=>setCouponCode(e.target.value.toUpperCase())} placeholder="Paste coupon code" className="h-12 min-w-0 font-bold" />
+              <Button onClick={applyCoupon} disabled={applying || !couponCode.trim() || paying} className="h-12 font-extrabold shrink-0">{applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tag className="w-4 h-4" />} APPLY</Button>
+            </div>
+            <p className="text-xs font-bold text-muted-foreground">Offer covers one 250 g pack only. Extra packs are charged normally. One use per phone number.</p>
+            {quote && <div className="border-l-4 border-primary pl-3 text-sm font-bold text-foreground"><p>Subtotal: ₹{quote.subtotal.toFixed(2)}</p><p>Coupon savings: −₹{quote.discount.toFixed(2)}</p><p>To pay: ₹{quote.total.toFixed(2)}</p><Button variant="ghost" onClick={()=>{setCouponCode('');setQuote(null);}} className="h-12 px-0">Remove coupon</Button></div>}
           </div>
 
           {liveCoupons.length > 0 && (
@@ -283,7 +326,7 @@ export const ChickenOrderPage = () => {
                   <div key={o.id} className="flex items-center justify-between gap-2 bg-card rounded-xl px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-sm font-extrabold text-orange-700 tracking-widest">{o.code}</p>
-                      <p className="text-xs font-semibold text-muted-foreground truncate">{o.discount_percentage}% off — {o.title}</p>
+                      <p className="text-xs font-semibold text-muted-foreground">{o.discount_percentage === 100 ? 'One 250 g pack free' : `${o.discount_percentage}% off one 250 g pack`} — {o.title}</p>
                     </div>
                     <Button onClick={() => { if (o.code) void copyCoupon(o.code); }} className="shrink-0 h-10 px-3 rounded-lg text-xs font-extrabold flex items-center gap-1.5">
                       {copiedCode === o.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} COPY
@@ -316,10 +359,10 @@ export const ChickenOrderPage = () => {
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <div>
             <p className="text-xs text-muted-foreground font-semibold">Total</p>
-            <p className="text-xl font-extrabold text-foreground">₹{total.toFixed(0)}</p>
+            <p className="text-xl font-extrabold text-foreground">₹{(quote?.total ?? total).toFixed(2)}</p>
           </div>
            <Button variant="gradient" onClick={pay} disabled={paying || total <= 0 || !bookingOpen} className="flex-1 h-14 min-w-0 px-3 rounded-lg font-extrabold">
-            {paying && <Loader2 className="w-5 h-5 animate-spin" />} PAY & PLACE ORDER
+            {paying && <Loader2 className="w-5 h-5 animate-spin" />} {quote?.total === 0 ? 'PLACE FREE ORDER' : 'PAY & PLACE ORDER'}
            </Button>
         </div>
       </div>
