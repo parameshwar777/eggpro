@@ -36,7 +36,7 @@ export const ChickenOrdersPage = () => {
     <div className="page-scroll bg-background w-full">
       <div className="max-w-lg mx-auto pb-12">
         <div className="gradient-hero text-accent-foreground px-5 pt-4 pb-5 safe-top">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/chicken")} className="h-12 w-12 -ml-2" aria-label="Back">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/chicken/order")} className="h-12 w-12 -ml-2" aria-label="Back">
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <h1 className="text-2xl font-extrabold mt-2">My Chicken Orders</h1>

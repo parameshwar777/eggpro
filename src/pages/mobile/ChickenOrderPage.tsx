@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, CalendarDays, ChevronDown, Check, Copy, Tag } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, CalendarDays, ChevronDown, Check, Copy, Tag, ReceiptText } from "lucide-react";
 import { EggSpinner } from "@/components/EggSpinner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fetchChickenOffers, type ChickenOffer } from "@/components/mobile/ChickenOfferPopup";
@@ -217,7 +217,10 @@ export const ChickenOrderPage = () => {
      <div className="page-scroll bg-secondary w-full">
        <div className="max-w-lg mx-auto pb-64">
         <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white px-5 pt-4 pb-6 rounded-b-[2rem] safe-top">
-          <button onClick={() => navigate("/chicken")} className="h-11 w-11 -ml-2 flex items-center justify-center" aria-label="Back"><ArrowLeft className="w-6 h-6" /></button>
+          <div className="flex items-center justify-between gap-2">
+            <button onClick={() => navigate("/chicken")} className="h-11 w-11 -ml-2 flex items-center justify-center" aria-label="Back"><ArrowLeft className="w-6 h-6" /></button>
+            <button onClick={() => navigate("/chicken/orders")} className="h-11 px-4 rounded-full bg-white/20 border border-white/40 flex items-center gap-2 font-extrabold text-sm" aria-label="My chicken orders"><ReceiptText className="w-5 h-5" />My Orders</button>
+          </div>
           <h1 className="text-2xl font-extrabold">Order Chicken</h1>
         </div>
 
