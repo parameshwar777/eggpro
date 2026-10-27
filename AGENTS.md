@@ -14,3 +14,5 @@
 - Chicken bookings use a shared IST schedule module and store the supply deadline on order creation; Sunday evening goes to the following supply week. Why: payment completion timing must not shift the booked week.
 - Outlet PNG sheets use paginated canvas rendering from server-returned paid pickup orders. Why: include complete outlet lists without exposing customer data in public files or exceeding mobile canvas limits.
 - Offer date inputs use shared India-time conversion and validity helpers; unavailable offer artwork collapses rather than reserving image space. Why: editing must preserve dates across device timezones and text-only coupons must remain readable.
+- Chicken coupon calculations run server-side through a shared pure helper; a service-only atomic phone-keyed reservation binds discounts to one order and resumes pending payments rather than releasing payable orders. Why: concurrent requests and different accounts must not redeem twice.
+- Welcome CDN artwork uses an absolute published-origin URL. Why: relative infrastructure URLs do not resolve inside bundled Capacitor apps.

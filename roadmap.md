@@ -1,4 +1,7 @@
 # Tasks
+- [x] Add chicken name/coupon entry, server-priced first 250 g discount and atomic once-per-phone enforcement; 16 tests pass and signed-in checkout rejects the existing 500 g variant correctly.
+- [ ] Verify a real free-250 g order and additional paid quantity; blocked by no active 250 g product/price and real payment authorization.
+- [x] Fix Café badge loading using absolute hosted artwork URL; photo visibly rendered without interception.
 - [x] Update warm comparison headers, hen icon, Café sign and button spacing; phone layout and hosted photo checked.
 - [x] Fix offer date editing/visibility and image-free previews; date tests and controlled popup/copy/checkout checks passed. Live admin save not tested without an admin session.
 - [x] Redesign Welcome with Eggs and Chicken side by side and Café below; align chicken text.

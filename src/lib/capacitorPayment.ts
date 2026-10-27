@@ -15,7 +15,7 @@ interface RazorpayPaymentOptions {
   name: string;
   description: string;
   order_id: string;
-  prefill: { email?: string; contact?: string };
+  prefill: { name?: string; email?: string; contact?: string };
   theme?: { color: string };
 }
 

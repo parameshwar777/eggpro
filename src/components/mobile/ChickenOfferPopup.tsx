@@ -77,7 +77,7 @@ export const ChickenOfferPopup = () => {
         <OfferImage src={offer.image_url} alt={offer.title} className="w-full max-h-64 object-contain" />
         <div className="p-5 text-center">
           <p className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-normal text-foreground bg-primary/20 px-3 py-1 rounded-full">
-            <Tag className="w-3.5 h-3.5" /> {offer.discount_percentage}% OFF
+            <Tag className="w-3.5 h-3.5" /> {offer.discount_percentage === 100 ? 'ONE 250 G PACK FREE' : `${offer.discount_percentage}% OFF ONE 250 G PACK`}
           </p>
           <h3 className="mt-2 text-xl font-extrabold text-foreground">{offer.title}</h3>
           {offer.description && <p className="mt-1 text-sm font-semibold text-muted-foreground">{offer.description}</p>}

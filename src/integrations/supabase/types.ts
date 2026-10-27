@@ -155,6 +155,51 @@ export type Database = {
         }
         Relationships: []
       }
+      chicken_coupon_redemptions: {
+        Row: {
+          created_at: string
+          discount_amount: number
+          offer_id: string
+          order_id: string
+          phone: string
+          razorpay_order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discount_amount: number
+          offer_id: string
+          order_id: string
+          phone: string
+          razorpay_order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discount_amount?: number
+          offer_id?: string
+          order_id?: string
+          phone?: string
+          razorpay_order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chicken_coupon_redemptions_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chicken_coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chicken_pickup_centers: {
         Row: {
           active: boolean
@@ -927,6 +972,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      reserve_chicken_coupon: {
+        Args: {
+          p_discount: number
+          p_offer_id: string
+          p_order_id: string
+          p_phone: string
+          p_user_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

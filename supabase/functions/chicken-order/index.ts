@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { chickenBookingOpen, chickenSupplyDeadline, canManageChicken } from "../_shared/chickenSchedule.ts";
+import { chickenCouponDiscount, couponPhoneStatus } from "../_shared/chickenCoupon.ts";
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "Please sign in" }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const action = String(body.action || "");
+    let action = String(body.action || "");
 
     const hasRole = async (role: string) => {
       const { data } = await admin.from("user_roles").select("id").eq("user_id", user.id).eq("role", role).maybeSingle();
@@ -98,8 +99,11 @@ Deno.serve(async (req) => {
     }
 
     // ---------- CREATE ----------
-    if (action === "create") {
-      const items = Array.isArray(body.items) ? body.items.slice(0, 20) : [];
+    if (action === "create" || action === "quote") {
+      const parsed = z.object({ items: z.array(z.object({ productId: z.string().uuid(), quantity: z.number().int().min(1).max(50) })).min(1).max(20), phone: z.string().regex(/^\d{10}$/), customerName: z.string().trim().min(2).max(100), couponCode: z.string().trim().max(80).optional(), fulfillment: z.enum(['pickup','delivery']).optional() }).safeParse(body);
+      if (!parsed.success) return json({ error: "Enter your name, 10-digit phone number and valid quantities" },400);
+      const items = parsed.data.items;
+      if (new Set(items.map(i => i.productId)).size !== items.length) return json({error:'Duplicate product selection'},400);
       const fulfillment = body.fulfillment === "pickup" ? "pickup" : "delivery";
       const phone = String(body.phone || "").replace(/\D/g, "");
       if (!items.length) return json({ error: "Select at least one product" }, 400);
@@ -123,6 +127,28 @@ Deno.serve(async (req) => {
       }
       total = Math.round(total * 100) / 100;
 
+      let discount = 0;
+      let offer: any = null;
+      const couponCode = (parsed.data.couponCode || '').toUpperCase();
+      if (couponCode) {
+        const {data: offers, error: offerError} = await admin.from('offers').select('*').eq('is_active',true).in('business',['chicken','all']).ilike('code',couponCode);
+        if (offerError) throw offerError;
+        offer = offers?.find((o: any) => String(o.code).toUpperCase() === couponCode && (!o.valid_from || new Date(o.valid_from).getTime() <= Date.now()) && (!o.valid_until || new Date(o.valid_until).getTime() >= Date.now()));
+        if (!offer) return json({error:'Coupon is invalid or expired'},400);
+        const {data: redemption, error: redemptionError} = await admin.from('chicken_coupon_redemptions').select('user_id,order_id').eq('phone',phone).maybeSingle();
+        if (redemptionError) throw redemptionError;
+        if (redemption) {
+          const {data: prior} = await admin.from('orders').select('payment_status').eq('id',redemption.order_id).single();
+          const status = couponPhoneStatus(redemption.user_id,user.id,prior?.payment_status === 'completed');
+          if (status !== 'resume') return json({error: status === 'used' ? 'This phone number has already used the chicken coupon' : 'This phone number already has a coupon order in progress'},400);
+        }
+        discount = chickenCouponDiscount(lines,Number(offer.discount_percentage || 0));
+        if (discount <= 0) return json({error:'Add a 250 g chicken pack to use this coupon'},400);
+      }
+      const subtotal = total;
+      total = Math.round((subtotal-discount)*100)/100;
+      if (action === 'quote') return json({subtotal,discount,total,couponCode});
+
       let community = "", address = "", centerId: string | null = null;
       if (fulfillment === "pickup") {
         const { data: c } = await admin.from("chicken_pickup_centers").select("*").eq("id", String(body.pickupCenterId || "")).maybeSingle();
@@ -135,17 +161,34 @@ Deno.serve(async (req) => {
         if (!community || !address) return json({ error: "Select a delivery address" }, 400);
       }
 
-      const { data: profile } = await admin.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-      const { data: order, error } = await admin.from("orders").insert({
+      const { data: newOrder, error } = await admin.from("orders").insert({
         user_id: user.id, business: "chicken", fulfillment_type: fulfillment, pickup_center_id: centerId,
-        community, address, phone, customer_name: profile?.full_name || user.email?.split("@")[0] || "Customer",
+        community, address, phone, customer_name: parsed.data.customerName,
         items: lines, total_amount: total, payment_status: "pending", order_status: "pending",
         delivery_slot: fulfillment === "pickup" ? "Pickup" : "Weekly chicken delivery",
         chicken_supply_at: pickupDeadline(settings).toISOString(),
       }).select().single();
       if (error) throw error;
+      let order = newOrder;
+      if (offer) {
+        const {data: reserved,error: reserveError} = await admin.rpc('reserve_chicken_coupon',{p_phone:phone,p_offer_id:offer.id,p_order_id:order.id,p_user_id:user.id,p_discount:discount});
+        if (reserveError) throw reserveError;
+        if (reserved?.error || reserved?.existingOrderId) {
+          await admin.from('orders').update({order_status:'cancelled',payment_status:'failed'}).eq('id',order.id);
+          if (reserved?.error) return json({error:reserved.error},400);
+          const {data: existing,error: existingError} = await admin.from('orders').select('*').eq('id',reserved.existingOrderId).eq('user_id',user.id).single();
+          if (existingError) throw existingError;
+          if (JSON.stringify(existing.items) !== JSON.stringify(lines) || existing.pickup_center_id !== centerId || Number(existing.total_amount) !== total || existing.customer_name !== parsed.data.customerName) return json({error:'A coupon checkout is already in progress. Use the same products, name and outlet to finish it.'},400);
+          order = existing;
+        }
+      }
 
       const kid = Deno.env.get("RAZORPAY_KEY_ID")!, ks = Deno.env.get("RAZORPAY_KEY_SECRET")!;
+      if (total === 0 && offer) {
+        body.orderId = order.id;
+        action = 'confirm';
+      } else {
+      if (order.payment_id?.startsWith('order_')) return json({orderId:order.id,razorpayOrderId:order.payment_id,amount:Math.round(total*100),currency:'INR',keyId:kid,total});
       const r = await fetch("https://api.razorpay.com/v1/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Basic ${btoa(`${kid}:${ks}`)}` },
@@ -153,19 +196,31 @@ Deno.serve(async (req) => {
       });
       const rz = await r.json();
       if (!r.ok) return json({ error: rz?.error?.description || "Payment could not be started" }, 502);
+      const {error: saveError} = await admin.from('orders').update({payment_id:rz.id}).eq('id',order.id).eq('payment_status','pending');
+      if (saveError) throw saveError;
       return json({ orderId: order.id, razorpayOrderId: rz.id, amount: rz.amount, currency: rz.currency, keyId: kid, total });
+      }
     }
 
     // ---------- CONFIRM (after payment) ----------
     if (action === "confirm") {
       const { orderId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
-      const expected = await hmacHex(Deno.env.get("RAZORPAY_KEY_SECRET")!, `${razorpay_order_id}|${razorpay_payment_id}`);
-      if (expected !== razorpay_signature) return json({ error: "Payment verification failed" }, 400);
       const { data: order } = await admin.from("orders").select("*").eq("id", orderId).eq("user_id", user.id).maybeSingle();
       if (!order || order.business !== "chicken") return json({ error: "Order not found" }, 404);
+      if (Number(order.total_amount) === 0) {
+        const {data: reservation} = await admin.from('chicken_coupon_redemptions').select('order_id').eq('order_id',order.id).eq('user_id',user.id).maybeSingle();
+        if (!reservation) return json({error:'Free order coupon could not be verified'},400);
+      } else if (order.payment_status !== 'completed') {
+        const expected = await hmacHex(Deno.env.get('RAZORPAY_KEY_SECRET')!,`${razorpay_order_id}|${razorpay_payment_id}`);
+        if (expected !== razorpay_signature || order.payment_id !== razorpay_order_id) return json({error:'Payment verification failed'},400);
+        const paymentResponse = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(razorpay_payment_id)}`,{headers:{Authorization:`Basic ${btoa(`${Deno.env.get('RAZORPAY_KEY_ID')}:${Deno.env.get('RAZORPAY_KEY_SECRET')}`)}`}});
+        const payment = await paymentResponse.json();
+        if (!paymentResponse.ok || payment.order_id !== razorpay_order_id || payment.amount !== Math.round(Number(order.total_amount)*100) || payment.currency !== 'INR' || payment.status !== 'captured') return json({error:'Payment has not been captured for this order yet'},400);
+      }
 
       if (order.payment_status !== "completed") {
-        await admin.from("orders").update({ payment_status: "completed", order_status: "confirmed", payment_id: razorpay_payment_id }).eq("id", order.id);
+        const {error: completeError} = await admin.from("orders").update({ payment_status: "completed", order_status: "confirmed", payment_id: razorpay_payment_id || `coupon:${order.id}` }).eq("id", order.id);
+        if (completeError) throw completeError;
       }
       let pickup: any = null;
       if (order.fulfillment_type === "pickup" && order.pickup_center_id) {
@@ -188,7 +243,7 @@ Deno.serve(async (req) => {
           body: { orderId: order.id, customerName: `[CHICKEN] ${order.customer_name}`, phone: order.phone, community: order.community, address: order.address, items: order.items, totalAmount: order.total_amount, deliverySlot: order.delivery_slot },
         });
       } catch (_) { /* ignore */ }
-      return json({ ok: true, pickup });
+      return json({ ok: true, pickup, orderId:order.id, freeOrder:Number(order.total_amount) === 0 });
     }
 
     // ---------- STAFF: VERIFY / HANDOVER ----------

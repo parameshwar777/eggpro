@@ -101,7 +101,7 @@ export const WelcomePage = () => {
               )}
               {c.key === "cafe" ? (
                 <div className="flex items-center gap-4 mb-6">
-                  <img src={cafeBadge.url} alt="EGG PRO CAFÉ logo" className="w-24 h-24 object-cover shrink-0 rounded-2xl shadow-lg ring-1 ring-white/25" />
+                  <img src={new URL(cafeBadge.url, 'https://eggpro.lovable.app').href} alt="EGG PRO CAFÉ logo" className="w-24 h-24 object-cover shrink-0 rounded-lg shadow-card ring-1 ring-accent-foreground/25" />
                   <div className="min-w-0">
                     <h2 className="text-lg font-extrabold tracking-normal leading-tight">{c.title}</h2>
                     <p className="text-sm font-semibold leading-relaxed mt-3">High-Protein Food<br />Fresh Ingredients</p>
