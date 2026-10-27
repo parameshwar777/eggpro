@@ -101,7 +101,11 @@ Deno.serve(async (req) => {
     // ---------- CREATE ----------
     if (action === "create" || action === "quote") {
       const parsed = z.object({ items: z.array(z.object({ productId: z.string().uuid(), quantity: z.number().int().min(1).max(50) })).min(1).max(20), phone: z.string().regex(/^\d{10}$/), customerName: z.string().trim().min(2).max(100), couponCode: z.string().trim().max(80).optional(), fulfillment: z.enum(['pickup','delivery']).optional() }).safeParse(body);
-      if (!parsed.success) return json({ error: "Enter your name, 10-digit phone number and valid quantities" },400);
+      if (!parsed.success) {
+        const field = parsed.error.issues[0]?.path[0];
+        const error = field === 'phone' ? 'Enter a valid 10-digit phone number' : field === 'customerName' ? 'Enter your full name (2–100 characters)' : field === 'items' ? 'Select a product with a valid quantity' : field === 'couponCode' ? 'Enter a valid coupon code' : 'Select delivery or pickup';
+        return json({error,field},400);
+      }
       const items = parsed.data.items;
       if (new Set(items.map(i => i.productId)).size !== items.length) return json({error:'Duplicate product selection'},400);
       const fulfillment = body.fulfillment === "pickup" ? "pickup" : "delivery";

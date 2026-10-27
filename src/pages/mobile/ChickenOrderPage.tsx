@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useChickenCart } from "@/contexts/ChickenCartContext";
 import { chickenUnitPrice, groupChickenProducts, type ChickenProduct } from "@/lib/chickenProducts";
 import { isOfferLive } from "@/lib/offerValidity";
+import { chickenCheckoutError } from '@/lib/chickenCheckoutValidation';
 
 type Product = ChickenProduct;
 interface Center { id: string; name: string; address: string; google_maps_url: string | null; image_path: string | null; pickup_instructions: string | null }
@@ -128,9 +129,17 @@ export const ChickenOrderPage = () => {
   useEffect(() => { setQuote(null); }, [qty,phone,couponCode,customerName,centerId]);
   const applyCoupon = async () => {
     if (!user) { navigate('/auth'); return; }
+    const items = Object.entries(qty).filter(([id,n]) => n > 0 && products.some(p => p.id === id && p.available)).map(([productId,quantity]) => ({productId,quantity}));
+    const validation = chickenCheckoutError(customerName,phone,items.length);
+    if (validation) {
+      toast({title:validation.message,variant:'destructive'});
+      const input = document.getElementById(validation.field === 'phone' ? 'chicken-phone' : 'chicken-name');
+      if (validation.field !== 'items') { input?.scrollIntoView({block:'center'}); input?.focus(); }
+      return;
+    }
     setApplying(true);
     try {
-      const {data,error} = await supabase.functions.invoke('chicken-order',{body:{action:'quote',items:Object.entries(qty).filter(([,n])=>n>0).map(([productId,quantity])=>({productId,quantity})),phone,customerName,couponCode,fulfillment:mode}});
+      const {data,error} = await supabase.functions.invoke('chicken-order',{body:{action:'quote',items,phone,customerName,couponCode,fulfillment:mode}});
       if (error || data?.error) {
         let message = data?.error || 'Could not apply coupon';
         if (error?.context) { try { message = (await error.context.json()).error || message; } catch { /* response unavailable */ } }
@@ -149,9 +158,8 @@ export const ChickenOrderPage = () => {
   const pay = async () => {
     if (!user) { navigate("/auth"); return; }
     const items = Object.entries(qty).filter(([id, n]) => n > 0 && products.some((p) => p.id === id && p.available)).map(([productId, quantity]) => ({ productId, quantity }));
-    if (!items.length) return toast({ title: "Select a product", variant: "destructive" });
-    if (!/^\d{10}$/.test(phone)) return toast({ title: "Enter a valid 10-digit phone number", variant: "destructive" });
-    if (customerName.trim().length < 2) return toast({title:'Enter your name',variant:'destructive'});
+    const validation = chickenCheckoutError(customerName,phone,items.length);
+    if (validation) return toast({title:validation.message,variant:'destructive'});
     if (couponCode.trim() && !quote) return toast({title:'Apply your coupon before placing the order',variant:'destructive'});
     let body: any = { action: "create", items, fulfillment: mode, phone, customerName, couponCode };
     if (mode === "pickup") {
@@ -304,8 +312,8 @@ export const ChickenOrderPage = () => {
             <Input id="chicken-name" autoComplete="name" maxLength={100} value={customerName} onChange={e=>setCustomerName(e.target.value)} className="h-12 mt-1 font-bold" placeholder="Your full name" />
           </div>
           <div className="mt-4">
-            <label className="text-sm font-bold text-foreground">Phone number</label>
-            <Input inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-12 mt-1 font-semibold" placeholder="10-digit mobile number" />
+            <label htmlFor="chicken-phone" className="text-sm font-bold text-foreground">Phone number</label>
+            <Input id="chicken-phone" autoComplete="tel-national" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-12 mt-1 font-semibold" placeholder="10-digit mobile number" />
           </div>
 
           <div className="mt-5 space-y-2">
