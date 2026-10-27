@@ -1,4 +1,6 @@
 # Tasks
+- [ ] Add chicken name/coupon entry, server-priced first 250 g discount and once-per-phone enforcement; verify checkout.
+- [ ] Fix Café badge loading in the native Welcome screen.
 - [x] Update warm comparison headers, hen icon, Café sign and button spacing; phone layout and hosted photo checked.
 - [x] Fix offer date editing/visibility and image-free previews; date tests and controlled popup/copy/checkout checks passed. Live admin save not tested without an admin session.
 - [x] Redesign Welcome with Eggs and Chicken side by side and Café below; align chicken text.
