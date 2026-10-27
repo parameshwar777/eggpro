@@ -43,7 +43,24 @@ export async function openRazorpayCheckout(options: RazorpayPaymentOptions): Pro
     };
   }
 
-  // Web: use inline Razorpay checkout
+  // Web: use inline Razorpay checkout (load script on demand)
+  if (typeof (window as any).Razorpay !== "function") {
+    await new Promise<void>((resolve, reject) => {
+      const existing = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+      const s = existing ?? document.createElement("script");
+      const done = () => (typeof (window as any).Razorpay === "function" ? resolve() : reject(new Error("Payment service failed to load. Check your internet and try again.")));
+      s.addEventListener("load", done, { once: true });
+      s.addEventListener("error", () => reject(new Error("Payment service failed to load. Check your internet and try again.")), { once: true });
+      if (!existing) {
+        s.src = "https://checkout.razorpay.com/v1/checkout.js";
+        s.async = true;
+        document.body.appendChild(s);
+      } else if (typeof (window as any).Razorpay === "function") {
+        resolve();
+      }
+      setTimeout(done, 15000);
+    });
+  }
   return new Promise<RazorpayResponse>((resolve, reject) => {
     const razorpay = new (window as any).Razorpay({
       ...options,
