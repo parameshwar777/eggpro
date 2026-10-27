@@ -186,8 +186,26 @@ Deno.serve(async (req) => {
           if (reserved?.error) return json({error:reserved.error},400);
           const {data: existing,error: existingError} = await admin.from('orders').select('*').eq('id',reserved.existingOrderId).eq('user_id',user.id).single();
           if (existingError) throw existingError;
-          if (JSON.stringify(existing.items) !== JSON.stringify(lines) || existing.pickup_center_id !== centerId || Number(existing.total_amount) !== total || existing.customer_name !== parsed.data.customerName) return json({error:'A coupon checkout is already in progress. Use the same products, name and outlet to finish it.'},400);
-          order = existing;
+          const sameCheckout = JSON.stringify(existing.items) === JSON.stringify(lines) && existing.pickup_center_id === centerId && Number(existing.total_amount) === total && existing.customer_name === parsed.data.customerName;
+          if (sameCheckout) {
+            order = existing;
+          } else {
+            // Customer changed the cart: release the unpaid earlier checkout and move the coupon to this order.
+            let stillPayable = existing.payment_status === 'completed';
+            if (!stillPayable && existing.payment_id?.startsWith('order_')) {
+              const auth = btoa(`${Deno.env.get("RAZORPAY_KEY_ID")}:${Deno.env.get("RAZORPAY_KEY_SECRET")}`);
+              const rz = await fetch(`https://api.razorpay.com/v1/orders/${existing.payment_id}`,{headers:{Authorization:`Basic ${auth}`}});
+              const rzOrder = rz.ok ? await rz.json() : null;
+              stillPayable = !rzOrder || rzOrder.status === 'paid' || Number(rzOrder.amount_paid || 0) > 0;
+            }
+            if (stillPayable) return json({error:'Your earlier coupon payment is still being processed. Please wait a minute and check your Orders.'},400);
+            const {error: moveError} = await admin.from('chicken_coupon_redemptions').update({order_id:newOrder.id,discount_amount:discount,razorpay_order_id:null}).eq('order_id',existing.id);
+            if (moveError) throw moveError;
+            await admin.from('orders').update({order_status:'cancelled',payment_status:'failed'}).eq('id',existing.id).neq('payment_status','completed');
+            const {data: revived,error: reviveError} = await admin.from('orders').update({order_status:'pending',payment_status:'pending'}).eq('id',newOrder.id).select().single();
+            if (reviveError) throw reviveError;
+            order = revived;
+          }
         }
       }
 
