@@ -36,6 +36,13 @@
       "when": 1792918885115,
       "tag": "0004_add_business_to_offers",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793081059707,
+      "tag": "0005_chicken_coupon_reservations",
+      "breakpoints": true
     }
   ]
 }
