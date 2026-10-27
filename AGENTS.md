@@ -18,3 +18,4 @@
 - Welcome CDN artwork uses an absolute published-origin URL. Why: relative infrastructure URLs do not resolve inside bundled Capacitor apps.
 - Chicken coupon Apply and order submission share checkout-field validation, with independent server validation returning the rejected field. Why: incomplete contact details should be caught before a request without weakening server checks.
 - Applied chicken coupons use cart-keyed server quotes that refresh on quantity changes and block payment while refreshing. Why: retain the one-pack discount without displaying or submitting stale totals.
+- Offers use optional exact product IDs scoped by business and shared eligibility filtering; chicken validates both quote and creation server-side. Why: a mixed cart must never transfer a targeted discount to another product or weight.

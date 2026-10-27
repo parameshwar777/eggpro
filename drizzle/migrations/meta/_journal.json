@@ -43,6 +43,13 @@
       "when": 1793081059707,
       "tag": "0005_chicken_coupon_reservations",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793083867058,
+      "tag": "0006_offer_product_target",
+      "breakpoints": true
     }
   ]
 }

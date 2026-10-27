@@ -1,6 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chickenCouponDiscount, couponPhoneStatus } from '../supabase/functions/_shared/chickenCoupon';
+import { eligibleOfferLines, OFFER_PRODUCT_ERROR } from '../supabase/functions/_shared/offerProducts';
+
+test('product-specific coupon rejects a different chicken product', () => {
+  assert.throws(() => chickenCouponDiscount([{productId:'other',quantity:1,price:250}],100,'selected'), {message:OFFER_PRODUCT_ERROR});
+});
+test('mixed cart discounts only one pack of the selected product', () => {
+  assert.equal(chickenCouponDiscount([{productId:'selected',quantity:2,price:250},{productId:'other',quantity:1,price:500}],100,'selected'),250);
+});
+test('different weight variant cannot use the product-specific offer', () => {
+  assert.throws(() => eligibleOfferLines([{productId:'half-kg',quantity:1}], 'one-kg'), {message:OFFER_PRODUCT_ERROR});
+});
 
 test('100% coupon makes one full pack free, second quantity stays paid', () => {
   const lines = [{productId:'quarter', weight:'250 g', quantity:2, price:120}];

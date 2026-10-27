@@ -1,4 +1,5 @@
 # Tasks
+- [x] Add optional product/weight selection to admin offers; enforce exact eligibility for chicken quote/create and egg coupon application; mixed carts discount only the selected product. Database column verified, chicken function deployed, 18 tests pass. Live admin save remains unverified because the available session redirects to admin login.
 - [x] Keep applied chicken coupons when quantities change; signed-in checkout verified ₹0 → ₹250 → ₹0 for one → two → one ₹250 packs, without reapplying; coupon and validation tests pass.
 - [x] Add chicken name/coupon entry, server-priced first 250 g discount and atomic once-per-phone enforcement; signed-in real 500 g checkout verified at ₹125 for one pack and ₹375 for two packs, with ₹125 savings in both.
 - [ ] Verify actual discounted order payment and collection; blocked by real payment authorization (standalone fully free order additionally needs an active 250 g product).
