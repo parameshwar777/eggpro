@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, ChevronDown, Check, Copy, Tag } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, CalendarDays, ChevronDown, Check, Copy, Tag } from "lucide-react";
+import { EggSpinner } from "@/components/EggSpinner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fetchChickenOffers, type ChickenOffer } from "@/components/mobile/ChickenOfferPopup";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,6 +133,7 @@ export const ChickenOrderPage = () => {
     queryKey: ['chicken-coupon-quote', user?.id, items, phone, customerName, couponCode.trim(), mode],
     enabled: couponActive && !!user && items.length > 0,
     staleTime: 0,
+    placeholderData: keepPreviousData,
     retry: false,
     queryFn: async () => {
       const {data,error} = await supabase.functions.invoke('chicken-order',{body:{action:'quote',items,phone,customerName,couponCode,fulfillment:mode}});
@@ -145,6 +147,7 @@ export const ChickenOrderPage = () => {
   });
   const applying = couponActive && couponQuote.isFetching;
   const quote = couponActive && items.length > 0 && couponQuote.isSuccess && !couponQuote.isFetching ? couponQuote.data : null;
+  const shownQuote = couponActive && items.length > 0 ? couponQuote.data : null;
   useEffect(() => {
     if (couponActive && couponQuote.error) toast({title:couponQuote.error.message,variant:'destructive'});
   }, [couponActive, couponQuote.error, toast]);
