@@ -14,6 +14,10 @@ test('100% coupon takes the full price of one pack of any size', () => {
 test('two 500 g packs at 250 each deduct 250 so one pack stays paid', () => {
   assert.equal(500-chickenCouponDiscount([{productId:'h',weight:'500 g',quantity:2,price:250}],100),250);
 });
+test('changing an applied 100% coupon from one 250-rupee pack to two retains the free pack', () => {
+  const totals = [1,2,1].map(quantity => quantity * 250 - chickenCouponDiscount([{productId:'h',weight:'500 g',quantity,price:250}],100));
+  assert.deepEqual(totals,[0,250,0]);
+});
 test('partial percentages apply to one pack only', () => {
   assert.equal(chickenCouponDiscount([{productId:'h',weight:'500 g',quantity:2,price:250}],50),125);
 });
