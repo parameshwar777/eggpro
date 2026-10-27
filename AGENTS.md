@@ -16,3 +16,4 @@
 - Offer date inputs use shared India-time conversion and validity helpers; unavailable offer artwork collapses rather than reserving image space. Why: editing must preserve dates across device timezones and text-only coupons must remain readable.
 - Chicken coupon calculations run server-side through a shared pure helper; a service-only atomic phone-keyed reservation binds discounts to one order and resumes pending payments rather than releasing payable orders. Why: concurrent requests and different accounts must not redeem twice.
 - Welcome CDN artwork uses an absolute published-origin URL. Why: relative infrastructure URLs do not resolve inside bundled Capacitor apps.
+- Chicken coupon Apply and order submission share checkout-field validation, with independent server validation returning the rejected field. Why: incomplete contact details should be caught before a request without weakening server checks.
