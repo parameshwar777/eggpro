@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, Loader2, CalendarDays, ChevronDown, Check, Copy, Tag } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Truck, Store, MapPin, ExternalLink, CalendarDays, ChevronDown, Check, Copy, Tag } from "lucide-react";
+import { EggSpinner } from "@/components/EggSpinner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fetchChickenOffers, type ChickenOffer } from "@/components/mobile/ChickenOfferPopup";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,6 +133,7 @@ export const ChickenOrderPage = () => {
     queryKey: ['chicken-coupon-quote', user?.id, items, phone, customerName, couponCode.trim(), mode],
     enabled: couponActive && !!user && items.length > 0,
     staleTime: 0,
+    placeholderData: keepPreviousData,
     retry: false,
     queryFn: async () => {
       const {data,error} = await supabase.functions.invoke('chicken-order',{body:{action:'quote',items,phone,customerName,couponCode,fulfillment:mode}});
@@ -145,6 +147,7 @@ export const ChickenOrderPage = () => {
   });
   const applying = couponActive && couponQuote.isFetching;
   const quote = couponActive && items.length > 0 && couponQuote.isSuccess && !couponQuote.isFetching ? couponQuote.data : null;
+  const shownQuote = couponActive && items.length > 0 ? couponQuote.data : null;
   useEffect(() => {
     if (couponActive && couponQuote.error) toast({title:couponQuote.error.message,variant:'destructive'});
   }, [couponActive, couponQuote.error, toast]);
@@ -234,7 +237,7 @@ export const ChickenOrderPage = () => {
 
         <div className="px-4 mt-5 space-y-3">
           <h2 className="text-lg font-extrabold text-foreground">Chicken Products</h2>
-          {loading && <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}
+          {loading && <div className="flex justify-center py-8"><EggSpinner size={30} className="text-primary" /></div>}
           {prodErr && <p className="text-sm text-red-700 font-semibold">Chicken products are currently unavailable. Please try again later.</p>}
           {!loading && !prodErr && products.length === 0 && <p className="text-sm text-muted-foreground font-semibold">Chicken products are currently unavailable. Please try again later.</p>}
           {groupChickenProducts(products).map((variants) => {
@@ -330,10 +333,10 @@ export const ChickenOrderPage = () => {
             <label htmlFor="chicken-coupon" className="text-sm font-extrabold text-foreground">Coupon code</label>
             <div className="flex gap-2">
               <Input id="chicken-coupon" maxLength={80} value={couponCode} onChange={e=>setCouponCode(e.target.value.toUpperCase())} placeholder="Paste coupon code" className="h-12 min-w-0 font-bold" />
-              <Button onClick={applyCoupon} disabled={applying || !couponCode.trim() || paying} className="h-12 font-extrabold shrink-0">{applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tag className="w-4 h-4" />} APPLY</Button>
+              <Button onClick={applyCoupon} disabled={applying || !couponCode.trim() || paying} className="h-12 font-extrabold shrink-0">{applying ? <EggSpinner size={16} /> : <Tag className="w-4 h-4" />} APPLY</Button>
             </div>
             <p className="text-xs font-bold text-muted-foreground">Offer applies to one full pack. Extra packs are paid normally. One use per phone number.</p>
-            {quote && <div className="border-l-4 border-primary pl-3 text-sm font-bold text-foreground"><p>Subtotal: ₹{quote.subtotal.toFixed(2)}</p><p>Coupon savings: −₹{quote.discount.toFixed(2)}</p><p>To pay: ₹{quote.total.toFixed(2)}</p><Button variant="ghost" onClick={()=>{setCouponCode('');setAppliedCoupon(null);}} className="h-12 px-0">Remove coupon</Button></div>}
+            {shownQuote && <div className="border-l-4 border-primary pl-3 text-sm font-bold text-foreground"><p className="flex items-center gap-2">Coupon applied{applying && <EggSpinner size={16} className="text-orange-600" />}</p><p>Subtotal: ₹{shownQuote.subtotal.toFixed(2)}</p><p>Coupon savings: −₹{shownQuote.discount.toFixed(2)}</p><p>To pay: ₹{shownQuote.total.toFixed(2)}</p><Button variant="ghost" onClick={()=>{setCouponCode('');setAppliedCoupon(null);}} className="h-12 px-0">Remove coupon</Button></div>}
           </div>
 
           {liveCoupons.length > 0 && (
@@ -377,10 +380,10 @@ export const ChickenOrderPage = () => {
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <div>
             <p className="text-xs text-muted-foreground font-semibold">Total</p>
-            <p aria-live="polite" className="text-xl font-extrabold text-foreground">{applying ? 'Updating…' : couponActive && !quote && items.length > 0 ? 'Check coupon' : `₹${(quote?.total ?? total).toFixed(2)}`}</p>
+            <p aria-live="polite" className="text-xl font-extrabold text-foreground flex items-center gap-2">{applying ? <><EggSpinner size={20} className="text-orange-600" /><span className="sr-only">Updating total</span></> : couponActive && !quote && items.length > 0 ? 'Check coupon' : `₹${(quote?.total ?? total).toFixed(2)}`}</p>
           </div>
            <Button variant="gradient" onClick={pay} disabled={paying || applying || (couponActive && !quote) || total <= 0 || !bookingOpen} className="flex-1 h-14 min-w-0 px-3 rounded-lg font-extrabold">
-            {paying && <Loader2 className="w-5 h-5 animate-spin" />} {quote?.total === 0 ? 'PLACE FREE ORDER' : 'PAY & PLACE ORDER'}
+            {paying && <EggSpinner size={18} className="text-white" />} {quote?.total === 0 ? 'PLACE FREE ORDER' : 'PAY & PLACE ORDER'}
            </Button>
         </div>
       </div>
