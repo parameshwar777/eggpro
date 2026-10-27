@@ -146,7 +146,7 @@ export const ChickenOrderPage = () => {
         throw new Error(message);
       }
       setQuote(data);
-      toast({title:'Coupon applied',description:`You save ₹${data.discount.toFixed(2)} on one 250 g pack`});
+      toast({title:'Coupon applied',description:`You save ₹${data.discount.toFixed(2)} on the first 250 g`});
     } catch (error: unknown) { setQuote(null); toast({title:error instanceof Error ? error.message : 'Could not apply coupon',variant:'destructive'}); }
     finally { setApplying(false); }
   };
@@ -322,7 +322,7 @@ export const ChickenOrderPage = () => {
               <Input id="chicken-coupon" maxLength={80} value={couponCode} onChange={e=>setCouponCode(e.target.value.toUpperCase())} placeholder="Paste coupon code" className="h-12 min-w-0 font-bold" />
               <Button onClick={applyCoupon} disabled={applying || !couponCode.trim() || paying} className="h-12 font-extrabold shrink-0">{applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tag className="w-4 h-4" />} APPLY</Button>
             </div>
-            <p className="text-xs font-bold text-muted-foreground">Offer covers one 250 g pack only. Extra packs are charged normally. One use per phone number.</p>
+            <p className="text-xs font-bold text-muted-foreground">Offer covers the first 250 g, including in a 500 g or 1 kg pack. Remaining weight and extra packs are paid normally. One use per phone number.</p>
             {quote && <div className="border-l-4 border-primary pl-3 text-sm font-bold text-foreground"><p>Subtotal: ₹{quote.subtotal.toFixed(2)}</p><p>Coupon savings: −₹{quote.discount.toFixed(2)}</p><p>To pay: ₹{quote.total.toFixed(2)}</p><Button variant="ghost" onClick={()=>{setCouponCode('');setQuote(null);}} className="h-12 px-0">Remove coupon</Button></div>}
           </div>
 
@@ -334,7 +334,7 @@ export const ChickenOrderPage = () => {
                   <div key={o.id} className="flex items-center justify-between gap-2 bg-card rounded-xl px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-sm font-extrabold text-orange-700 tracking-widest">{o.code}</p>
-                      <p className="text-xs font-semibold text-muted-foreground">{o.discount_percentage === 100 ? 'One 250 g pack free' : `${o.discount_percentage}% off one 250 g pack`} — {o.title}</p>
+                      <p className="text-xs font-semibold text-muted-foreground">{o.discount_percentage === 100 ? 'First 250 g free' : `${o.discount_percentage}% off the first 250 g`} — {o.title}</p>
                     </div>
                     <Button onClick={() => { if (o.code) void copyCoupon(o.code); }} className="shrink-0 h-10 px-3 rounded-lg text-xs font-extrabold flex items-center gap-1.5">
                       {copiedCode === o.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} COPY

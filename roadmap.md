@@ -1,6 +1,6 @@
 # Tasks
-- [x] Add chicken name/coupon entry, server-priced first 250 g discount and atomic once-per-phone enforcement; 16 tests pass and signed-in checkout rejects the existing 500 g variant correctly.
-- [ ] Verify a real free-250 g order and additional paid quantity; blocked by no active 250 g product/price and real payment authorization.
+- [x] Add chicken name/coupon entry, server-priced first 250 g discount and atomic once-per-phone enforcement; signed-in real 500 g checkout verified at ₹125 for one pack and ₹375 for two packs, with ₹125 savings in both.
+- [ ] Verify actual discounted order payment and collection; blocked by real payment authorization (standalone fully free order additionally needs an active 250 g product).
 - [x] Fix Café badge loading using absolute hosted artwork URL; photo visibly rendered without interception.
 - [x] Update warm comparison headers, hen icon, Café sign and button spacing; phone layout and hosted photo checked.
 - [x] Fix offer date editing/visibility and image-free previews; date tests and controlled popup/copy/checkout checks passed. Live admin save not tested without an admin session.
