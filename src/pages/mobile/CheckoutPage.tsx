@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { getAvailableDeliverySlots, type DeliverySlot } from "@/lib/deliverySlots";
 import { useSlotConfig } from "@/lib/slotConfig";
 import { useStoreStatus } from "@/lib/storeStatus";
+import { eligibleOfferLines } from "../../../supabase/functions/_shared/offerProducts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,7 +77,7 @@ export const CheckoutPage = () => {
 
   // Coupon
   const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discount_percentage: number; title: string } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discount_percentage: number; title: string; product_id: string | null } | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   // Guard against stale/inflated originalPrice in cached cart items — never let discount base exceed 2x price.
@@ -92,8 +93,18 @@ export const CheckoutPage = () => {
   const baseTotal = discountEligible ? originalTotal : totalPrice;
   const firstOrderDiscount = discountEligible ? Math.round(originalTotal * (firstOrderDiscountPercent / 100)) : 0;
   const subtotalAfterFirst = Math.max(baseTotal - firstOrderDiscount, 0);
-  const couponDiscount = appliedCoupon ? Math.round(subtotalAfterFirst * (appliedCoupon.discount_percentage / 100)) : 0;
+  const eligibleCouponBase = appliedCoupon?.product_id
+    ? items.filter(i => i.id === appliedCoupon.product_id).reduce((sum, i) => sum + (discountEligible ? safeOriginal(i) * (1 - firstOrderDiscountPercent / 100) : i.price) * i.quantity, 0)
+    : subtotalAfterFirst;
+  const couponDiscount = appliedCoupon ? Math.round(eligibleCouponBase * (appliedCoupon.discount_percentage / 100)) : 0;
   const finalTotal = Math.max(subtotalAfterFirst - couponDiscount, 0);
+
+  useEffect(() => {
+    if (appliedCoupon?.product_id && !items.some(i => i.id === appliedCoupon.product_id && i.quantity > 0)) {
+      setAppliedCoupon(null);
+      toast({title: 'Coupon removed', description: 'The product for this offer is no longer in your cart.', variant:'destructive'});
+    }
+  }, [items, appliedCoupon, toast]);
 
 
 
@@ -231,7 +242,8 @@ export const CheckoutPage = () => {
       const nowIso = new Date().toISOString();
       const { data, error } = await supabase
         .from("offers")
-        .select("id, code, discount_percentage, title, valid_from, valid_until, is_active")
+        .select("id, code, discount_percentage, title, valid_from, valid_until, is_active, product_id")
+        .in('business', ['eggs', 'all'])
         .ilike("code", code)
         .eq("is_active", true)
         .maybeSingle();
@@ -248,11 +260,13 @@ export const CheckoutPage = () => {
         toast({ title: "Coupon expired", variant: "destructive" });
         return;
       }
+      eligibleOfferLines(items.map(i => ({productId:i.id, quantity:i.quantity})), data.product_id);
       setAppliedCoupon({
         id: data.id,
         code: data.code || code,
         discount_percentage: data.discount_percentage || 0,
         title: data.title,
+        product_id: data.product_id,
       });
       toast({ title: "Coupon applied!", description: `${data.discount_percentage}% off` });
     } catch (e: any) {
