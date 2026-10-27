@@ -36,6 +36,7 @@ import { ChickenInfoPage } from "./pages/mobile/ChickenInfoPage";
 import { ChickenOrderPage } from "./pages/mobile/ChickenOrderPage";
 import { ChickenProductDetailPage } from "./pages/mobile/ChickenProductDetailPage";
 import { ChickenPickupCodePage } from "./pages/mobile/ChickenPickupCodePage";
+import { ChickenOrdersPage } from "./pages/mobile/ChickenOrdersPage";
 import { CafePage } from "./pages/mobile/CafePage";
 import { MerchantChickenOrders } from "./pages/merchant/MerchantChickenOrders";
 import { AdminChickenProducts, AdminPickupCenters, AdminCafeLocations, AdminChickenSchedule, AdminChickenOrders, AdminPickupVerification } from "./pages/admin/AdminChicken";
@@ -104,6 +105,7 @@ const App = () => (
                 <Route path="/chicken/order" element={<ChickenOrderPage />} />
                 <Route path="/chicken/product/:id" element={<ChickenProductDetailPage />} />
                 <Route path="/chicken/pickup/:orderId" element={<ChickenPickupCodePage />} />
+                <Route path="/chicken/orders" element={<ChickenOrdersPage />} />
                 <Route path="/cafe" element={<CafePage />} />
                 <Route path="/staff/pickup" element={<Navigate to="/merchant/chicken/orders" replace />} />
 
