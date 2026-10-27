@@ -29,14 +29,9 @@ export const ChickenInfoPage = () => {
       <ChickenOfferPopup />
       <div className="max-w-lg mx-auto pb-44">
         <div className="gradient-hero text-accent-foreground px-5 pt-4 pb-5 safe-top">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/welcome")} className="h-12 w-12 -ml-2" aria-label="Back">
-              <ArrowLeft className="w-6 h-6" />
-            </Button>
-            <Button variant="secondary" onClick={() => navigate("/chicken/orders")} className="h-11 font-bold">
-              <ReceiptText className="w-5 h-5" />My Orders
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/welcome")} className="h-12 w-12 -ml-2" aria-label="Back">
+            <ArrowLeft className="w-6 h-6" />
+          </Button>
           <div className="flex items-center gap-3 mt-2">
             <div>
               <h1 className="text-2xl font-extrabold tracking-normal">EGG PRO BROILER</h1>
