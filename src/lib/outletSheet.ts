@@ -62,12 +62,12 @@ export async function downloadOutletSheet(orders: OutletOrder[], outlet: string,
     let y = 203; ctx.font = "600 21px Arial";
     page.forEach(({o,lines,name},i) => {
       ctx.fillStyle = color("--foreground"); ctx.fillText(String(offset+i+1),36,y+27);
-      name.forEach((line,k) => ctx.fillText(line,90,y+27+k*29)); ctx.fillText(o.phone,90,y+27+name.length*29);
+      name.forEach((line,k) => ctx.fillText(line,90,y+27+k*29)); ctx.fillText(`${o.phone}${o.pickup?.pickup_code ? ` · ${o.pickup.pickup_code}` : ""}`,90,y+27+name.length*29);
       lines.forEach((line,k) => ctx.fillText(line,330,y+27+k*29));
       ctx.fillText(String(o.total_amount),830,y+27);
       ctx.fillText(o.pickup?.pickup_status === "HANDED_OVER" || o.order_status === "delivered" ? "DONE" : (o.pickup?.pickup_status === "CANCELLED" ? "CANCELLED" : o.pickup?.pickup_status === "EXPIRED" ? "EXPIRED" : "PENDING"),980,y+27);
       y += heights[i]; ctx.strokeStyle = color("--border"); ctx.beginPath(); ctx.moveTo(24,y); ctx.lineTo(1176,y); ctx.stroke();
     });
-    const link = document.createElement("a"); link.download = `chicken-${outlet.replace(/[^a-z0-9]/gi,"-")}-${date}-${Math.floor(offset/30)+1}.png`; link.href = canvas.toDataURL("image/png"); link.click();
+    await savePng(canvas, `chicken-${outlet.replace(/[^a-z0-9]/gi,"-")}-${date}-${Math.floor(offset/30)+1}.png`);
   }
 }
