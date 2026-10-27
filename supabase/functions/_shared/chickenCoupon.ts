@@ -1,8 +1,9 @@
+import { eligibleOfferLines } from './offerProducts.ts';
 export interface CouponLine { productId: string; quantity: number; price: number; weight?: string | null }
 
-export function chickenCouponDiscount(lines: CouponLine[], percent: number): number {
+export function chickenCouponDiscount(lines: CouponLine[], percent: number, productId?: string | null): number {
   // The offer percentage applies to one full pack (the highest-priced line). Remaining quantities stay paid.
-  const unit = lines.reduce((max, line) => {
+  const unit = eligibleOfferLines(lines, productId).reduce((max, line) => {
     if (line.quantity < 1 || !Number.isFinite(line.price) || line.price <= 0) return max;
     return Math.max(max, line.price);
   }, 0);

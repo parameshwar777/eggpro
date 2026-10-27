@@ -146,7 +146,11 @@ Deno.serve(async (req) => {
           const status = couponPhoneStatus(redemption.user_id,user.id,prior?.payment_status === 'completed');
           if (status !== 'resume') return json({error: status === 'used' ? 'This phone number has already used the chicken coupon' : 'This phone number already has a coupon order in progress'},400);
         }
-        discount = chickenCouponDiscount(lines,Number(offer.discount_percentage || 0));
+        try {
+          discount = chickenCouponDiscount(lines,Number(offer.discount_percentage || 0),offer.product_id);
+        } catch (error) {
+          return json({error: error instanceof Error ? error.message : 'This coupon does not apply to the selected product', field: 'couponCode'},400);
+        }
         if (discount <= 0) return json({error:'This coupon does not apply to the selected products'},400);
       }
       const subtotal = total;

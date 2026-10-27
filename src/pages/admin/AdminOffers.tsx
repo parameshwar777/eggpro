@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +24,7 @@ interface Offer {
   valid_until: string | null;
   image_url: string | null;
   business: string;
+  product_id: string | null;
   created_at: string;
 }
 
@@ -42,6 +44,7 @@ const emptyForm = {
   valid_until: "",
   image_url: "",
   business: "all",
+  product_id: "",
 };
 
 export const AdminOffers = () => {
@@ -52,6 +55,25 @@ export const AdminOffers = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ ...emptyForm });
   const [uploading, setUploading] = useState(false);
+  const [productOptions, setProductOptions] = useState<{id: string; label: string; business: string}[]>([]);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      const [eggs, chicken] = await Promise.all([
+        supabase.from('products').select('id,name,unit').order('name'),
+        supabase.from('chicken_products').select('id,name,weight').order('name'),
+      ]);
+      if (eggs.error || chicken.error) {
+        toast({title: 'Could not load products', variant: 'destructive'});
+        return;
+      }
+      setProductOptions([
+        ...(eggs.data || []).map(p => ({id:p.id, business:'eggs', label:`${p.name}${p.unit ? ` — ${p.unit}` : ''}`})),
+        ...(chicken.data || []).map(p => ({id:p.id, business:'chicken', label:`${p.name}${p.weight ? ` — ${p.weight}` : ''}`})),
+      ]);
+    };
+    void loadProducts();
+  }, [toast]);
 
   useEffect(() => { fetchOffers(); }, []);
 
@@ -99,6 +121,7 @@ export const AdminOffers = () => {
       valid_until: offerIsoToInput(o.valid_until),
       image_url: o.image_url || "",
       business: o.business || "all",
+      product_id: o.product_id || "",
     });
     setDialogOpen(true);
   };
@@ -127,6 +150,7 @@ export const AdminOffers = () => {
       valid_until: validUntil,
       image_url: formData.image_url || null,
       business: formData.business,
+      product_id: formData.product_id || null,
     };
     try {
       if (editingId) {
@@ -217,15 +241,22 @@ export const AdminOffers = () => {
               <div>
                 <Label htmlFor="business">Show this offer in</Label>
                 <p className="text-xs text-muted-foreground mb-1">Chicken offers pop up with the coupon code when customers open the chicken tab</p>
-                <select
-                  id="business"
-                  value={formData.business}
-                  onChange={(e) => setFormData({ ...formData, business: e.target.value })}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  {BUSINESS_OPTIONS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
-                </select>
+                <Select value={formData.business} onValueChange={business => setFormData({...formData, business, product_id:''})}>
+                  <SelectTrigger id="business" className="h-12 font-bold"><SelectValue /></SelectTrigger>
+                  <SelectContent>{BUSINESS_OPTIONS.map(b => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
+
+              {(formData.business === 'eggs' || formData.business === 'chicken') && <div>
+                <Label htmlFor="offer-product" className="font-bold">Offer applies to</Label>
+                <Select value={formData.product_id || 'all-products'} onValueChange={value => setFormData({...formData, product_id: value === 'all-products' ? '' : value})}>
+                  <SelectTrigger id="offer-product" className="h-12 font-bold"><SelectValue placeholder="All products" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-products">All products</SelectItem>
+                    {productOptions.filter(p => p.business === formData.business).map(p => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>}
 
               <div>
                 <Label>Banner Image</Label>
@@ -274,6 +305,7 @@ export const AdminOffers = () => {
                       </div>
                       {offer.description && <p className="text-sm text-muted-foreground mt-1">{offer.description}</p>}
                       {offer.code && <p className="text-primary font-mono text-sm mt-2">Code: {offer.code}</p>}
+                      {offer.product_id && <p className="text-sm font-bold mt-2">Only: {productOptions.find(p => p.id === offer.product_id)?.label || 'Selected product'}</p>}
                       <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
                         <p>From: {fmt(offer.valid_from)}</p>
                         <p>Until: {fmt(offer.valid_until)}</p>
