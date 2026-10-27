@@ -5,6 +5,7 @@ import { Copy, QrCode, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
+import { QRCodeSVG } from "qrcode.react";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING_PICKUP: "Pending pickup", READY_FOR_PICKUP: "Ready for pickup", VERIFIED: "Verified",
@@ -31,6 +32,10 @@ export const ChickenPickupCodePage = () => {
       }
       setLoading(false);
     })();
+    if (!orderId) return;
+    // Outlet "Mark done" updates this screen live.
+    const ch = supabase.channel(`pickup-${orderId}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "chicken_pickup_verifications", filter: `order_id=eq.${orderId}` }, p => setV(p.new)).subscribe();
+    return () => { void supabase.removeChannel(ch); };
   }, [orderId]);
 
   const copy = async () => {
@@ -52,7 +57,10 @@ export const ChickenPickupCodePage = () => {
           <div className="mt-4 bg-card rounded-3xl shadow-xl p-6 text-center">
             <p className="text-xs font-extrabold tracking-widest text-muted-foreground">YOUR CHICKEN PICKUP CODE</p>
             <p className="mt-3 text-4xl font-black tracking-wider text-orange-700 select-all">{v.pickup_code}</p>
-            <p className="mt-1 text-xs font-bold text-muted-foreground">{STATUS_LABEL[v.pickup_status] || v.pickup_status}</p>
+            {v.pickup_status === "HANDED_OVER"
+              ? <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-2 font-extrabold"><CheckCircle2 className="w-5 h-5" />DONE · COLLECTED</p>
+              : <><div className="mt-4 flex justify-center"><div className="bg-background p-3 rounded-2xl border-2 border-border"><QRCodeSVG value={v.pickup_code} size={200} /></div></div>
+                <p className="mt-2 text-xs font-bold text-muted-foreground">Show this QR at the outlet · {STATUS_LABEL[v.pickup_status] || v.pickup_status}</p></>}
             <Button variant="secondary" onClick={copy} className="mt-5 h-12 w-full"><Copy />COPY CODE</Button>
             <div className="mt-6 text-left space-y-2 text-sm">
               <p><span className="font-bold">Pickup Outlet: </span>{center || "—"}</p>
