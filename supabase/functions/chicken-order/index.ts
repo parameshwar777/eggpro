@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
       });
       const pickups: any[] = [];
       for (let i = 0; i < orders.length; i += 100) {
-        const { data, error } = await admin.from("chicken_pickup_verifications").select("order_id,pickup_status,handed_over_at,expires_at").in("order_id", orders.slice(i,i+100).map(o => o.id));
+        const { data, error } = await admin.from("chicken_pickup_verifications").select("order_id,pickup_code,pickup_status,handed_over_at,expires_at").in("order_id", orders.slice(i,i+100).map(o => o.id));
         if (error) throw error;
         pickups.push(...(data || []));
       }

@@ -6,9 +6,34 @@ export interface OutletOrder {
   total_amount: number;
   order_status: string | null;
   pickup_center_id: string;
-  pickup: { pickup_status: string; expires_at: string | null; handed_over_at: string | null } | null;
+  pickup: { pickup_code?: string; pickup_status: string; expires_at: string | null; handed_over_at: string | null } | null;
 }
-export function downloadOutletSheet(orders: OutletOrder[], outlet: string, date: string) {
+/** Matches a search term against name, phone digits and pickup code. A name search never matches every phone. */
+export function matchesOutletSearch(o: OutletOrder, raw: string): boolean {
+  const term = raw.trim().toLowerCase();
+  if (!term) return true;
+  if ((o.customer_name || "").toLowerCase().includes(term)) return true;
+  const code = (o.pickup?.pickup_code || "").toLowerCase();
+  if (code && code.replace(/[^a-z0-9]/g, "").includes(term.replace(/[^a-z0-9]/g, ""))) return true;
+  const digits = term.replace(/\D/g, "");
+  return digits.length > 0 && digits.length === term.replace(/[\s+\-]/g, "").length && (o.phone || "").replace(/\D/g, "").includes(digits);
+}
+async function savePng(canvas: HTMLCanvasElement, filename: string) {
+  const blob: Blob | null = await new Promise(r => canvas.toBlob(r, "image/png"));
+  if (!blob) throw new Error("Could not create the image");
+  const file = new File([blob], filename, { type: "image/png" });
+  // Phone apps and mobile browsers often ignore <a download>; the share sheet lets users save to Photos/Files or send on WhatsApp.
+  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+  if (nav.canShare?.({ files: [file] })) {
+    try { await nav.share({ files: [file], title: filename }); return; }
+    catch (e) { if ((e as Error).name === "AbortError") return; }
+  }
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a"); link.download = filename; link.href = url;
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+export async function downloadOutletSheet(orders: OutletOrder[], outlet: string, date: string) {
   const palette = getComputedStyle(document.documentElement);
   const color = (token: string) => `hsl(${palette.getPropertyValue(token).trim()})`;
   const wrap = (ctx: CanvasRenderingContext2D, text: string, width: number) => {
