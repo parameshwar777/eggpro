@@ -7,7 +7,7 @@ import { EggSpinner } from "@/components/EggSpinner";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING_PICKUP: "Pending pickup", READY_FOR_PICKUP: "Ready for pickup", VERIFIED: "Verified",
-  HANDED_OVER: "Collected", EXPIRED: "Expired", CANCELLED: "Cancelled",
+  HANDED_OVER: "Done ✓ Collected", EXPIRED: "Expired", CANCELLED: "Cancelled",
 };
 
 const fmt = (d: string) => new Date(d).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
@@ -16,6 +16,7 @@ export const ChickenOrdersPage = () => {
   const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ["chicken-orders-history"],
+    refetchOnMount: "always", refetchOnWindowFocus: true, refetchInterval: 30000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
