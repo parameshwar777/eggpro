@@ -62,7 +62,7 @@ export const ChickenPickupCodePage = () => {
             <p className="mt-5 text-sm font-semibold text-foreground bg-amber-50 rounded-xl p-3">Give your name, phone number or order code at your selected outlet. The outlet will mark your order collected.</p>
           </div>
         )}
-        <button onClick={() => navigate("/orders")} className="mt-6 w-full h-12 rounded-xl border-2 border-border font-bold">Go to My Orders</button>
+        <button onClick={() => navigate("/chicken/orders")} className="mt-6 w-full h-12 rounded-xl border-2 border-border font-bold">My Chicken Orders</button>
       </div>
     </div>
   );
