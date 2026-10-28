@@ -1,3 +1,4 @@
+import { ChickenClosedNotice } from "@/components/mobile/ChickenClosedNotice";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -238,6 +239,7 @@ export const ChickenOrderPage = () => {
 
   return (
      <div className="page-scroll bg-secondary w-full">
+      <ChickenClosedNotice />
        <div className="max-w-lg mx-auto pb-64">
         <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white px-5 pt-4 pb-6 rounded-b-[2rem] safe-top">
           <button onClick={() => navigate("/chicken")} className="h-9 w-9 -ml-2 flex items-center justify-center" aria-label="Back"><ArrowLeft className="w-6 h-6" /></button>
@@ -255,7 +257,7 @@ export const ChickenOrderPage = () => {
            <p className="text-sm font-extrabold text-foreground">Collect before {fmtTime(settings.cutoff_time)} (IST)</p>
          </section>
 
-        {!bookingOpen && (
+        {!bookingOpen && !settings.store_closed && (
           <div className="mx-4 mt-4 p-4 rounded-2xl bg-red-50 border-2 border-red-200 text-red-800 text-sm font-semibold">
             Booking opens on {DAY_NAMES[settings.pickup_day]} at {fmtTime(settings.sunday_evening_start)} for next {DAY_NAMES[settings.pickup_day]}. You can also book on {bookingDays}.
           </div>
