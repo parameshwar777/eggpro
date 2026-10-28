@@ -142,11 +142,18 @@ Deno.serve(async (req) => {
         if (offerError) throw offerError;
         offer = offers?.find((o: any) => String(o.code).toUpperCase() === couponCode && (!o.valid_from || new Date(o.valid_from).getTime() <= Date.now()) && (!o.valid_until || new Date(o.valid_until).getTime() >= Date.now()));
         if (!offer) return json({error:'Coupon is invalid or expired'},400);
+        // One coupon per account AND per phone number — check both so neither can be reused.
         const {data: redemption, error: redemptionError} = await admin.from('chicken_coupon_redemptions').select('user_id,order_id').eq('phone',phone).maybeSingle();
         if (redemptionError) throw redemptionError;
-        if (redemption) {
-          const {data: prior} = await admin.from('orders').select('payment_status').eq('id',redemption.order_id).single();
-          const status = couponPhoneStatus(redemption.user_id,user.id,prior?.payment_status === 'completed');
+        const {data: accountRedemption, error: accountRedemptionError} = await admin.from('chicken_coupon_redemptions').select('user_id,order_id').eq('user_id',user.id).maybeSingle();
+        if (accountRedemptionError) throw accountRedemptionError;
+        const priorRedemption = redemption || accountRedemption;
+        if (priorRedemption) {
+          const {data: prior} = await admin.from('orders').select('payment_status').eq('id',priorRedemption.order_id).single();
+          const paid = prior?.payment_status === 'completed';
+          if (accountRedemption && paid) return json({error:'This account has already used the chicken coupon'},400);
+          if (redemption && paid && redemption.user_id !== user.id) return json({error:'This phone number has already used the chicken coupon'},400);
+          const status = couponPhoneStatus(priorRedemption.user_id,user.id,paid);
           if (status !== 'resume') return json({error: status === 'used' ? 'This phone number has already used the chicken coupon' : 'This phone number already has a coupon order in progress'},400);
         }
         try {
