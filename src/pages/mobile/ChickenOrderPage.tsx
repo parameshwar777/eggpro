@@ -118,7 +118,8 @@ export const ChickenOrderPage = () => {
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("phone,full_name").eq("id", user.id).maybeSingle().then(({ data }) => {
-      if (data?.phone) setPhone(current => current || String(data.phone).replace(/\D/g, "").slice(-10));
+      const accountPhone = String(data?.phone || "").replace(/\D/g, "").slice(-10);
+      if (/^\d{10}$/.test(accountPhone)) { setPhone(accountPhone); setPhoneLocked(true); }
       if (data?.full_name) setCustomerName(current => current || data.full_name || '');
     });
     if (community) {
