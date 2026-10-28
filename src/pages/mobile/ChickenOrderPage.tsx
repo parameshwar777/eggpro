@@ -344,7 +344,10 @@ export const ChickenOrderPage = () => {
           </div>
           <div className="mt-4">
             <label htmlFor="chicken-phone" className="text-sm font-bold text-foreground">Phone number</label>
-            <Input id="chicken-phone" autoComplete="tel-national" inputMode="numeric" maxLength={10} value={phone} readOnly={phoneLocked} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-12 mt-1 font-semibold" placeholder="10-digit mobile number" />
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground pointer-events-none select-none">+91</span>
+              <Input id="chicken-phone" autoComplete="tel-national" inputMode="numeric" maxLength={10} value={phone} readOnly={phoneLocked} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-12 pl-12 font-semibold" placeholder="10-digit mobile number" />
+            </div>
             {phoneLocked && <p className="text-xs font-semibold text-muted-foreground mt-1">Linked to your account — coupons work once per account number.</p>}
           </div>
 

@@ -344,8 +344,11 @@ export const AddressPage = () => {
             {/* Phone */}
             <div>
               <label className="text-xs sm:text-sm font-medium text-foreground">Phone Number <span className="text-destructive">*</span></label>
-              <Input placeholder="10-digit mobile number" className="mt-1 text-sm" value={phone}
-                onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setPhone(v); }} maxLength={10} type="tel" inputMode="numeric" pattern="[0-9]*" />
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none select-none">+91</span>
+                <Input placeholder="10-digit mobile number" className="pl-12 text-sm" value={phone}
+                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setPhone(v); }} maxLength={10} type="tel" inputMode="numeric" pattern="[0-9]*" />
+              </div>
             </div>
 
             {/* Address Line 1 */}
