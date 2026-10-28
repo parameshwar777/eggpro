@@ -16,7 +16,8 @@ type AuthMode =
   | "verify-otp"
   | "complete-profile"
   | "forgot"          // step 1: enter email, send OTP
-  | "forgot-verify";  // step 2: enter OTP + new password
+  | "forgot-verify"   // step 2: enter OTP + new password
+  | "add-phone";      // logged-in user missing a phone number
 
 type AuthChannel = "email" | "phone";
 
@@ -362,6 +363,7 @@ export const AuthPage = () => {
     "complete-profile": "Almost done",
     forgot: "Reset Password",
     "forgot-verify": "Enter Code",
+    "add-phone": "Add Your Number",
   }[mode];
 
   const headerSub = {
@@ -371,6 +373,7 @@ export const AuthPage = () => {
     "complete-profile": "Add your details to finish signup",
     forgot: "We'll email you a 6-digit code",
     "forgot-verify": `Code sent to ${forgotEmail}`,
+    "add-phone": "Needed for orders and offers",
   }[mode];
 
   return (
@@ -384,6 +387,7 @@ export const AuthPage = () => {
             else if (mode === "forgot") { setMode("login"); }
             else if (mode === "forgot-verify") { setMode("forgot"); setOtp(""); }
             else if (mode === "signup") { setMode("login"); }
+            else if (mode === "add-phone") { navigate("/welcome"); }
             else navigate(-1);
           }}
           className="text-white mb-4"
@@ -639,6 +643,30 @@ export const AuthPage = () => {
                 <Button className="w-full h-12 gradient-hero text-white font-semibold"
                   onClick={handleCompleteSignup} disabled={isLoading}>
                   {isLoading ? "Creating..." : "Create Account"}
+                </Button>
+              </motion.div>
+            )}
+
+            {/* ============== ADD PHONE (logged-in, missing number) ============== */}
+            {mode === "add-phone" && (
+              <motion.div key="add-phone"
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                className="space-y-4"
+              >
+                <p className="text-sm text-muted-foreground">
+                  Add your mobile number so we can reach you about orders. Offers are limited to one use per number.
+                </p>
+                <div className="space-y-2">
+                  <label className="text-base font-semibold">Mobile Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input type="tel" inputMode="numeric" maxLength={10} placeholder="10-digit mobile number" value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="pl-10 h-12" />
+                  </div>
+                </div>
+                <Button className="w-full h-12 gradient-hero text-white font-semibold"
+                  onClick={handleAddPhone} disabled={isLoading}>
+                  {isLoading ? "Saving..." : "Save & Continue"}
                 </Button>
               </motion.div>
             )}
