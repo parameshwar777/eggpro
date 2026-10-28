@@ -1,4 +1,5 @@
 export interface SupplySchedule {
+  store_closed?: boolean;
   booking_days: number[];
   pickup_day: number;
   cutoff_time: string;
@@ -6,6 +7,7 @@ export interface SupplySchedule {
 }
 const OFFSET = 330 * 60 * 1000;
 export function chickenBookingOpen(s: SupplySchedule, now = new Date()) {
+  if (s.store_closed) return false;
   const india = new Date(now.getTime() + OFFSET);
   const day = india.getUTCDay();
   if (day === s.pickup_day) {

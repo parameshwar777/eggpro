@@ -1,3 +1,4 @@
+import { ChickenClosedNotice } from "@/components/mobile/ChickenClosedNotice";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Minus, Plus, ShoppingCart, Loader2, ChevronRight } from "lucide-react";
@@ -40,6 +41,7 @@ export function ChickenProductDetailPage() {
   const count = product ? qty[product.id] || 0 : 0;
   return (
     <div className="page-scroll bg-background">
+      <ChickenClosedNotice />
       <div className="max-w-lg mx-auto pb-44">
         <header className="flex items-center justify-between px-4 py-3 safe-area-pt">
           <Button variant="ghost" size="icon" className="h-12 w-12" aria-label="Back to chicken products" onClick={() => navigate("/chicken/order")}><ArrowLeft /></Button>
@@ -56,7 +58,7 @@ export function ChickenProductDetailPage() {
             {variants.length > 1 && <section><h2 className="text-base mb-3">Choose weight</h2><div className="flex flex-wrap gap-2">{variants.map((variant) => <Button key={variant.id} variant={variant.id === product.id ? "default" : "outline"} className="min-h-12" onClick={() => setSelectedId(variant.id)}>{variant.weight || variant.name}</Button>)}</div></section>}
             <section className="border-t border-border pt-5"><h2 className="text-lg mb-2">About this product</h2>{product.description && <p className="text-sm leading-relaxed whitespace-pre-line text-justify text-foreground">{product.description}</p>}</section>
             {!product.available && <p className="text-destructive font-bold">Out of stock</p>}
-            {!bookingOpen && <p className="text-muted-foreground font-bold">Chicken booking is closed today.</p>}
+            {!bookingOpen && !settings.store_closed && <p className="text-muted-foreground font-bold">Chicken booking is closed today.</p>}
           </div>
         </>}
       </div>

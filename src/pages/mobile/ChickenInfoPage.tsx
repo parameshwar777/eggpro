@@ -1,3 +1,4 @@
+import { ChickenClosedNotice } from "@/components/mobile/ChickenClosedNotice";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ChevronRight, Leaf, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export const ChickenInfoPage = () => {
   return (
     <div className="page-scroll bg-background w-full">
       <ChickenOfferPopup />
+      <ChickenClosedNotice />
       <div className="max-w-lg mx-auto pb-44">
         <div className="gradient-hero text-accent-foreground px-5 pt-4 pb-5 safe-top">
           <Button variant="ghost" size="icon" onClick={() => navigate("/welcome")} className="h-12 w-12 -ml-2" aria-label="Back">
