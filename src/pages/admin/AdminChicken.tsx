@@ -100,10 +100,14 @@ export const AdminChickenSchedule = () => {
             <span className="text-amber-100 font-bold">{s.store_closed ? "Chicken store is CLOSED" : "Close chicken store"}</span>
           </div>
           <div>
+            <span className={label}>Heading customers see when closed</span>
+            <Input value={s.closed_title} onChange={(e) => setS({ ...s, closed_title: e.target.value })} placeholder="e.g. Chicken Store Closed" />
+          </div>
+          <div>
             <span className={label}>Message customers see when closed</span>
             <Textarea value={s.closed_message} onChange={(e) => setS({ ...s, closed_message: e.target.value })} placeholder="e.g. Closed this week due to supply issue. Back next Monday." />
           </div>
-          <p className="text-xs text-amber-300">When closed, customers see this message as a popup on the chicken pages and cannot place orders. Tap SAVE SCHEDULE to apply.</p>
+          <p className="text-xs text-amber-300">When closed, customers see this heading and message instead of the chicken pages and cannot open or order. Tap SAVE SCHEDULE to apply.</p>
         </div>
         <div>
           <span className={label}>Booking Days</span>
