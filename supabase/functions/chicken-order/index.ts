@@ -134,6 +134,8 @@ Deno.serve(async (req) => {
       }
       total = Math.round(total * 100) / 100;
 
+      // Coupon refusals are expected answers, not failures: reply 200 with an error the checkout shows inline.
+      const couponRefusal = (error: string) => json({ error, field: 'couponCode', couponRejected: true }, 200);
       let discount = 0;
       let offer: any = null;
       const couponCode = (parsed.data.couponCode || '').toUpperCase();
@@ -141,7 +143,7 @@ Deno.serve(async (req) => {
         const {data: offers, error: offerError} = await admin.from('offers').select('*').eq('is_active',true).in('business',['chicken','all']).ilike('code',couponCode);
         if (offerError) throw offerError;
         offer = offers?.find((o: any) => String(o.code).toUpperCase() === couponCode && (!o.valid_from || new Date(o.valid_from).getTime() <= Date.now()) && (!o.valid_until || new Date(o.valid_until).getTime() >= Date.now()));
-        if (!offer) return json({error:'Coupon is invalid or expired'},400);
+        if (!offer) return couponRefusal('Coupon is invalid or expired');
         // One coupon per account AND per phone number — check both so neither can be reused.
         const {data: redemption, error: redemptionError} = await admin.from('chicken_coupon_redemptions').select('user_id,order_id').eq('phone',phone).order('created_at',{ascending:false}).limit(1).maybeSingle();
         if (redemptionError) throw redemptionError;
@@ -151,17 +153,17 @@ Deno.serve(async (req) => {
         if (priorRedemption) {
           const {data: prior} = await admin.from('orders').select('payment_status').eq('id',priorRedemption.order_id).maybeSingle();
           const paid = prior?.payment_status === 'completed';
-          if (accountRedemption && paid) return json({error:'This account has already used the chicken coupon'},400);
-          if (redemption && paid && redemption.user_id !== user.id) return json({error:'This phone number has already used the chicken coupon'},400);
+          if (accountRedemption && paid) return couponRefusal('This account has already used the chicken coupon');
+          if (redemption && paid && redemption.user_id !== user.id) return couponRefusal('This phone number has already used the chicken coupon');
           const status = couponPhoneStatus(priorRedemption.user_id,user.id,paid);
-          if (status !== 'resume') return json({error: status === 'used' ? 'This phone number has already used the chicken coupon' : 'This phone number already has a coupon order in progress'},400);
+          if (status !== 'resume') return couponRefusal(status === 'used' ? 'This phone number has already used the chicken coupon' : 'This phone number already has a coupon order in progress');
         }
         try {
           discount = chickenCouponDiscount(lines,Number(offer.discount_percentage || 0),offer.product_id);
         } catch (error) {
-          return json({error: error instanceof Error ? error.message : 'This coupon does not apply to the selected product', field: 'couponCode'},400);
+          return couponRefusal(error instanceof Error ? error.message : 'This coupon does not apply to the selected product');
         }
-        if (discount <= 0) return json({error:'This coupon does not apply to the selected products'},400);
+        if (discount <= 0) return couponRefusal('This coupon does not apply to the selected products');
       }
       const subtotal = total;
       total = Math.round((subtotal-discount)*100)/100;
