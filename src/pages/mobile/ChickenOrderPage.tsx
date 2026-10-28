@@ -74,6 +74,7 @@ export const ChickenOrderPage = () => {
   const [centerId, setCenterId] = useState("");
   const [addressId, setAddressId] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneLocked, setPhoneLocked] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{code:string;phone:string;name:string} | null>(null);
