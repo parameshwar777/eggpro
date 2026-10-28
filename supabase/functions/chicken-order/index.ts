@@ -109,9 +109,12 @@ Deno.serve(async (req) => {
       const items = parsed.data.items;
       if (new Set(items.map(i => i.productId)).size !== items.length) return json({error:'Duplicate product selection'},400);
       const fulfillment = body.fulfillment === "pickup" ? "pickup" : "delivery";
-      const phone = String(body.phone || "").replace(/\D/g, "");
+      // Always use the signed-in account's verified phone — never a client-typed number —
+      // so coupons can't be claimed with invented numbers.
+      const { data: profile } = await admin.from("profiles").select("phone").eq("id", user.id).maybeSingle();
+      const phone = String(profile?.phone || "").replace(/\D/g, "").slice(-10);
       if (!items.length) return json({ error: "Select at least one product" }, 400);
-      if (!/^\d{10}$/.test(phone)) return json({ error: "Enter a valid 10-digit phone number" }, 400);
+      if (!/^\d{10}$/.test(phone)) return json({ error: "Your account needs a valid 10-digit phone number. Update it in your profile and try again." }, 400);
 
       const settings = await getSettings(admin);
       if (!chickenBookingOpen(settings)) return json({ error: "Chicken booking is closed. Sunday evening bookings open at " + (settings.sunday_evening_start || "18:00") + " IST for the following week." }, 400);
