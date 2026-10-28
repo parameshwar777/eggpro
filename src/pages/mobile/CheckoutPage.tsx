@@ -590,6 +590,7 @@ export const CheckoutPage = () => {
                     inputMode="numeric"
                     pattern="[0-9]*"
                   />
+                </div>
               </div>
 
               <div>
