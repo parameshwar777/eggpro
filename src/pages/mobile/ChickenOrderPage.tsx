@@ -153,7 +153,18 @@ export const ChickenOrderPage = () => {
   useEffect(() => {
     if (couponActive && couponQuote.error) toast({title:couponQuote.error.message,variant:'destructive'});
   }, [couponActive, couponQuote.error, toast]);
-  const applyCoupon = () => {
+  // If the account has no verified phone yet, save the typed number to the profile first
+  // so the server-side coupon check (which trusts only the account number) succeeds.
+  const ensureProfilePhone = async (): Promise<boolean> => {
+    if (!user || phoneLocked) return true;
+    const clean = phone.replace(/\D/g, "").slice(0, 10);
+    if (!/^\d{10}$/.test(clean)) return false;
+    const { error } = await supabase.from("profiles").update({ phone: clean }).eq("id", user.id);
+    if (error) { toast({ title: "Could not save your number", variant: "destructive" }); return false; }
+    setPhoneLocked(true);
+    return true;
+  };
+  const applyCoupon = async () => {
     if (!user) { sessionStorage.setItem('auth_return_to', '/chicken/order'); navigate('/auth'); return; }
     const validation = chickenCheckoutError(customerName,phone,items.length);
     if (validation) {
