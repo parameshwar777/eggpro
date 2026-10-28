@@ -578,16 +578,18 @@ export const CheckoutPage = () => {
 
               <div>
                 <label className="text-sm text-muted-foreground">Phone Number *</label>
-                <Input
-                  placeholder="10-digit mobile number"
-                  value={phone}
-                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setPhone(v); }}
-                  className="mt-1"
-                  maxLength={10}
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                />
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none select-none">+91</span>
+                  <Input
+                    placeholder="10-digit mobile number"
+                    value={phone}
+                    onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setPhone(v); }}
+                    className="pl-12"
+                    maxLength={10}
+                    type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                  />
               </div>
 
               <div>

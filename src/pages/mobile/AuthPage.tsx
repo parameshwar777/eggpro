@@ -449,9 +449,10 @@ export const AuthPage = () => {
                     <label className="text-base font-semibold">Phone</label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <span className="absolute left-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none select-none">+91</span>
                       <Input type="tel" inputMode="numeric" maxLength={10}
-                        placeholder="10-digit phone (India +91)" value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} className="pl-10 h-12" />
+                        placeholder="10-digit mobile number" value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} className="pl-[4.75rem] h-12" />
                     </div>
                   </div>
                 )}
@@ -510,9 +511,10 @@ export const AuthPage = () => {
                       <label className="text-base font-semibold">WhatsApp Number</label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <span className="absolute left-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none select-none">+91</span>
                         <Input type="tel" inputMode="numeric" maxLength={10}
-                          placeholder="10-digit phone (India +91)" value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} className="pl-10 h-12" />
+                          placeholder="10-digit mobile number" value={phone}
+                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} className="pl-[4.75rem] h-12" />
                       </div>
                       <p className="text-xs text-muted-foreground">We'll send a 6-digit code on WhatsApp</p>
                     </div>
