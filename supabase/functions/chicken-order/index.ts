@@ -143,9 +143,9 @@ Deno.serve(async (req) => {
         offer = offers?.find((o: any) => String(o.code).toUpperCase() === couponCode && (!o.valid_from || new Date(o.valid_from).getTime() <= Date.now()) && (!o.valid_until || new Date(o.valid_until).getTime() >= Date.now()));
         if (!offer) return json({error:'Coupon is invalid or expired'},400);
         // One coupon per account AND per phone number — check both so neither can be reused.
-        const {data: redemption, error: redemptionError} = await admin.from('chicken_coupon_redemptions').select('user_id,order_id').eq('phone',phone).maybeSingle();
+        const {data: redemption, error: redemptionError} = await admin.from('chicken_coupon_redemptions').select('user_id,order_id').eq('phone',phone).order('created_at',{ascending:false}).limit(1).maybeSingle();
         if (redemptionError) throw redemptionError;
-        const {data: accountRedemption, error: accountRedemptionError} = await admin.from('chicken_coupon_redemptions').select('user_id,order_id').eq('user_id',user.id).maybeSingle();
+        const {data: accountRedemption, error: accountRedemptionError} = await admin.from('chicken_coupon_redemptions').select('user_id,order_id').eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
         if (accountRedemptionError) throw accountRedemptionError;
         const priorRedemption = redemption || accountRedemption;
         if (priorRedemption) {
