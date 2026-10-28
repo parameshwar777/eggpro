@@ -153,7 +153,18 @@ export const ChickenOrderPage = () => {
   useEffect(() => {
     if (couponActive && couponQuote.error) toast({title:couponQuote.error.message,variant:'destructive'});
   }, [couponActive, couponQuote.error, toast]);
-  const applyCoupon = () => {
+  // If the account has no verified phone yet, save the typed number to the profile first
+  // so the server-side coupon check (which trusts only the account number) succeeds.
+  const ensureProfilePhone = async (): Promise<boolean> => {
+    if (!user || phoneLocked) return true;
+    const clean = phone.replace(/\D/g, "").slice(0, 10);
+    if (!/^\d{10}$/.test(clean)) return false;
+    const { error } = await supabase.from("profiles").update({ phone: clean }).eq("id", user.id);
+    if (error) { toast({ title: "Could not save your number", variant: "destructive" }); return false; }
+    setPhoneLocked(true);
+    return true;
+  };
+  const applyCoupon = async () => {
     if (!user) { sessionStorage.setItem('auth_return_to', '/chicken/order'); navigate('/auth'); return; }
     const validation = chickenCheckoutError(customerName,phone,items.length);
     if (validation) {
@@ -162,6 +173,7 @@ export const ChickenOrderPage = () => {
       if (validation.field !== 'items') { input?.scrollIntoView({block:'center'}); input?.focus(); }
       return;
     }
+    if (!(await ensureProfilePhone())) return;
     if (couponActive) void couponQuote.refetch();
     else setAppliedCoupon({code:couponCode.trim(),phone,name:customerName});
   };
@@ -175,6 +187,7 @@ export const ChickenOrderPage = () => {
     const items = Object.entries(qty).filter(([id, n]) => n > 0 && products.some((p) => p.id === id && p.available)).map(([productId, quantity]) => ({ productId, quantity }));
     const validation = chickenCheckoutError(customerName,phone,items.length);
     if (validation) return toast({title:validation.message,variant:'destructive'});
+    if (!(await ensureProfilePhone())) return;
     if (couponCode.trim() && !quote) return toast({title:'Apply your coupon before placing the order',variant:'destructive'});
     let body: any = { action: "create", items, fulfillment: mode, phone, customerName, couponCode };
     if (mode === "pickup") {
