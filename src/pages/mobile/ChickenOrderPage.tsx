@@ -204,8 +204,12 @@ export const ChickenOrderPage = () => {
     }
     setPaying(true);
     try {
-      // (coupon refusals arrive as a normal reply with couponRejected; handled below)
       const { data, error } = await supabase.functions.invoke("chicken-order", { body });
+      if (data?.couponRejected) {
+        toast({ title: data.error, description: "Remove the coupon to order at the normal price.", variant: "destructive" });
+        setAppliedCoupon(null);
+        return;
+      }
       if (error || data?.error) {
         let message = data?.error || 'Could not start payment';
         if (error?.context) { try { message = (await error.context.json()).error || message; } catch { /* response unavailable */ } }
