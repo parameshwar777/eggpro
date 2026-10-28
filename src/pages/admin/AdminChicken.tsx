@@ -94,6 +94,17 @@ export const AdminChickenSchedule = () => {
   return (
     <AdminLayout title="Chicken Pickup Schedule">
       <div className="max-w-xl space-y-5 bg-amber-900/50 border border-amber-800 rounded-xl p-5">
+        <div className={`rounded-xl border-2 p-4 space-y-3 ${s.store_closed ? "border-destructive bg-destructive/10" : "border-amber-700"}`}>
+          <div className="flex items-center gap-3">
+            <Switch checked={s.store_closed} onCheckedChange={(v) => setS({ ...s, store_closed: v })} aria-label="Close chicken store" />
+            <span className="text-amber-100 font-bold">{s.store_closed ? "Chicken store is CLOSED" : "Close chicken store"}</span>
+          </div>
+          <div>
+            <span className={label}>Message customers see when closed</span>
+            <Textarea value={s.closed_message} onChange={(e) => setS({ ...s, closed_message: e.target.value })} placeholder="e.g. Closed this week due to supply issue. Back next Monday." />
+          </div>
+          <p className="text-xs text-amber-300">When closed, customers see this message as a popup on the chicken pages and cannot place orders. Tap SAVE SCHEDULE to apply.</p>
+        </div>
         <div>
           <span className={label}>Booking Days</span>
           <div className="flex flex-wrap gap-2">

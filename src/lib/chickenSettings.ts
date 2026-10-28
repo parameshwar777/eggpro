@@ -12,6 +12,8 @@ export interface ChickenPickupSettings {
   refund_policy: string;
   delivery_enabled: boolean;
   sunday_evening_start: string;
+  store_closed: boolean;
+  closed_message: string;
 }
 
 export const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -25,6 +27,8 @@ export const DEFAULT_CHICKEN_SETTINGS: ChickenPickupSettings = {
   refund_policy: "",
   delivery_enabled: true,
   sunday_evening_start: "18:00",
+  store_closed: false,
+  closed_message: "EggPro Chicken is temporarily closed. We will be back soon!",
 };
 
 export const SETTINGS_KEY = "chicken_pickup_settings";

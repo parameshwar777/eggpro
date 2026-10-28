@@ -11,7 +11,7 @@ const istNow = () => new Date(Date.now() + IST_OFFSET_MS); // use getUTC* for IS
 
 interface PickupSettings {
   booking_days: number[]; pickup_day: number; pickup_start_time: string;
-    pickup_end_time: string; cutoff_time: string; refund_policy: string; delivery_enabled?: boolean; sunday_evening_start?: string;
+    pickup_end_time: string; cutoff_time: string; refund_policy: string; delivery_enabled?: boolean; sunday_evening_start?: string; store_closed?: boolean; closed_message?: string;
 }
 
 async function getSettings(sb: any): Promise<PickupSettings> {
@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
       if (!/^\d{10}$/.test(phone)) return json({ error: "Your account needs a valid 10-digit phone number. Update it in your profile and try again." }, 400);
 
       const settings = await getSettings(admin);
+      if (settings.store_closed) return json({ error: settings.closed_message || "EggPro Chicken is temporarily closed." }, 400);
       if (!chickenBookingOpen(settings)) return json({ error: "Chicken booking is closed. Sunday evening bookings open at " + (settings.sunday_evening_start || "18:00") + " IST for the following week." }, 400);
 
       const ids = items.map((i: any) => String(i.productId));
