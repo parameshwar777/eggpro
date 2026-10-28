@@ -74,6 +74,7 @@ export const ChickenOrderPage = () => {
   const [centerId, setCenterId] = useState("");
   const [addressId, setAddressId] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneLocked, setPhoneLocked] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{code:string;phone:string;name:string} | null>(null);
@@ -117,7 +118,8 @@ export const ChickenOrderPage = () => {
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("phone,full_name").eq("id", user.id).maybeSingle().then(({ data }) => {
-      if (data?.phone) setPhone(current => current || String(data.phone).replace(/\D/g, "").slice(-10));
+      const accountPhone = String(data?.phone || "").replace(/\D/g, "").slice(-10);
+      if (/^\d{10}$/.test(accountPhone)) { setPhone(accountPhone); setPhoneLocked(true); }
       if (data?.full_name) setCustomerName(current => current || data.full_name || '');
     });
     if (community) {
@@ -329,7 +331,8 @@ export const ChickenOrderPage = () => {
           </div>
           <div className="mt-4">
             <label htmlFor="chicken-phone" className="text-sm font-bold text-foreground">Phone number</label>
-            <Input id="chicken-phone" autoComplete="tel-national" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-12 mt-1 font-semibold" placeholder="10-digit mobile number" />
+            <Input id="chicken-phone" autoComplete="tel-national" inputMode="numeric" maxLength={10} value={phone} readOnly={phoneLocked} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-12 mt-1 font-semibold" placeholder="10-digit mobile number" />
+            {phoneLocked && <p className="text-xs font-semibold text-muted-foreground mt-1">Linked to your account — coupons work once per account number.</p>}
           </div>
 
           <div className="mt-5 space-y-2">
