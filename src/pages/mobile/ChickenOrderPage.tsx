@@ -173,6 +173,7 @@ export const ChickenOrderPage = () => {
       if (validation.field !== 'items') { input?.scrollIntoView({block:'center'}); input?.focus(); }
       return;
     }
+    if (!(await ensureProfilePhone())) return;
     if (couponActive) void couponQuote.refetch();
     else setAppliedCoupon({code:couponCode.trim(),phone,name:customerName});
   };
@@ -186,6 +187,7 @@ export const ChickenOrderPage = () => {
     const items = Object.entries(qty).filter(([id, n]) => n > 0 && products.some((p) => p.id === id && p.available)).map(([productId, quantity]) => ({ productId, quantity }));
     const validation = chickenCheckoutError(customerName,phone,items.length);
     if (validation) return toast({title:validation.message,variant:'destructive'});
+    if (!(await ensureProfilePhone())) return;
     if (couponCode.trim() && !quote) return toast({title:'Apply your coupon before placing the order',variant:'destructive'});
     let body: any = { action: "create", items, fulfillment: mode, phone, customerName, couponCode };
     if (mode === "pickup") {
