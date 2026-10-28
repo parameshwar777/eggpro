@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
         if (accountRedemptionError) throw accountRedemptionError;
         const priorRedemption = redemption || accountRedemption;
         if (priorRedemption) {
-          const {data: prior} = await admin.from('orders').select('payment_status').eq('id',priorRedemption.order_id).single();
+          const {data: prior} = await admin.from('orders').select('payment_status').eq('id',priorRedemption.order_id).maybeSingle();
           const paid = prior?.payment_status === 'completed';
           if (accountRedemption && paid) return json({error:'This account has already used the chicken coupon'},400);
           if (redemption && paid && redemption.user_id !== user.id) return json({error:'This phone number has already used the chicken coupon'},400);
@@ -194,8 +194,9 @@ Deno.serve(async (req) => {
         if (reserved?.error || reserved?.existingOrderId) {
           await admin.from('orders').update({order_status:'cancelled',payment_status:'failed'}).eq('id',order.id);
           if (reserved?.error) return json({error:reserved.error},400);
-          const {data: existing,error: existingError} = await admin.from('orders').select('*').eq('id',reserved.existingOrderId).eq('user_id',user.id).single();
+          const {data: existing,error: existingError} = await admin.from('orders').select('*').eq('id',reserved.existingOrderId).maybeSingle();
           if (existingError) throw existingError;
+          if (!existing || existing.user_id !== user.id) return json({error:'This phone number already has a coupon order in progress on another account', field:'couponCode'},400);
           const sameCheckout = JSON.stringify(existing.items) === JSON.stringify(lines) && existing.pickup_center_id === centerId && Number(existing.total_amount) === total && existing.customer_name === parsed.data.customerName;
           if (sameCheckout) {
             order = existing;
@@ -212,8 +213,9 @@ Deno.serve(async (req) => {
             const {error: moveError} = await admin.from('chicken_coupon_redemptions').update({order_id:newOrder.id,discount_amount:discount,razorpay_order_id:null}).eq('order_id',existing.id);
             if (moveError) throw moveError;
             await admin.from('orders').update({order_status:'cancelled',payment_status:'failed'}).eq('id',existing.id).neq('payment_status','completed');
-            const {data: revived,error: reviveError} = await admin.from('orders').update({order_status:'pending',payment_status:'pending'}).eq('id',newOrder.id).select().single();
+            const {data: revived,error: reviveError} = await admin.from('orders').update({order_status:'pending',payment_status:'pending'}).eq('id',newOrder.id).select().maybeSingle();
             if (reviveError) throw reviveError;
+            if (!revived) return json({error:'Could not start checkout. Please try again.'},400);
             order = revived;
           }
         }
