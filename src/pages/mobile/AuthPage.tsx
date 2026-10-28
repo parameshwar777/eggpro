@@ -58,7 +58,19 @@ export const AuthPage = () => {
           navigate("/merchant/orders", { replace: true });
           return;
         }
-        const { data: profile } = await supabase.from("profiles").select("community").eq("id", user.id).single();
+        const { data: profile } = await supabase.from("profiles").select("community,phone").eq("id", user.id).single();
+        const accountPhone = String(profile?.phone || "").replace(/\D/g, "").slice(-10);
+        if (!/^\d{10}$/.test(accountPhone)) {
+          // Email signups may have no phone yet — collect it before continuing.
+          setMode("add-phone");
+          return;
+        }
+        const returnTo = sessionStorage.getItem("auth_return_to");
+        if (returnTo && returnTo.startsWith("/")) {
+          sessionStorage.removeItem("auth_return_to");
+          navigate(returnTo, { replace: true });
+          return;
+        }
         if (profile?.community) {
           localStorage.setItem("selectedCommunity", profile.community);
           navigate("/home", { replace: true });
@@ -68,6 +80,30 @@ export const AuthPage = () => {
       })();
     }
   }, [user, navigate]);
+
+  // ============ ADD PHONE (logged-in users without one) ============
+  const handleAddPhone = async () => {
+    const normalized = normalizePhone(phone);
+    if (!/^\d{10}$/.test(normalized)) return err("Enter a valid 10-digit mobile number");
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from("profiles").update({ phone: normalized }).eq("id", user.id);
+      if (error) throw error;
+      toast({ title: "Number saved" });
+      const returnTo = sessionStorage.getItem("auth_return_to");
+      if (returnTo && returnTo.startsWith("/")) {
+        sessionStorage.removeItem("auth_return_to");
+        navigate(returnTo, { replace: true });
+      } else {
+        navigate("/community", { replace: true });
+      }
+    } catch (e: any) {
+      err(e.message || "Could not save your number");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (resendTimer > 0) {
