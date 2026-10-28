@@ -251,7 +251,13 @@ export const AuthPage = () => {
       toast({ title: "Account created!", description: "Signing you in..." });
       const { error: signInErr } = await signInWithEmail(email.trim().toLowerCase(), password);
       if (signInErr) throw signInErr;
-      navigate("/community");
+      const returnTo = sessionStorage.getItem("auth_return_to");
+      if (returnTo && returnTo.startsWith("/")) {
+        sessionStorage.removeItem("auth_return_to");
+        navigate(returnTo, { replace: true });
+      } else {
+        navigate("/community");
+      }
     } catch (e: any) {
       err(e.message);
     } finally {
