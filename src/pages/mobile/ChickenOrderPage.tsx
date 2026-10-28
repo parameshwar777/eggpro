@@ -154,7 +154,7 @@ export const ChickenOrderPage = () => {
     if (couponActive && couponQuote.error) toast({title:couponQuote.error.message,variant:'destructive'});
   }, [couponActive, couponQuote.error, toast]);
   const applyCoupon = () => {
-    if (!user) { navigate('/auth'); return; }
+    if (!user) { sessionStorage.setItem('auth_return_to', '/chicken/order'); navigate('/auth'); return; }
     const validation = chickenCheckoutError(customerName,phone,items.length);
     if (validation) {
       toast({title:validation.message,variant:'destructive'});
@@ -171,7 +171,7 @@ export const ChickenOrderPage = () => {
 
 
   const pay = async () => {
-    if (!user) { navigate("/auth"); return; }
+    if (!user) { sessionStorage.setItem('auth_return_to', '/chicken/order'); navigate("/auth"); return; }
     const items = Object.entries(qty).filter(([id, n]) => n > 0 && products.some((p) => p.id === id && p.available)).map(([productId, quantity]) => ({ productId, quantity }));
     const validation = chickenCheckoutError(customerName,phone,items.length);
     if (validation) return toast({title:validation.message,variant:'destructive'});

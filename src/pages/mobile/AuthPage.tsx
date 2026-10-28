@@ -16,7 +16,8 @@ type AuthMode =
   | "verify-otp"
   | "complete-profile"
   | "forgot"          // step 1: enter email, send OTP
-  | "forgot-verify";  // step 2: enter OTP + new password
+  | "forgot-verify"   // step 2: enter OTP + new password
+  | "add-phone";      // logged-in user missing a phone number
 
 type AuthChannel = "email" | "phone";
 
@@ -58,7 +59,19 @@ export const AuthPage = () => {
           navigate("/merchant/orders", { replace: true });
           return;
         }
-        const { data: profile } = await supabase.from("profiles").select("community").eq("id", user.id).single();
+        const { data: profile } = await supabase.from("profiles").select("community,phone").eq("id", user.id).single();
+        const accountPhone = String(profile?.phone || "").replace(/\D/g, "").slice(-10);
+        if (!/^\d{10}$/.test(accountPhone)) {
+          // Email signups may have no phone yet — collect it before continuing.
+          setMode("add-phone");
+          return;
+        }
+        const returnTo = sessionStorage.getItem("auth_return_to");
+        if (returnTo && returnTo.startsWith("/")) {
+          sessionStorage.removeItem("auth_return_to");
+          navigate(returnTo, { replace: true });
+          return;
+        }
         if (profile?.community) {
           localStorage.setItem("selectedCommunity", profile.community);
           navigate("/home", { replace: true });
@@ -68,6 +81,30 @@ export const AuthPage = () => {
       })();
     }
   }, [user, navigate]);
+
+  // ============ ADD PHONE (logged-in users without one) ============
+  const handleAddPhone = async () => {
+    const normalized = normalizePhone(phone);
+    if (!/^\d{10}$/.test(normalized)) return err("Enter a valid 10-digit mobile number");
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from("profiles").update({ phone: normalized }).eq("id", user.id);
+      if (error) throw error;
+      toast({ title: "Number saved" });
+      const returnTo = sessionStorage.getItem("auth_return_to");
+      if (returnTo && returnTo.startsWith("/")) {
+        sessionStorage.removeItem("auth_return_to");
+        navigate(returnTo, { replace: true });
+      } else {
+        navigate("/community", { replace: true });
+      }
+    } catch (e: any) {
+      err(e.message || "Could not save your number");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -214,7 +251,13 @@ export const AuthPage = () => {
       toast({ title: "Account created!", description: "Signing you in..." });
       const { error: signInErr } = await signInWithEmail(email.trim().toLowerCase(), password);
       if (signInErr) throw signInErr;
-      navigate("/community");
+      const returnTo = sessionStorage.getItem("auth_return_to");
+      if (returnTo && returnTo.startsWith("/")) {
+        sessionStorage.removeItem("auth_return_to");
+        navigate(returnTo, { replace: true });
+      } else {
+        navigate("/community");
+      }
     } catch (e: any) {
       err(e.message);
     } finally {
@@ -326,6 +369,7 @@ export const AuthPage = () => {
     "complete-profile": "Almost done",
     forgot: "Reset Password",
     "forgot-verify": "Enter Code",
+    "add-phone": "Add Your Number",
   }[mode];
 
   const headerSub = {
@@ -335,6 +379,7 @@ export const AuthPage = () => {
     "complete-profile": "Add your details to finish signup",
     forgot: "We'll email you a 6-digit code",
     "forgot-verify": `Code sent to ${forgotEmail}`,
+    "add-phone": "Needed for orders and offers",
   }[mode];
 
   return (
@@ -348,6 +393,7 @@ export const AuthPage = () => {
             else if (mode === "forgot") { setMode("login"); }
             else if (mode === "forgot-verify") { setMode("forgot"); setOtp(""); }
             else if (mode === "signup") { setMode("login"); }
+            else if (mode === "add-phone") { navigate("/welcome"); }
             else navigate(-1);
           }}
           className="text-white mb-4"
@@ -603,6 +649,30 @@ export const AuthPage = () => {
                 <Button className="w-full h-12 gradient-hero text-white font-semibold"
                   onClick={handleCompleteSignup} disabled={isLoading}>
                   {isLoading ? "Creating..." : "Create Account"}
+                </Button>
+              </motion.div>
+            )}
+
+            {/* ============== ADD PHONE (logged-in, missing number) ============== */}
+            {mode === "add-phone" && (
+              <motion.div key="add-phone"
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                className="space-y-4"
+              >
+                <p className="text-sm text-muted-foreground">
+                  Add your mobile number so we can reach you about orders. Offers are limited to one use per number.
+                </p>
+                <div className="space-y-2">
+                  <label className="text-base font-semibold">Mobile Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input type="tel" inputMode="numeric" maxLength={10} placeholder="10-digit mobile number" value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="pl-10 h-12" />
+                  </div>
+                </div>
+                <Button className="w-full h-12 gradient-hero text-white font-semibold"
+                  onClick={handleAddPhone} disabled={isLoading}>
+                  {isLoading ? "Saving..." : "Save & Continue"}
                 </Button>
               </motion.div>
             )}
