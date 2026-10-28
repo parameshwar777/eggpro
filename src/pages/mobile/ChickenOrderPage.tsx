@@ -151,7 +151,10 @@ export const ChickenOrderPage = () => {
   const quote = couponActive && items.length > 0 && couponQuote.isSuccess && !couponQuote.isFetching ? couponQuote.data : null;
   const shownQuote = couponActive && items.length > 0 ? couponQuote.data : null;
   useEffect(() => {
-    if (couponActive && couponQuote.error) toast({title:couponQuote.error.message,variant:'destructive'});
+    if (couponActive && couponQuote.error) {
+      toast({title:couponQuote.error.message,variant:'destructive'});
+      setAppliedCoupon(null);
+    }
   }, [couponActive, couponQuote.error, toast]);
   // If the account has no verified phone yet, save the typed number to the profile first
   // so the server-side coupon check (which trusts only the account number) succeeds.
@@ -201,6 +204,7 @@ export const ChickenOrderPage = () => {
     }
     setPaying(true);
     try {
+      // (coupon refusals arrive as a normal reply with couponRejected; handled below)
       const { data, error } = await supabase.functions.invoke("chicken-order", { body });
       if (error || data?.error) {
         let message = data?.error || 'Could not start payment';
